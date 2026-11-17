@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quản trị luyện đề</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f59e0b'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EΦ%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-in">
+      <a class="brand" href="#/"><span class="brand-logo" style="background:var(--accent)">Φ</span><span>Quản trị</span></a>
+      <nav class="nav hidden" id="nav">
+        <a href="#/" data-nav="home">Tổng quan</a>
+        <a href="#/de-thi" data-nav="exams">Đề thi</a>
+        <a href="#/hoc-sinh" data-nav="students">Học sinh</a>
+        <a href="#/ket-qua" data-nav="results">Kết quả</a>
+        <a href="#/bang-diem" data-nav="gradebook">Bảng điểm</a>
+        <a href="#/cai-dat" data-nav="settings">Cài đặt</a>
+      </nav>
+      <div class="spacer"></div>
+      <div id="userBox" class="row"></div>
+    </div>
+  </header>
+  <main id="app" class="container"></main>
+
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script defer src="assets/js/config.js"></script>
+  <script defer src="assets/js/common.js"></script>
+  <script defer src="assets/js/importer.js"></script>
+  <script defer src="assets/js/admin.js"></script>
+</body>
+</html>
