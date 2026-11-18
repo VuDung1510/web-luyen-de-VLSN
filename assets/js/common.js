@@ -106,8 +106,12 @@
     if (!scope) return null;
     try { const v = JSON.parse(scope.st.getItem(scope.prefix + key)); return v && 'd' in v ? v : null; } catch (e) { return null; }
   }
-  function cacheSet(key, data) {
+  let epoch = 0; // tăng mỗi lần cacheDel: lời gọi bắt đầu trước khi xóa sẽ không cất lại bản cũ
+  /** Thẻ "kho hiện tại": lấy trước khi gọi máy chủ, đưa vào cacheSet để không ghi nhầm kho người khác / bản cũ. */
+  function cacheToken() { return { sc: scope, ep: epoch }; }
+  function cacheSet(key, data, tok) {
     if (!scope) return;
+    if (tok && (tok.sc !== scope || tok.ep !== epoch)) return;
     let json;
     try { json = JSON.stringify({ t: Date.now(), d: data }); } catch (e) { return; }
     if (FORBIDDEN.test(json)) return; // an toàn: không lưu đáp án / lời giải / PIN
@@ -131,6 +135,7 @@
   }
   /** Xóa khóa đệm trong phạm vi hiện tại; tên kết thúc bằng * là xóa theo tiền tố. */
   function cacheDel(...keys) {
+    epoch++;
     if (!scope) return;
     scopeKeys().forEach((k) => {
       const name = k.slice(scope.prefix.length);
@@ -152,13 +157,18 @@
 
   let viewId = 0;
   /** Gọi ở đầu mỗi lần chuyển màn: dữ liệu về muộn của màn cũ sẽ không vẽ đè màn mới. */
-  function newView() { return ++viewId; }
+  function newView() { ++viewId; syncPill(false); return viewId; }
 
-  let syncCount = 0;
-  function syncPill(on) {
-    syncCount = Math.max(0, syncCount + (on ? 1 : -1));
+  // Chỉ báo "Đang cập nhật…" đếm theo từng màn: chỉ hiện khi màn ĐANG XEM còn lời gọi chưa xong
+  const syncing = {};
+  function syncPill(on, id) {
+    if (id != null) {
+      syncing[id] = Math.max(0, (syncing[id] || 0) + (on ? 1 : -1));
+      if (!syncing[id]) delete syncing[id];
+    }
     let el = document.getElementById('syncPill');
     if (!el) {
+      if (!document.body) return;
       el = document.createElement('div');
       el.id = 'syncPill';
       el.className = 'sync-pill hidden';
@@ -166,7 +176,7 @@
       el.innerHTML = '<span class="spinner"></span><span>Đang cập nhật…</span>';
       document.body.appendChild(el);
     }
-    el.classList.toggle('hidden', syncCount === 0);
+    el.classList.toggle('hidden', !syncing[viewId]);
   }
 
   /**
@@ -176,13 +186,20 @@
   async function cached(key, loader, render, opts) {
     opts = opts || {};
     const my = viewId;
-    const sc = scope; // đổi người dùng giữa chừng thì không ghi dữ liệu cũ vào kho của người mới
-    const hit = cacheGet(key);
-    if (hit) { render(hit.d, { stale: true }); syncPill(true); }
+    let hit = cacheGet(key);
+    if (hit) {
+      try { render(hit.d, { stale: true }); } catch (e) {
+        // bản lưu hỏng / sai định dạng: bỏ đi, tải lại như chưa có đệm
+        hit = null;
+        cacheDel(key);
+      }
+    }
+    const tok = cacheToken(); // đổi người dùng / xóa đệm giữa chừng thì không ghi dữ liệu cũ vào kho
+    if (hit) syncPill(true, my);
     else if (opts.skeleton) opts.skeleton();
     try {
       const d = await loader();
-      if (scope === sc) cacheSet(key, d);
+      cacheSet(key, d, tok);
       if (my === viewId && (!hit || JSON.stringify(hit.d) !== JSON.stringify(d))) {
         const y = window.scrollY;
         render(d, { stale: false });
@@ -191,13 +208,14 @@
       return d;
     } catch (e) {
       if (my !== viewId) return undefined; // đã sang màn khác (hoặc lỗi AUTH đã chuyển về đăng nhập): không vẽ lỗi đè lên
-      if (hit && e.network) {
-        if (my === viewId) toast('Mất kết nối — đang hiện dữ liệu đã lưu trên máy.');
+      if (hit && !e.auth && !e.unsupported) {
+        // đang hiện bản lưu: giữ nguyên, chỉ báo nhẹ (mất mạng hoặc máy chủ tạm lỗi)
+        toast(e.network ? 'Mất kết nối — đang hiện dữ liệu đã lưu trên máy.' : 'Chưa cập nhật được (' + e.message + ') — đang hiện dữ liệu đã lưu.');
         return hit.d;
       }
       throw e;
     } finally {
-      if (hit) syncPill(false);
+      if (hit) syncPill(false, my);
     }
   }
 
@@ -581,7 +599,7 @@
   }
 
   const App = {
-    CFG, store, api, has, canTry, savePub, pubFresh, cached, cacheGet, cacheSet, cacheDel, clearCache, setCacheScope, newView, skeletonHtml,
+    CFG, store, api, has, canTry, savePub, pubFresh, cached, cacheGet, cacheSet, cacheDel, cacheToken, clearCache, setCacheScope, newView, skeletonHtml,
     esc, fmtNum, fmtDateIso, fmtClock, sleep, rich, math, toast, modal, confirmBox, loadingHtml, withBusy,
     renderGoogleButton, resultHtml, feedbackHtml, barsHtml, questionReviewHtml, chart, cssVar, downloadCsv, scoreClass, gradeName,
     LEVELS, TYPES, PARTS, tokenKey: 'ld_token',

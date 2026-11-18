@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
 
-const BASE = 'http://localhost:8787';
+const BASE = 'http://localhost:' + (process.env.PORT || 8787);
 const SHOTS = process.argv[2] || path.join(__dirname, 'screenshots');
 const LIBS = process.env.LIBS_DIR; // node_modules chứa katex & chart.js (khi CDN bị chặn)
 const COMPAT = process.env.SERVER_COMPAT === '1.0.0';

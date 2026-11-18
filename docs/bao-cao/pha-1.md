@@ -107,3 +107,41 @@ Với máy chủ cũ 1.0.0, phần đệm trình duyệt vẫn chạy (chuyển 
 1. (Trước/trong Pha 1, nếu được) Đo số gốc TC-1.15a trên trang thật đang chạy máy chủ 1.0.0: mở trang học sinh trên điện thoại/máy tính, ghi thời gian chuyển tab và thời gian các lời gọi `listExams`, `myResults` (hoặc cho phép một phiên agent có mạng mở trang để đo).
 2. Pha 6: dán toàn bộ `apps-script/Code.gs` (bản 1.2.0 trở lên), chạy `setup` một lần, Triển khai → Quản lý các bản triển khai → ✏ → **Phiên bản mới** → Triển khai (URL giữ nguyên). `onEdit` là trigger đơn giản, không cần cài thêm.
 3. Sau Pha 6: thử sửa một ô trên Sheet rồi tải lại trang web để xác nhận web thấy ngay (kiểm `onEdit`).
+
+---
+
+## Vòng 2 (người làm) — sửa theo `pha-1-soat.md` và `pha-1-kiem-thu.md`
+
+### Đã sửa
+| Mã | Sửa | File |
+|---|---|---|
+| **R-1** (Vừa) | Thêm "thẻ kho" `App.cacheToken()` = {kho hiện tại, số lần xóa đệm}. `cacheSet(key, d, tok)` bỏ qua nếu kho đã đổi (đăng xuất / người khác đăng nhập) hoặc đệm đã bị xóa sau khi lấy thẻ. Sau `submitExam` lấy thẻ **sau** khi xóa `home/history/stats`, rồi mới làm mới ngầm `bootstrap` và `myStats`. Đã rà mọi chỗ cất đệm ngầm: `loadHome` (cất `history`), `cached()`, `admin.js loadOverview` (cất `exams`). Tất cả đều dùng thẻ. | `common.js`, `app.js`, `admin.js` |
+| **R-9** | Cùng cơ chế: `cacheDel` tăng số đếm, nên lời gọi bắt đầu trước khi giáo viên ghi (xóa đệm) không cất lại bản cũ. | `common.js` |
+| **K-1** | Viên "Đang cập nhật…" chuyển xuống góc dưới bên trái (`left:12px; bottom:12px`), không còn che nút Đăng xuất / Đổi PIN ở khổ 390 px. Đã chụp kiểm: viên ở y≈803, nút Đăng xuất ở y 52–86. | `style.css` |
+| **R-8** | Chỉ báo đếm theo từng màn (`viewId`). `newView()` ẩn ngay; chỉ hiện khi màn đang xem còn lời gọi chưa xong. Đã kiểm: sang màn làm bài khi Lịch sử đang cập nhật thì chỉ báo ẩn. | `common.js` |
+| **R-2** | Đang hiện bản lưu mà máy chủ trả lỗi (không phải `AUTH`, không phải "Không có chức năng") thì giữ bản lưu và chỉ báo nhẹ "Chưa cập nhật được (…) — đang hiện dữ liệu đã lưu." Mất mạng vẫn báo như cũ. | `common.js` |
+| **R-3** | `render(bản lưu)` ném lỗi thì xóa khóa đó, hiện khung xương và chờ dữ liệu mới. | `common.js` |
+| **R-4** | Khóa đầu lưu `"số mảnh:độ dài chuỗi"`. Khi đọc, ghép mảnh xong phải đúng độ dài, không đúng thì coi là trượt đệm. Hai lần cất xen nhau không thể ghép thành bảng lai, trừ trường hợp cực hiếm hai bản dài bằng nhau từng ký tự; khi đó `JSON.parse` và việc so khóa cột vẫn chặn. Khóa đầu kiểu cũ (chỉ có số) bị coi là trượt. `APP_VERSION` giữ 1.2.0 vì chưa phát hành. | `Code.gs` |
+| **R-5** | Thêm test: ô khóa ở hàng truyền vào không khớp thì `verifyRow_` tìm đúng hàng khác (sửa và xóa); các hàng còn lại không đổi. | `tests/cache.test.js` |
+| **R-6** | Test "Chi phí giả" không còn so ms ở lần đọc đệm: khẳng định lần 2 không đọc trang tính nào. | `tests/cache.test.js` |
+| **R-7** | README nói rõ `onEdit` **chưa được kiểm chứng** trên Apps Script thật (nếu không chạy thì trễ tối đa 1 phút), và trang luôn hiện bản lưu trước rồi mới cập nhật. | `README.md` |
+| **K-3** | Trang quản trị: lỗi `AUTH:` thì vẽ lại màn đăng nhập sau khi nơi gọi đã xử lý lỗi (`setTimeout(route, 0)`), không còn hộp "Có lỗi…" đè lên. Đã kiểm: token sai chữ ký, mở `#/hoc-sinh` thì thấy màn đăng nhập, không có hộp lỗi. | `admin.js` |
+| e2e | `tests/e2e.js` đọc cổng từ `PORT` (mặc định 8787). | `tests/e2e.js` |
+
+**Không sửa K-2** (máy chủ 1.0.0, máy chưa từng lưu `ld_pub`: lần đầu thử `bootstrap` rồi mới dùng đường dự phòng, tốn thêm 1 vòng gọi). Muốn bỏ vòng này thì phải chờ `publicConfig` trước khi gọi `bootstrap`, mà như vậy *mọi* lần tải đầu với máy chủ mới đều chậm thêm 1 vòng. Đường hiện tại đúng 00 §5.2, chỉ xảy ra một lần mỗi máy, và sẽ hết sau Pha 6.
+
+### Test mới
+- `tests/common-cache.test.js` (5 test, chạy bằng Node với `window`/`localStorage`/`document` giả): R-1, R-9, R-2, R-3, R-8.
+- `tests/pha1-r1.e2e.js` (Playwright, cần dev-server, `PORT`, `ADMIN_PW`): HS A nộp bài; giữ lại các lời gọi làm mới ngầm; A đăng xuất; HS B đăng nhập **không tải lại trang**; thả lời gọi của A. Kiểm: kho chỉ có khóa của B, Thống kê và Trang chủ của B không chứa dữ liệu của A. Đã xác nhận test **bắt được lỗi**: bỏ thẻ ở `cacheSet('stats')` thì test báo "Kho Thống kê của B chứa dữ liệu của A".
+
+### Kết quả test vòng 2
+| Lệnh | Kết quả |
+|---|---|
+| `node tests/backend.test.js` | 13/13 đạt |
+| `node tests/importer.test.js` | đạt |
+| `node tests/cache.test.js` | 17/17 đạt (thêm R-4, R-5) |
+| `node tests/common-cache.test.js` | 5/5 đạt (mới) |
+| `node tests/pha1-kiem-thu.test.js` (người kiểm thử) | 29/29 đạt |
+| `node tests/pha1-kiem-thu.e2e.js all` (người kiểm thử, `LATENCY_MS=1500`) | TC-1.0, 1.1, 1.2, 1.3, 1.4, 1.9, 1.9b, 1.10, 1.11, 1.14 đều ĐẠT ở cả hai chế độ máy chủ; không sửa file này |
+| `PORT=… node tests/e2e.js`, máy chủ mới / `SERVER_COMPAT=1.0.0` | đạt / đạt |
+| `node tests/pha1-r1.e2e.js`, máy chủ mới / `SERVER_COMPAT=1.0.0` | đạt / đạt |

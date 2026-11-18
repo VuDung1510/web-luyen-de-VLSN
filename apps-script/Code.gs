@@ -1307,8 +1307,9 @@ function readCachedTable_(cache, name, gen) {
   try {
     var head = tableKey_(name, gen);
     var got = cache.getAll([head, head + '_0']);
-    var n = parseInt(got[head], 10);
-    if (!(n > 0) || got[head + '_0'] == null) return null;
+    var meta = String(got[head] || '').split(':'); // "số mảnh:độ dài chuỗi"
+    var n = parseInt(meta[0], 10), len = parseInt(meta[1], 10);
+    if (!(n > 0) || !(len >= 0) || got[head + '_0'] == null) return null;
     var parts = [got[head + '_0']];
     if (n > 1) {
       var keys = [];
@@ -1319,7 +1320,9 @@ function readCachedTable_(cache, name, gen) {
         parts.push(more[keys[j]]);
       }
     }
-    var obj = JSON.parse(parts.join(''));
+    var json = parts.join('');
+    if (json.length !== len) return null; // mảnh của hai lần cất khác nhau xen nhau → coi như trượt đệm
+    var obj = JSON.parse(json);
     var defs = SCHEMA[name];
     if (!obj || !obj.k || obj.k.join(',') !== defs.map(function (d) { return d[0]; }).join(',')) return null;
     return obj.r.map(function (arr) {
@@ -1339,7 +1342,7 @@ function writeCachedTable_(cache, name, gen, rows) {
     var head = tableKey_(name, gen);
     var put = {};
     parts.forEach(function (p, i) { put[head + '_' + i] = p; });
-    put[head] = String(parts.length);
+    put[head] = parts.length + ':' + json.length;
     cache.putAll(put, CACHE_SECONDS);
     return true;
   } catch (e) { return false; }

@@ -27,7 +27,7 @@ Học sinh / Giáo viên ──► Trang web (GitHub Pages) ──► Máy chủ
 
 - Đáp án **chỉ nằm trong Google Sheet**. Trang web không bao giờ nhận đáp án trước khi học sinh nộp bài, và việc chấm điểm chạy trên máy chủ, nên học sinh không thể xem trộm hay sửa điểm.
 - File Google Sheet có 5 trang tính: `HocSinh`, `DeThi`, `CauHoi`, `KetQua`, `CaiDat`. Thầy/cô mở trực tiếp để xem, lọc hay tải về Excel bất cứ lúc nào.
-- **Nhớ tạm để chạy nhanh:** máy chủ nhớ tạm dữ liệu trang tính tối đa **60 giây**; trang web hiện ngay dữ liệu đã lưu trên máy rồi cập nhật ngầm. Mọi thao tác trên web (nộp bài, lưu đề, sửa học sinh…) hiện kết quả mới ngay. Sửa **ô** trực tiếp trên Google Sheet thì web cũng cập nhật ngay (nhờ hàm `onEdit`); riêng **chèn / xóa / sắp xếp hàng** hoặc sửa qua công cụ khác thì có thể chậm tối đa 1 phút mới hiện trên web. Việc ghi của web luôn đọc lại Sheet nên không bao giờ ghi nhầm hàng.
+- **Nhớ tạm để chạy nhanh:** máy chủ nhớ tạm dữ liệu trang tính tối đa **60 giây**; trang web hiện ngay dữ liệu đã lưu trên máy rồi cập nhật ngầm. Mọi thao tác trên web (nộp bài, lưu đề, sửa học sinh…) hiện kết quả mới ngay. Sửa **ô** trực tiếp trên Google Sheet thì hàm `onEdit` báo máy chủ bỏ bản nhớ tạm, nên thường thấy ngay ở lần mở tiếp theo (**chưa được kiểm chứng trên Apps Script thật** — nếu `onEdit` không chạy thì chậm tối đa 1 phút); riêng **chèn / xóa / sắp xếp hàng** hoặc sửa qua công cụ khác thì có thể chậm tối đa 1 phút. Trang web luôn hiện bản đã lưu trên máy trước rồi mới cập nhật. Việc ghi của web luôn đọc lại Sheet nên không bao giờ ghi nhầm hàng.
 
 ---
 
@@ -201,8 +201,10 @@ Có thể chạy toàn bộ hệ thống trên máy mà không cần Google. Má
 node tests/backend.test.js     # kiểm thử máy chủ: chấm điểm, đăng nhập, phân quyền…
 node tests/importer.test.js    # kiểm thử bộ nhập đề
 node tests/dev-server.js       # chạy thử tại http://localhost:8787 (in ra mật khẩu quản trị)
-ADMIN_PW=<mật khẩu> node tests/e2e.js   # kiểm thử giao diện bằng Playwright
+ADMIN_PW=<mật khẩu> node tests/e2e.js   # kiểm thử giao diện bằng Playwright (cổng: biến PORT, mặc định 8787)
 node tests/cache.test.js       # kiểm thử đệm máy chủ và ghi an toàn (Pha 1)
+node tests/common-cache.test.js   # kiểm thử bộ đệm trình duyệt (Pha 1)
+PORT=8787 ADMIN_PW=<mật khẩu> node tests/pha1-r1.e2e.js   # đổi tài khoản giữa lúc làm mới ngầm (Pha 1)
 ```
 
 Biến môi trường của `tests/dev-server.js`:

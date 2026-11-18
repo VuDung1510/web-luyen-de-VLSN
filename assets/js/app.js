@@ -222,6 +222,7 @@
   function loadHome() {
     if (homeInflight) return homeInflight;
     const uid = user && user.id;
+    const tok = App.cacheToken();
     const mine = () => user && user.id === uid;
     const p = (async () => {
       if (App.canTry('bootstrap')) {
@@ -232,13 +233,13 @@
           if (b.me && b.me.id === user.id && (b.me.hoTen !== user.hoTen || b.me.lop !== user.lop)) {
             user = Object.assign({}, user, b.me); store.set('ld_user', user); renderUserBox();
           }
-          App.cacheSet('history', b.results);
+          App.cacheSet('history', b.results, tok);
           return { exams: b.exams, results: b.results };
         } catch (e) { if (!e.unsupported) throw e; }
       }
       const [exams, results] = await Promise.all([api('listExams'), api('myResults')]);
       if (!mine()) throw new Error('Đã đổi tài khoản.');
-      App.cacheSet('history', results);
+      App.cacheSet('history', results, tok);
       return { exams, results };
     })();
     homeInflight = p;
@@ -496,8 +497,10 @@
           // Dữ liệu cũ của trang chủ / lịch sử / thống kê không còn đúng: xóa rồi làm mới ngầm
           App.cacheDel('home', 'history', 'stats');
           homeInflight = null;
-          loadHome().then((d) => App.cacheSet('home', d)).catch(() => {});
-          api('myStats').then((d) => App.cacheSet('stats', d)).catch(() => {});
+          // thẻ kho lấy SAU khi xóa: nếu đăng xuất / đổi tài khoản trước khi dữ liệu về thì không cất (R-1)
+          const tok = App.cacheToken();
+          loadHome().then((d) => App.cacheSet('home', d, tok)).catch(() => {});
+          api('myStats').then((d) => App.cacheSet('stats', d, tok)).catch(() => {});
           store.set('ld_lastResult', r);
           location.hash = '#/ket-qua/' + encodeURIComponent(r.id);
           return;

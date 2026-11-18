@@ -15,7 +15,8 @@
   let pub = store.get('ld_pub', {});
   let studentsCache = null;
 
-  App.setAuthErrorHandler((msg) => { logout(true); toast(msg, 'err'); });
+  // K-3: vẽ lại màn đăng nhập sau khi nơi gọi đã xử lý lỗi (tránh hộp "Có lỗi" đè lên màn đăng nhập)
+  App.setAuthErrorHandler((msg) => { logout(true); setTimeout(route, 0); toast(msg, 'err'); });
 
   const STATUS = { NHAP: 'Bản nháp', MO: 'Đang mở', DONG: 'Đã đóng' };
   const REVEAL = { NGAY: 'Ngay sau khi nộp', SAU_HAN: 'Sau khi đề đóng / hết hạn', KHONG: 'Không hiện' };
@@ -119,8 +120,9 @@
   async function loadOverview() {
     if (App.canTry('adminBootstrap')) {
       try {
+        const tok = App.cacheToken();
         const b = await api('adminBootstrap');
-        App.cacheSet('exams', b.exams);
+        App.cacheSet('exams', b.exams, tok);
         return b.overview;
       } catch (e) { if (!e.unsupported) throw e; }
     }

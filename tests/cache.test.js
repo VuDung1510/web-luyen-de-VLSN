@@ -102,7 +102,7 @@ t('TC-1.7: KetQua 600 hàng ~1,2 KB/hàng chia mảnh, đọc ra giống hệt; 
   const a = ok(g.call('adminResults', { token: tTok }));
   const head = Object.keys(g._cache).find((k) => /^tb_KetQua_[^_]+$/.test(k));
   assert(head, 'không thấy khóa đầu của bảng KetQua');
-  const n = +g._cache[head].v;
+  const n = parseInt(g._cache[head].v, 10);
   assert(n >= 7, 'phải chia thành nhiều mảnh, có ' + n);
   for (let i = 0; i < n; i++) assert(Buffer.byteLength(g._cache[head + '_' + i].v) <= 90000);
   g._resetStats();
@@ -135,7 +135,7 @@ t('TC-1.8: xóa tay một mảnh hoặc khóa tbgen_* → đọc lại Sheet, đ
   const a = ok(g.call('adminResults', { token: tTok }));
   const seen = new Set([g._cache.tbgen_KetQua.v]);
   const head = 'tb_KetQua_' + g._cache.tbgen_KetQua.v;
-  assert(+g._cache[head].v >= 2);
+  assert(parseInt(g._cache[head].v, 10) >= 2);
   delete g._cache[head + '_1'];
   g._resetStats();
   assert.deepStrictEqual(ok(g.call('adminResults', { token: tTok })), a);
@@ -224,6 +224,39 @@ t('updateRow_/deleteRows_: ô khóa không khớp và không tìm thấy → bá
   assert.strictEqual(JSON.stringify(g._sheets.HocSinh._data()), before);
 });
 
+t('verifyRow_: ô khóa ở hàng cũ không khớp nhưng có ở hàng khác → ghi đúng hàng đó (R-5)', () => {
+  const { g, tTok } = fresh();
+  ok(g.call('adminImportStudents', { token: tTok, rows: [
+    { hoTen: 'Nguyễn Văn An', lop: '12A1', ngaySinh: '05/03/2008' },
+    { hoTen: 'Trần Thị Bình', lop: '12A1', ngaySinh: '20/11/2008' }] }));
+  const data = g._sheets.HocSinh._data();
+  assert.strictEqual(data[3][0], 'HS0003'); // hàng 4
+  const before = JSON.parse(JSON.stringify(data));
+  g.__MEMO();
+  g.updateRow_('HocSinh', 2, { hoTen: 'Đổi Tên' }, 'id', 'HS0003'); // hàng 2 là HS0001
+  const after = g._sheets.HocSinh._data();
+  after.forEach((r, i) => {
+    if (i === 3) assert.strictEqual(r[1], 'Đổi Tên');
+    else assert.deepStrictEqual(r, before[i], 'hàng ' + (i + 1) + ' bị đổi');
+  });
+  g.deleteRows_('HocSinh', [2], 'id', ['HS0003']);
+  assert.deepStrictEqual(g._sheets.HocSinh._data().map((r) => r[0]), ['Mã HS', 'HS0001', 'HS0002']);
+});
+
+t('Mảnh của hai lần cất khác nhau bị xen → coi là trượt đệm, đọc lại Sheet (R-4)', () => {
+  const { g, tTok } = fresh();
+  const sh = g._sheets.KetQua;
+  const header = sh._data()[0];
+  for (let i = 0; i < 150; i++) sh._data().push(header.map((h) => (h === 'Mã bài' ? 'KQ' + i : h === 'Nhận xét' ? 'x'.repeat(1200) : h === 'Chi tiết (JSON)' ? '[]' : '')));
+  g.bumpGen_('KetQua');
+  const a = ok(g.call('adminResults', { token: tTok }));
+  const head = 'tb_KetQua_' + g._cache.tbgen_KetQua.v;
+  g._cache[head + '_1'].v = g._cache[head + '_1'].v.slice(0, -5); // mảnh "của bản khác" ngắn hơn
+  g._resetStats();
+  assert.deepStrictEqual(ok(g.call('adminResults', { token: tTok })), a);
+  assert.strictEqual(g._stats.reads.KetQua, 1);
+});
+
 t('TC-1.13: tranh chấp — A đọc Sheet, B ghi và đổi gen, A mới cất đệm → lần đọc sau thấy dữ liệu của B', () => {
   const { g, sTok } = fresh();
   delete g._cache.tbgen_DeThi;
@@ -286,9 +319,10 @@ t('Chi phí giả: SHEET_READ_MS/CACHE_MS làm chậm đúng chỗ', () => {
   const tok = ok(g.call('loginPin', { studentId: 'HS0001', pin: '0101' })).token;
   Object.keys(g._cache).forEach((k) => delete g._cache[k]);
   let t0 = Date.now(); ok(g.call('listExams', { token: tok })); const cold = Date.now() - t0;
-  t0 = Date.now(); ok(g.call('listExams', { token: tok })); const warm = Date.now() - t0;
+  g._resetStats();
+  ok(g.call('listExams', { token: tok }));
   assert(cold >= 4 * 30, 'lần đầu phải đọc ≥ 4 trang tính: ' + cold);
-  assert(warm < 30, 'lần sau đọc từ đệm: ' + warm);
+  assert.deepStrictEqual(g._stats.reads, {}, 'lần sau đọc từ đệm, không tốn chi phí đọc Sheet'); // không so ms (R-6)
 });
 
 console.log(`\n${passed} kiểm thử đạt${process.exitCode ? ', CÓ LỖI' : ''}.`);
