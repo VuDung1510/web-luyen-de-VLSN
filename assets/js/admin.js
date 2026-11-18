@@ -1,10 +1,17 @@
 /* Trang quản trị giáo viên */
 (function () {
   'use strict';
-  const { api, esc, fmtNum, rich, math, toast, modal, confirmBox, loadingHtml, withBusy, store } = App;
+  const { esc, fmtNum, rich, math, toast, modal, confirmBox, loadingHtml, withBusy, store, cached } = App;
   App.tokenKey = 'ld_admin_token';
+  // Mọi lần ghi thành công đều làm dữ liệu đệm của trang quản trị cũ đi → xóa để không hiện lại bản cũ
+  const api = (action, body, opts) => App.api(action, body, opts).then((d) => {
+    if (/^admin(Save|Delete|Import)/.test(action)) App.cacheDel('*');
+    return d;
+  });
   const $app = document.getElementById('app');
   let me = store.get('ld_admin_user', null);
+  // Đệm trang quản trị: sessionStorage (mất khi đóng tab), chỉ 3 tab Tổng quan, Đề thi, Kết quả; không lưu PIN
+  if (me) App.setCacheScope('session', 'admin');
   let pub = store.get('ld_pub', {});
   let studentsCache = null;
 
@@ -18,7 +25,7 @@
       $app.innerHTML = `<div class="card narrow"><h1>Chưa kết nối máy chủ</h1><p>Mở file <code>assets/js/config.js</code> và dán URL ứng dụng web Apps Script vào <code>API_URL</code>. Xem README để biết cách cài.</p></div>`;
       return;
     }
-    api('publicConfig', {}, { tokenKey: false }).then((p) => { pub = p; store.set('ld_pub', p); }).catch(() => {});
+    if (!App.pubFresh()) api('publicConfig', {}, { tokenKey: false }).then((p) => { pub = p; App.savePub(p); }).catch(() => {});
     window.addEventListener('hashchange', route);
     window.addEventListener('beforeunload', (e) => { if (editorDirty) { e.preventDefault(); e.returnValue = ''; } });
     route();
@@ -26,6 +33,9 @@
 
   function logout(silent) {
     store.del('ld_admin_token'); store.del('ld_admin_user');
+    App.clearCache();
+    App.setCacheScope(null);
+    studentsCache = null;
     me = null;
     if (!silent) toast('Đã đăng xuất');
     route();
@@ -46,6 +56,7 @@
     if (editorDirty && location.hash === editorHash) return; // quay lại trang soạn sau khi bấm Hủy
     if (editorDirty && !confirm('Đề đang soạn chưa lưu. Rời trang và bỏ các thay đổi?')) { history.back(); return; }
     editorDirty = false;
+    App.newView();
     renderUserBox();
     if (!me || !store.get('ld_admin_token')) return viewLogin();
     const parts = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
@@ -91,33 +102,53 @@
         try { done(await api('loginGoogle', { credential, as: 'teacher' }, { tokenKey: false })); } catch (e) { toast(e.message, 'err'); }
       });
     };
-    if (pub.googleClientId) showG(pub);
+    if (pub.googleClientId || App.pubFresh()) showG(pub);
     else api('publicConfig', {}, { tokenKey: false }).then((p) => { pub = p; showG(p); }).catch(() => {});
     function done(r) {
+      App.clearCache();
       store.set('ld_admin_token', r.token);
       store.set('ld_admin_user', r.user);
       me = r.user;
+      App.setCacheScope('session', 'admin');
       route();
     }
   }
 
   /* ================= TỔNG QUAN ================= */
-  async function viewHome() {
-    $app.innerHTML = loadingHtml();
-    try {
-      const d = await api('adminOverview');
-      $app.innerHTML = `<div class="card-title"><h1 style="margin:0">Tổng quan</h1>
-          <div class="row"><a class="btn btn-primary" href="#/de-thi/moi">+ Tạo đề mới</a><a class="btn" href="${esc(d.sheetUrl)}" target="_blank" rel="noopener">Mở Google Sheet ↗</a></div></div>
-        ${d.googleReady ? '' : '<div class="notice" style="margin-bottom:16px">Đăng nhập Google chưa bật — học sinh đang dùng mã PIN. Muốn bật, xem mục <a href="#/cai-dat">Cài đặt</a>.</div>'}
-        <div class="stats">
-          <div class="stat"><b>${d.counts.students}</b><span>Học sinh</span></div>
-          <div class="stat"><b>${d.counts.openExams}/${d.counts.exams}</b><span>Đề đang mở / tổng</span></div>
-          <div class="stat"><b>${d.counts.results}</b><span>Lượt nộp bài</span></div>
-          <div class="stat"><b>${d.counts.today}</b><span>Bài nộp hôm nay</span></div>
-          <div class="stat"><b>${d.avg == null ? '—' : fmtNum(d.avg)}</b><span>Điểm TB toàn bộ</span></div></div>
-        <div class="card-title"><h2 style="margin:0">Bài nộp mới nhất</h2><a href="#/ket-qua">Xem tất cả →</a></div>
-        ${resultsTable(d.recent, false)}`;
-    } catch (e) { $app.innerHTML = errorBox(e); }
+  // Máy chủ mới: adminBootstrap (tổng quan + danh sách đề) trong 1 lần gọi; máy chủ cũ: adminOverview
+  async function loadOverview() {
+    if (App.canTry('adminBootstrap')) {
+      try {
+        const b = await api('adminBootstrap');
+        App.cacheSet('exams', b.exams);
+        return b.overview;
+      } catch (e) { if (!e.unsupported) throw e; }
+    }
+    return api('adminOverview');
+  }
+
+  function viewHome() {
+    $app.onclick = null;
+    return cached('home', loadOverview, renderHome, { skeleton: () => { $app.innerHTML = App.skeletonHtml('cards'); } })
+      .catch((e) => { $app.innerHTML = errorBox(e); });
+  }
+
+  function renderHome(d) {
+    // Máy chủ chưa có tính năng mới (bản 1.0.0 đang chạy thật): báo cho giáo viên biết vì sao học sinh không thấy nút
+    const p = store.get('ld_pub', null);
+    const oldServer = p && !(App.has('changePin') && App.has('goal'));
+    $app.innerHTML = `<div class="card-title"><h1 style="margin:0">Tổng quan</h1>
+        <div class="row"><a class="btn btn-primary" href="#/de-thi/moi">+ Tạo đề mới</a><a class="btn" href="${esc(d.sheetUrl)}" target="_blank" rel="noopener">Mở Google Sheet ↗</a></div></div>
+      ${oldServer ? `<div class="notice warn" id="needUpdate" style="margin-bottom:16px">Máy chủ đang chạy phiên bản ${esc(p.version || d.version || 'cũ')}: nút <b>Đổi PIN</b> của học sinh và ô <b>Mục tiêu điểm</b> đang tạm ẩn. Cần cập nhật máy chủ (bước phát hành).</div>` : ''}
+      ${d.googleReady ? '' : '<div class="notice" style="margin-bottom:16px">Đăng nhập Google chưa bật — học sinh đang dùng mã PIN. Muốn bật, xem mục <a href="#/cai-dat">Cài đặt</a>.</div>'}
+      <div class="stats">
+        <div class="stat"><b>${d.counts.students}</b><span>Học sinh</span></div>
+        <div class="stat"><b>${d.counts.openExams}/${d.counts.exams}</b><span>Đề đang mở / tổng</span></div>
+        <div class="stat"><b>${d.counts.results}</b><span>Lượt nộp bài</span></div>
+        <div class="stat"><b>${d.counts.today}</b><span>Bài nộp hôm nay</span></div>
+        <div class="stat"><b>${d.avg == null ? '—' : fmtNum(d.avg)}</b><span>Điểm TB toàn bộ</span></div></div>
+      <div class="card-title"><h2 style="margin:0">Bài nộp mới nhất</h2><a href="#/ket-qua">Xem tất cả →</a></div>
+      ${resultsTable(d.recent, false)}`;
   }
 
   function resultsTable(rs, withDelete) {
@@ -134,10 +165,14 @@
   }
 
   /* ================= ĐỀ THI ================= */
-  async function viewExams() {
-    $app.innerHTML = loadingHtml();
-    try {
-      const list = await api('adminListExams');
+  function viewExams() {
+    $app.onclick = null;
+    return cached('exams', () => api('adminListExams'), renderExams, { skeleton: () => { $app.innerHTML = App.skeletonHtml('table'); } })
+      .catch((e) => { $app.innerHTML = errorBox(e); });
+  }
+
+  function renderExams(list) {
+    {
       $app.innerHTML = `<div class="card-title"><h1 style="margin:0">Đề thi</h1><a class="btn btn-primary" href="#/de-thi/moi">+ Tạo đề mới</a></div>
         ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Tên đề</th><th>Trạng thái</th><th>Lớp</th><th class="num">Số câu</th><th class="num">Phút</th><th class="num">Lượt nộp</th><th class="num">Điểm TB</th><th></th></tr></thead><tbody>
         ${list.map((e) => `<tr><td><b>${esc(e.tieuDe)}</b><div class="muted small">${esc(e.id)}${e.ketThuc ? ' · hạn ' + esc(App.fmtDateIso(e.ketThuc)) : ''}</div></td>
@@ -165,7 +200,7 @@
           } catch (e) { toast(e.message, 'err'); }
         });
       };
-    } catch (e) { $app.innerHTML = errorBox(e); }
+    }
   }
 
   /* ---------- soạn đề ---------- */
@@ -631,12 +666,21 @@
   }
 
   /* ================= KẾT QUẢ ================= */
-  async function viewResults() {
+  function viewResults() {
     $app.onclick = null;
-    $app.innerHTML = loadingHtml();
-    try {
-      const f = store.get('ld_res_filter', { examId: '', lop: '', studentId: '' });
+    const f = store.get('ld_res_filter', { examId: '', lop: '', studentId: '' });
+    // Bản lưu chỉ giữ mã/họ tên/lớp của học sinh (không có PIN)
+    const load = async () => {
       const [exams, sts, rs] = await Promise.all([api('adminListExams'), getStudents(), api('adminResults', f)]);
+      return { exams: exams.map((e) => ({ id: e.id, tieuDe: e.tieuDe })), sts: sts.map((s) => ({ id: s.id, hoTen: s.hoTen, lop: s.lop })), rs };
+    };
+    return cached('results_' + [f.examId, f.lop, f.studentId].join('_'), load, (d) => renderResults(d, f),
+      { skeleton: () => { $app.innerHTML = App.skeletonHtml('table'); } }).catch((e) => { $app.innerHTML = errorBox(e); });
+  }
+
+  function renderResults(d, f) {
+    const { exams, sts, rs } = d;
+    {
       const classes = [...new Set(sts.map((s) => s.lop))].sort();
       const stName = f.studentId ? (sts.find((s) => s.id === f.studentId) || {}).hoTen : '';
       const avg = rs.length ? rs.reduce((a, r) => a + r.diem, 0) / rs.length : null;
@@ -648,7 +692,7 @@
         <div class="stats"><div class="stat"><b>${rs.length}</b><span>Lượt nộp</span></div><div class="stat"><b>${avg == null ? '—' : fmtNum(avg)}</b><span>Điểm trung bình</span></div>
           <div class="stat"><b>${new Set(rs.map((r) => r.studentId)).size}</b><span>Học sinh</span></div></div>
         ${resultsTable(rs, true)}`;
-      const upd = (patch) => { store.set('ld_res_filter', Object.assign(f, patch)); viewResults(); };
+      const upd = (patch) => { store.set('ld_res_filter', Object.assign(f, patch)); App.newView(); viewResults(); };
       document.getElementById('rExam').onchange = (e) => upd({ examId: e.target.value });
       document.getElementById('rLop').onchange = (e) => upd({ lop: e.target.value });
       const cl = document.getElementById('rClearSt');
@@ -659,9 +703,9 @@
         const d = e.target.closest('[data-del-result]');
         if (!d) return;
         if (!(await confirmBox('Xóa bài làm?', 'Bài làm sẽ bị xóa khỏi trang KetQua và không khôi phục được. Học sinh sẽ được tính lại số lượt làm.', 'Xóa', true))) return;
-        try { await api('adminDeleteResult', { resultId: d.dataset.delResult }); toast('Đã xóa', 'ok'); viewResults(); } catch (err) { toast(err.message, 'err'); }
+        try { await api('adminDeleteResult', { resultId: d.dataset.delResult }); toast('Đã xóa', 'ok'); App.newView(); viewResults(); } catch (err) { toast(err.message, 'err'); }
       };
-    } catch (e) { $app.innerHTML = errorBox(e); }
+    }
   }
 
   async function viewResult(id) {
@@ -734,7 +778,7 @@
       document.getElementById('btnSaveSet').onclick = (e) => withBusy(e.currentTarget, async () => {
         const settings = {};
         $app.querySelectorAll('[data-k]').forEach((el) => { settings[el.dataset.k] = el.value; });
-        try { await api('adminSaveSettings', { settings }); store.del('ld_pub'); toast('Đã lưu cài đặt', 'ok'); } catch (err) { toast(err.message, 'err'); }
+        try { await api('adminSaveSettings', { settings }); store.del('ld_pub'); store.del('ld_pub_t'); toast('Đã lưu cài đặt', 'ok'); } catch (err) { toast(err.message, 'err'); }
       });
       document.getElementById('btnPw').onclick = (e) => withBusy(e.currentTarget, async () => {
         const a = document.getElementById('newPw').value, b = document.getElementById('newPw2').value;

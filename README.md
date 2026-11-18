@@ -27,6 +27,7 @@ Học sinh / Giáo viên ──► Trang web (GitHub Pages) ──► Máy chủ
 
 - Đáp án **chỉ nằm trong Google Sheet**. Trang web không bao giờ nhận đáp án trước khi học sinh nộp bài, và việc chấm điểm chạy trên máy chủ, nên học sinh không thể xem trộm hay sửa điểm.
 - File Google Sheet có 5 trang tính: `HocSinh`, `DeThi`, `CauHoi`, `KetQua`, `CaiDat`. Thầy/cô mở trực tiếp để xem, lọc hay tải về Excel bất cứ lúc nào.
+- **Nhớ tạm để chạy nhanh:** máy chủ nhớ tạm dữ liệu trang tính tối đa **60 giây**; trang web hiện ngay dữ liệu đã lưu trên máy rồi cập nhật ngầm. Mọi thao tác trên web (nộp bài, lưu đề, sửa học sinh…) hiện kết quả mới ngay. Sửa **ô** trực tiếp trên Google Sheet thì web cũng cập nhật ngay (nhờ hàm `onEdit`); riêng **chèn / xóa / sắp xếp hàng** hoặc sửa qua công cụ khác thì có thể chậm tối đa 1 phút mới hiện trên web. Việc ghi của web luôn đọc lại Sheet nên không bao giờ ghi nhầm hàng.
 
 ---
 
@@ -201,6 +202,13 @@ node tests/backend.test.js     # kiểm thử máy chủ: chấm điểm, đăng
 node tests/importer.test.js    # kiểm thử bộ nhập đề
 node tests/dev-server.js       # chạy thử tại http://localhost:8787 (in ra mật khẩu quản trị)
 ADMIN_PW=<mật khẩu> node tests/e2e.js   # kiểm thử giao diện bằng Playwright
+node tests/cache.test.js       # kiểm thử đệm máy chủ và ghi an toàn (Pha 1)
 ```
+
+Biến môi trường của `tests/dev-server.js`:
+- `SERVER_COMPAT=1.0.0` — nạp đúng máy chủ 1.0.0 (`tests/fixtures/Code-1.0.0.gs`) để thử giao diện với máy chủ cũ; chạy e2e kèm `SERVER_COMPAT=1.0.0` để bỏ qua các bước cần máy chủ mới.
+- `LATENCY_MS=1500` — mỗi lần gọi máy chủ chậm thêm 1,5 giây như Apps Script thật.
+- `SHEET_READ_MS`, `CACHE_MS` — chi phí giả mỗi lần đọc trang tính / gọi CacheService. `GET /__stats` xem số lần đọc.
+- Đo số liệu Pha 1: `node tests/measure-pha1.js backend` và `ADMIN_PW=… node tests/measure-pha1.js browser`.
 
 **Giới hạn của Google Apps Script** (tài khoản miễn phí): khoảng 30 người gửi yêu cầu cùng lúc, và mỗi yêu cầu mất 1–2 giây. Một lớp 40–50 em cùng làm bài vẫn chạy ổn, vì học sinh chỉ gọi máy chủ lúc bắt đầu và lúc nộp bài.
