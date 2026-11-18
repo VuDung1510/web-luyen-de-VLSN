@@ -94,3 +94,60 @@ Ghi chú thêm (không phải lỗi):
 
 ## Kết luận
 Mọi TC bắt buộc kiểm được tại đây đều **ĐẠT**. TC-1.15a và TC-1.15c cần giáo viên đo trên máy chủ thật (pha con 6b). Nên sửa K-1 (một dòng CSS) trước khi gộp. K-2 và K-3 không chặn pha.
+
+## Vòng 2 (sau commit `b4dda85`)
+
+Ngày 18/11/2026. Đã chạy lại **toàn bộ** kiểm thử trên `b4dda85`. Không sửa hạ tầng test.
+`tests/pha1-kiem-thu.e2e.js` có thêm 2 kiểm tra hồi quy:
+- **K-1**: khung bao của viên "Đang cập nhật…" ở khổ 390 px không được chạm bất kỳ nút, liên kết hay `h1` nào.
+- **K-3**: giáo viên gặp AUTH ở tab không có đệm (`#/hoc-sinh`) thì phải hiện ô `#pw`.
+
+Lần chạy: `LATENCY_MS=1500`. Máy chủ mới ở cổng 8790, `SERVER_COMPAT=1.0.0` ở cổng 8791. `tests/e2e.js` chạy ở cổng 8792 (máy chủ mới) và 8793 (1.0.0). `pha1-r1.e2e.js` chạy ở cổng 8792 với một dev-server mới. Mọi dev-server đã tắt khi xong.
+
+### Bảng TC (vòng 2)
+| Mã | Kết quả | Bằng chứng vòng 2 |
+|---|---|---|
+| TC-1.0 | **ĐẠT** | Máy chủ mới: nút Đổi PIN và ô mục tiêu điểm hiển thị. Máy chủ 1.0.0: cả hai bị ẩn, kể cả khi chưa có `ld_pub` |
+| TC-1.1 | **ĐẠT** | HS: 1,2 / 6,7 / 1,9 / 1,3 ms. GV: 1,8 / 1,9 / 2,2 ms. Máy chủ 1.0.0: 1,2–6,5 ms |
+| TC-1.2 | **ĐẠT** | Khung xương sau 1,1–1,8 ms; không có khung trống. Tải lại trang: khung xương ở 48 ms |
+| TC-1.3 | **ĐẠT** | `{bootstrap:1}` (hiện sau 66 ms). Khi không có `ld_pub`: `{publicConfig:1, bootstrap:1}` |
+| TC-1.4 | **ĐẠT** | `e2e.js` chạy với `SERVER_COMPAT=1.0.0` đạt. Không có toast đỏ, không có lỗi console, không hiện "Không có chức năng" |
+| TC-1.5 → 1.8, 1.12, 1.13 | **ĐẠT** | `pha1-kiem-thu.test.js` đạt 29/29 |
+| TC-1.9 / 1.9b | **ĐẠT** | Như vòng 1. GV gặp AUTH: kho lưu sạch và về màn đăng nhập |
+| TC-1.10 | **ĐẠT** | Điểm mới hiện sau 1 230 ms, không tải lại trang |
+| TC-1.11 | **ĐẠT** | 0 khóa chứa `dapAn`/`loiGiai`, ở cả hai chế độ |
+| TC-1.14 | **ĐẠT** | HS 4 màn và GV 3 tab vẫn hiện, kèm toast "Mất kết nối…" |
+| TC-1.15a / 1.15c | **KHÔNG KIỂM ĐƯỢC TẠI ĐÂY (cần giáo viên)** | — |
+| TC-1.15b | **ĐẠT** | Số lần đọc Sheet: 68 → 5 |
+| TC-1.16 | **ĐẠT** | Xem bảng test cũ bên dưới |
+
+### Lỗi vòng 1
+| Mã | Vòng 2 | Bằng chứng |
+|---|---|---|
+| K-1 | **Đã hết** | Viên chỉ báo đã chuyển xuống góc dưới bên trái và không che nút nào (kiểm tra tự động K-1 đạt; ảnh `02-dang-cap-nhat.png`). Còn một điểm thẩm mỹ rất nhẹ, không chặn pha: viên che một phần ô bảng nằm sát đáy màn hình trong ~1 s; khi ngoại tuyến, toast "Mất kết nối" đè lên viên (ảnh 05) |
+| K-3 | **Đã hết** | Token sai chữ ký ở `#/hoc-sinh` → về ngay màn đăng nhập (`#pw`); `ld_c_*` và `ld_lastResult` đã xóa |
+| K-2 | Không đổi (nhận xét) | Máy chủ 1.0.0, chưa có `ld_pub`: thứ tự gọi vẫn là `publicConfig, bootstrap, listExams, myResults` |
+
+### Test cũ (vòng 2)
+| Lệnh | Kết quả |
+|---|---|
+| `node tests/backend.test.js` | 13/13 đạt |
+| `node tests/importer.test.js` | đạt |
+| `node tests/cache.test.js` | 17/17 đạt |
+| `node tests/common-cache.test.js` | 5/5 đạt |
+| `PORT=8792 node tests/e2e.js` (máy chủ mới) | đạt |
+| `PORT=8793 SERVER_COMPAT=1.0.0 node tests/e2e.js` | đạt |
+| `PORT=8792 ADMIN_PW=… node tests/pha1-r1.e2e.js` | đạt |
+| `node tests/pha1-kiem-thu.test.js` | 29/29 đạt |
+| `tests/pha1-kiem-thu.e2e.js all` (LATENCY 1500) | 12/12 nhóm đạt (10 nhóm TC + K-1 + K-3) |
+
+Lưu ý về `pha1-r1.e2e.js`:
+- Test này cần `ADMIN_PW` và một dev-server **không có độ trễ**.
+- Chạy với `LATENCY_MS=1500` thì hết giờ chờ ở `waitForSelector`. Đây là giới hạn của test, không phải lỗi tính năng.
+
+### Ảnh
+Đã chụp lại đủ 8 ảnh trong `docs/bao-cao/anh/pha-1/` và xem từng ảnh. Trong đó có 4 ảnh người làm đã ghi đè.
+- Ảnh 01: hai tab "Trang chủ" và "Thống kê" cùng được tô. Lý do là chuột của Playwright vẫn nằm trên "Trang chủ" sau cú bấm trước (trạng thái hover), không phải lỗi.
+
+### Kết luận vòng 2
+Mọi TC kiểm được tại đây **ĐẠT**; K-1 và K-3 đã được sửa. Còn 2 TC cần giáo viên đo trên máy chủ thật (TC-1.15a, TC-1.15c).
