@@ -255,6 +255,17 @@ async function runNew(browser) {
     if (pill) await page.screenshot({ path: path.join(SHOTS, '02-dang-cap-nhat.png') });
     note('Chỉ báo khi hiện từ đệm: ' + (pill ? `"${pillText}"` : 'KHÔNG thấy .sync-pill'));
     R.measure.syncPill = pillText;
+    // K-1: viên chỉ báo không được che nút nào (Đăng xuất, Đổi PIN, thanh điều hướng) ở 390 px
+    if (pill) {
+      const overlap = await page.evaluate(() => {
+        const p = document.querySelector('.sync-pill:not(.hidden)').getBoundingClientRect();
+        const hit = (r) => !(r.right <= p.left || r.left >= p.right || r.bottom <= p.top || r.top >= p.bottom);
+        return [...document.querySelectorAll('header button, header a, #btnLogout, #btnPin, main button, main a, main h1')]
+          .filter((el) => { const r = el.getBoundingClientRect(); return r.width && r.height && hit(r); })
+          .map((el) => el.id || el.textContent.trim().slice(0, 20));
+      });
+      verdict('K-1', overlap.length === 0, 'viên "Đang cập nhật" ở 390 px che: ' + (overlap.join(', ') || 'không phần tử nào'));
+    }
     await page.waitForTimeout(LAT + 800);
     const pillGone = await page.$('.sync-pill:not(.hidden)');
     note('Chỉ báo tắt sau khi dữ liệu về: ' + (!pillGone));
@@ -461,7 +472,9 @@ async function runNew(browser) {
     await ad.waitForTimeout(2 * LAT + 1500);
     const au = await scanPins('AUTH');
     const leftAu = au.keys.filter((k) => k.startsWith('ld_c_') || k === 'ld_lastResult');
-    verdict('TC-1.9b', !au.hits.length && !au.raw.length && !leftAu.length, 'GV token hỏng (AUTH): PIN=' + (au.hits.join(',') || 'không') + ', ld_c_*/ld_lastResult còn: ' + (leftAu.join(',') || 'không') + ', màn đăng nhập=' + !!(await ad.$('#pw')));
+    const pwShown = !!(await ad.$('#pw'));
+    verdict('TC-1.9b', !au.hits.length && !au.raw.length && !leftAu.length, 'GV token hỏng (AUTH): PIN=' + (au.hits.join(',') || 'không') + ', ld_c_*/ld_lastResult còn: ' + (leftAu.join(',') || 'không') + ', màn đăng nhập=' + pwShown);
+    verdict('K-3', pwShown, 'GV gặp AUTH ở tab không có đệm (#/hoc-sinh): tự về màn đăng nhập=' + pwShown);
     await actx.close();
 
     const reds = toasts.filter(([k]) => k === 'toast-err');
