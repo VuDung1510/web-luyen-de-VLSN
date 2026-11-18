@@ -287,7 +287,8 @@
       <button class="btn qnav-fab" id="btnNav" aria-expanded="false">☰ Danh sách câu</button>
       <div class="card qnav hidden" id="qnav"><div class="card-title"><h3>Chuyển đến câu</h3><button class="btn btn-sm btn-ghost" id="navClose">✕</button></div>
         <div class="qnav-grid" id="qnavGrid"></div>
-        <div class="legend"><span>■ Đã làm</span><span style="color:var(--accent)">▁ Đánh dấu</span></div></div>`;
+        <div class="legend"><span><i class="sw done"></i>Đã làm</span><span><i class="sw"></i>Chưa làm</span><span><i class="sw flag"></i>Đánh dấu xem lại</span></div>
+        <div class="small" id="navSummary" style="margin-top:8px"></div></div>`;
     $app.innerHTML = html;
     math($app);
 
@@ -351,7 +352,13 @@
       document.getElementById('prog').style.width = (done / qs.length * 100) + '%';
       document.getElementById('progText').textContent = done + '/' + qs.length;
       document.getElementById('qnavGrid').innerHTML = qs.map((q, i) =>
-        `<button data-go="${q.stt}" class="${isDone(q) ? 'done' : ''} ${att.flags[q.stt] ? 'flag' : ''}" aria-label="Câu ${i + 1}">${i + 1}</button>`).join('');
+        `<button data-go="${q.stt}" class="${isDone(q) ? 'done' : ''} ${att.flags[q.stt] ? 'flag' : ''}" aria-label="Câu ${i + 1}${isDone(q) ? ', đã làm' : ', chưa làm'}${att.flags[q.stt] ? ', đánh dấu' : ''}">${i + 1}</button>`).join('');
+      const left = qs.map((q, i) => (isDone(q) ? null : i + 1)).filter(Boolean);
+      const flagged = qs.map((q, i) => (att.flags[q.stt] ? i + 1 : null)).filter(Boolean);
+      document.getElementById('navSummary').innerHTML =
+        (left.length ? `Còn <b>${left.length}</b> câu chưa làm: ${left.join(', ')}` : '<b style="color:var(--good)">✓ Đã làm hết các câu</b>') +
+        (flagged.length ? `<br>Đánh dấu xem lại: ${flagged.join(', ')}` : '');
+      document.getElementById('btnNav').innerHTML = '☰ Danh sách câu' + (left.length ? ` <span class="badge badge-bad">${left.length} chưa làm</span>` : '');
     }
     updateProgress();
 

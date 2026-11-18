@@ -217,8 +217,92 @@
       body += `<div>Bạn trả lời: <b>${esc(it.answer || '(bỏ trống)')}</b> · Đáp án: <b>${esc(String(it.dapAn || '').split('|').join(' hoặc '))}</b></div>`;
     }
     if (it.loiGiai) body += `<div class="solution"><b>Lời giải:</b> ${rich(it.loiGiai)}</div>`;
-    return `<div class="q">${head}${body}</div>`;
+    return `<div class="q" id="rv-${it.stt}" data-status="${itemStatus(it)}">${head}${body}</div>`;
   }
+
+  /** ok | part (đúng một phần) | wrong | blank (bỏ trống) */
+  function itemStatus(it) {
+    const blank = !it.answer || /^_+$/.test(String(it.answer));
+    if (it.score >= it.max - 1e-9 && it.max > 0) return 'ok';
+    if (blank) return 'blank';
+    return it.score > 0 ? 'part' : 'wrong';
+  }
+
+  /* ---------- khung "Nhận xét" chia mục ---------- */
+  function reviewSummaryHtml(v) {
+    const items = v.items || [];
+    // 1) Kết quả từng phần
+    const parts = {};
+    items.forEach((it) => {
+      const p = it.phan || (it.loai === 'TN' ? 1 : it.loai === 'DS' ? 2 : 3);
+      const g = parts[p] = parts[p] || { p, loai: it.loai, n: 0, ok: 0, ideas: 0, score: 0, max: 0 };
+      g.n++; g.score += +it.score || 0; g.max += +it.max || 0;
+      if (itemStatus(it) === 'ok') g.ok++;
+      g.ideas += +it.nCorrect || 0;
+    });
+    const PART_NAME = { 1: 'Phần I · Trắc nghiệm', 2: 'Phần II · Đúng/Sai', 3: 'Phần III · Trả lời ngắn' };
+    const partCards = Object.keys(parts).sort().map((k) => {
+      const g = parts[k];
+      const pct = g.max ? Math.round(g.score / g.max * 100) : 0;
+      const main = g.loai === 'DS' ? `${g.ideas}/${g.n * 4} ý đúng` : `${g.ok}/${g.n} câu đúng`;
+      const cls = pct >= 80 ? 'hi' : pct < 50 ? 'lo' : '';
+      return `<div class="part-card"><div class="muted small">${PART_NAME[k] || 'Phần ' + k}</div><b>${main}</b>
+        <div class="bar"><i class="${cls}" style="width:${Math.max(2, pct)}%"></i></div><div class="small muted">${fmtNum(g.score)}/${fmtNum(g.max)} điểm</div></div>`;
+    }).join('');
+
+    // 2) Câu cần xem lại
+    let review = '';
+    if (v.reveal) {
+      const bad = items.filter((it) => itemStatus(it) !== 'ok');
+      const LABEL = { wrong: 'Sai', part: 'Đúng một phần', blank: 'Bỏ trống' };
+      const chip = (it) => {
+        const st = itemStatus(it);
+        const extra = it.loai === 'DS' ? ` · ${it.nCorrect || 0}/4 ý` : '';
+        return `<button class="chip chip-${st}" data-jump="${it.stt}" title="${esc(it.chuDe || '')}">Câu ${it.stt}<span>${LABEL[st]}${extra}</span></button>`;
+      };
+      review = `<div class="fb-sec"><h3>Câu cần xem lại ${bad.length ? `<span class="muted small">(${bad.length} câu — bấm để xem lời giải)</span>` : ''}</h3>
+        ${bad.length ? `<div class="chips">${['wrong', 'part', 'blank'].map((s) => bad.filter((it) => itemStatus(it) === s).map(chip).join('')).join('')}</div>`
+          : '<div class="notice">🎉 Bạn làm đúng tất cả các câu!</div>'}</div>`;
+    }
+
+    // 3) Nhận xét: gom theo nhóm, bỏ các dòng đã thể hiện ở trên
+    const fb = (v.feedback || []).filter((f) => !/^(Kết quả:|Phần (trắc nghiệm|Đúng\/Sai|trả lời ngắn)|Còn bỏ trống)/i.test(f.text));
+    const list = (arr, type) => `<ul class="fb-list">${arr.map((f) => `<li class="fb-${type}"><span class="ic">${FB_ICON[type]}</span><span>${esc(f.text)}</span></li>`).join('')}</ul>`;
+    const good = fb.filter((f) => f.type === 'good');
+    const warn = fb.filter((f) => f.type === 'warn');
+    const tips = fb.filter((f) => f.type === 'tip' || f.type === 'info');
+    let cols = '';
+    if (good.length || warn.length) {
+      cols = `<div class="grid grid-2 fb-cols">
+        <div class="fb-sec"><h3 class="ok-h">✓ Điểm mạnh</h3>${good.length ? list(good, 'good') : '<div class="muted small">Chưa có — cố gắng ở lần sau nhé!</div>'}</div>
+        <div class="fb-sec"><h3 class="warn-h">! Cần cải thiện</h3>${warn.length ? list(warn, 'warn') : '<div class="muted small">Không có điểm yếu đáng kể.</div>'}</div></div>`;
+    }
+    const tipHtml = tips.length ? `<div class="fb-sec"><h3>➜ Lời khuyên</h3>${list(tips, 'tip')}</div>` : '';
+    return `<div class="card"><h2>Nhận xét</h2>
+      <div class="fb-sec"><h3>Kết quả từng phần</h3><div class="part-cards">${partCards}</div></div>
+      ${review}${cols}${tipHtml}</div>`;
+  }
+
+  // Bấm chip "Câu x" → cuộn tới câu đó; lọc "Chỉ câu sai"
+  document.addEventListener('click', (e) => {
+    const j = e.target.closest('[data-jump]');
+    if (j) {
+      const f = document.querySelector('[data-rvfilter="all"]');
+      if (f && !f.classList.contains('active')) f.click();
+      const el = document.getElementById('rv-' + j.dataset.jump);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+      }
+      return;
+    }
+    const r = e.target.closest('[data-rvfilter]');
+    if (r) {
+      const only = r.dataset.rvfilter === 'wrong';
+      r.parentElement.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === r));
+      document.querySelectorAll('#rvDetail .q[data-status]').forEach((q) => q.classList.toggle('hidden', only && q.dataset.status === 'ok'));
+    }
+  });
 
   function resultHtml(v, opts) {
     opts = opts || {};
@@ -234,15 +318,19 @@
         <div class="muted small">Thời gian làm: ${esc(v.thoiGianLam)} · Nộp lúc ${esc(v.nopLuc)}${v.ghiChu ? ' · <b>' + esc(v.ghiChu) + '</b>' : ''}</div>
         ${opts.actions || ''}
       </div></div></div>`;
-    h += `<div class="card"><h2>Nhận xét</h2>${feedbackHtml(v.feedback)}</div>`;
+    h += reviewSummaryHtml(v);
     const b = v.breakdown || {};
     h += `<div class="grid grid-2 section-gap">
       <div class="card"><h3>Theo chủ đề</h3>${barsHtml(b.byTopic)}</div>
       <div class="card"><h3>Theo mức độ & dạng câu</h3>${barsHtml(b.byLevel)}<div style="height:14px"></div>${barsHtml(b.byType)}</div></div>`;
-    h += '<div class="section-gap"><h2>Chi tiết bài làm</h2>';
-    if (v.reveal) h += v.items.map(questionReviewHtml).join('');
-    else {
-      h += `<div class="notice">${esc(v.revealNote)}</div><div class="table-wrap section-gap"><table><thead><tr><th>Câu</th><th>Dạng</th><th>Chủ đề</th><th>Bạn trả lời</th></tr></thead><tbody>` +
+    h += '<div class="section-gap" id="rvDetail">';
+    if (v.reveal) {
+      const nWrong = v.items.filter((it) => itemStatus(it) !== 'ok').length;
+      h += `<div class="card-title"><h2>Chi tiết bài làm</h2>${nWrong ? `<div class="seg no-print" role="group" aria-label="Lọc câu">
+        <button class="active" data-rvfilter="all">Tất cả (${v.items.length})</button><button data-rvfilter="wrong">Chỉ câu sai (${nWrong})</button></div>` : ''}</div>`;
+      h += v.items.map(questionReviewHtml).join('');
+    } else {
+      h += `<h2>Chi tiết bài làm</h2><div class="notice">${esc(v.revealNote)}</div><div class="table-wrap section-gap"><table><thead><tr><th>Câu</th><th>Dạng</th><th>Chủ đề</th><th>Bạn trả lời</th></tr></thead><tbody>` +
         v.items.map((it) => `<tr><td>${it.stt}</td><td>${TYPES[it.loai] || ''}</td><td>${esc(it.chuDe || '')}</td><td>${esc(it.loai === 'DS' ? String(it.answer || '').replace(/D/g, 'Đ') : it.answer || '—')}</td></tr>`).join('') +
         '</tbody></table></div>';
     }

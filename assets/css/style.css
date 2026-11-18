@@ -240,3 +240,34 @@ tr.me td { background: var(--primary-soft); font-weight: 600; }
   body { background: #fff; }
   .card { box-shadow: none; }
 }
+
+/* ---------- chú thích bảng chuyển câu ---------- */
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.sw { display: inline-block; width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid var(--border); background: var(--surface); }
+.sw.done { background: var(--primary); border-color: var(--primary); }
+.sw.flag { border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
+.qnav-grid button.flag { border-width: 2px; }
+
+/* ---------- nhận xét chia mục ---------- */
+.fb-sec { margin-top: 18px; }
+.fb-sec:first-of-type { margin-top: 4px; }
+.fb-sec h3 { margin-bottom: 10px; }
+.fb-cols { gap: 16px; }
+.fb-cols .fb-sec { margin-top: 18px; }
+.ok-h { color: var(--good); } .warn-h { color: var(--bad); }
+.part-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.part-card { background: var(--surface-2); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; }
+.part-card b { font-size: 1.15rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0; padding: 7px 12px; border-radius: 10px; cursor: pointer;
+  font: inherit; font-weight: 700; border: 1.5px solid var(--border); background: var(--surface); color: var(--text); line-height: 1.25; }
+.chip span { font-size: .75rem; font-weight: 500; }
+.chip:hover { filter: brightness(.97); transform: translateY(-1px); }
+.chip-wrong { border-color: var(--bad); background: var(--bad-soft); } .chip-wrong span { color: var(--bad); }
+.chip-part { border-color: var(--accent); background: rgba(245, 158, 11, .12); } .chip-part span { color: var(--warn); }
+.chip-blank { border-style: dashed; } .chip-blank span { color: var(--muted); }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font: inherit; font-size: .9rem; font-weight: 600; color: var(--muted); cursor: pointer; }
+.seg button.active { background: var(--surface); color: var(--primary); box-shadow: var(--shadow); }
+.q.flash { animation: flash 1.6s ease; }
+@keyframes flash { 0%, 40% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: none; } }
