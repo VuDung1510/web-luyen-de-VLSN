@@ -122,9 +122,11 @@
 
   function resultsTable(rs, withDelete) {
     if (!rs.length) return '<div class="card empty">Chưa có bài nộp nào.</div>';
-    return `<div class="table-wrap"><table><thead><tr><th>Nộp lúc</th><th>Họ tên</th><th>Lớp</th><th>Đề</th><th class="num">Điểm</th><th class="num">Đúng</th><th>Thời gian</th><th></th></tr></thead><tbody>
+    return `<div class="table-wrap"><table><thead><tr><th>Nộp lúc</th><th>Họ tên</th><th>Lớp</th><th>Đề</th><th class="num">Điểm</th><th class="num">Mục tiêu</th><th class="num">Đúng</th><th>Thời gian</th><th></th></tr></thead><tbody>
       ${rs.map((r) => `<tr><td class="nowrap">${esc(r.nopLuc)}</td><td>${esc(r.hoTen)}</td><td>${esc(r.lop)}</td><td>${esc(r.tieuDe)}</td>
-        <td class="num"><span class="badge ${App.scoreClass(r.diem)}">${fmtNum(r.diem)}</span></td><td class="num">${r.soCauDung}/${r.tongCau}</td>
+        <td class="num"><span class="badge ${App.scoreClass(r.diem)}">${fmtNum(r.diem)}</span></td>
+        <td class="num nowrap">${r.mucTieu == null ? '—' : fmtNum(r.mucTieu) + (r.diem >= r.mucTieu ? ' <span style="color:var(--good)" title="Đạt">✓</span>' : ' <span style="color:var(--bad)" title="Chưa đạt">✗</span>')}</td>
+        <td class="num">${r.soCauDung}/${r.tongCau}</td>
         <td class="nowrap">${esc(r.thoiGianLam)}${r.ghiChu ? `<br><span class="badge badge-bad">${esc(r.ghiChu)}</span>` : ''}</td>
         <td class="nowrap"><a class="btn btn-sm" href="#/ket-qua/xem/${encodeURIComponent(r.id)}">Xem</a>
         ${withDelete ? `<button class="btn btn-sm btn-danger" data-del-result="${esc(r.id)}">Xóa</button>` : ''}</td></tr>`).join('')}
@@ -476,7 +478,8 @@
           <div class="stat"><b>${fmtNum(s.avg)}</b><span>Điểm trung bình</span></div>
           <div class="stat"><b>${fmtNum(s.median)}</b><span>Trung vị</span></div>
           <div class="stat"><b>${fmtNum(s.max)} / ${fmtNum(s.min)}</b><span>Cao nhất / thấp nhất</span></div>
-          <div class="stat"><b>${s.passRate}%</b><span>Đạt từ 5 điểm</span></div></div>
+          <div class="stat"><b>${s.passRate}%</b><span>Đạt từ 5 điểm</span></div>
+          ${s.goalRate != null ? `<div class="stat"><b>${s.goalRate}%</b><span>Đạt mục tiêu tự đặt</span></div>` : ''}</div>
         <div class="grid grid-2"><div class="card"><h3>Phổ điểm</h3><div class="chart-box"><canvas id="chBins" aria-label="Phổ điểm"></canvas></div></div>
           <div class="card"><h3>Tỉ lệ làm đúng từng câu</h3><div class="chart-box"><canvas id="chQ" aria-label="Tỉ lệ đúng theo câu"></canvas></div></div></div>
         <div class="grid grid-2 section-gap"><div class="card"><h3>Theo chủ đề</h3>${App.barsHtml(s.byTopic)}</div>
@@ -491,8 +494,8 @@
         <h2 class="section-gap">Danh sách bài nộp</h2>${resultsTable(s.results, false)}` : '<div class="card empty">Chưa có học sinh nào nộp bài.</div>'}`;
       document.getElementById('sMode').onchange = (e) => { store.set('ld_stat_mode', e.target.value); viewExamStats(examId); };
       document.getElementById('sLop').onchange = (e) => { store.set('ld_stat_lop', e.target.value); viewExamStats(examId); };
-      document.getElementById('btnCsv').onclick = () => App.downloadCsv(`ket-qua-${examId}.csv`, [['STT', 'Họ tên', 'Lớp', 'Điểm (thang 10)', 'Điểm gốc', 'Số câu đúng', 'Tổng câu', 'Thời gian làm', 'Nộp lúc', 'Ghi chú']]
-        .concat(s.results.map((r, i) => [i + 1, r.hoTen, r.lop, fmtNum(r.diem), fmtNum(r.diemGoc), r.soCauDung, r.tongCau, r.thoiGianLam, r.nopLuc, r.ghiChu || ''])));
+      document.getElementById('btnCsv').onclick = () => App.downloadCsv(`ket-qua-${examId}.csv`, [['STT', 'Họ tên', 'Lớp', 'Điểm (thang 10)', 'Mục tiêu', 'Điểm gốc', 'Số câu đúng', 'Tổng câu', 'Thời gian làm', 'Nộp lúc', 'Ghi chú']]
+        .concat(s.results.map((r, i) => [i + 1, r.hoTen, r.lop, fmtNum(r.diem), r.mucTieu == null ? '' : fmtNum(r.mucTieu), fmtNum(r.diemGoc), r.soCauDung, r.tongCau, r.thoiGianLam, r.nopLuc, r.ghiChu || ''])));
       if (!s.count) return;
       const primary = App.cssVar('--primary');
       App.chart('chBins', {
@@ -650,8 +653,8 @@
       document.getElementById('rLop').onchange = (e) => upd({ lop: e.target.value });
       const cl = document.getElementById('rClearSt');
       if (cl) cl.onclick = (e) => { e.preventDefault(); upd({ studentId: '' }); };
-      document.getElementById('btnCsv').onclick = () => App.downloadCsv('ket-qua.csv', [['Nộp lúc', 'Họ tên', 'Lớp', 'Đề', 'Điểm (thang 10)', 'Điểm gốc', 'Điểm tối đa', 'Số câu đúng', 'Tổng câu', 'Thời gian làm', 'Ghi chú', 'Nhận xét']]
-        .concat(rs.map((r) => [r.nopLuc, r.hoTen, r.lop, r.tieuDe, fmtNum(r.diem), fmtNum(r.diemGoc), fmtNum(r.diemToiDa), r.soCauDung, r.tongCau, r.thoiGianLam, r.ghiChu || '', String(r.nhanXet || '').replace(/^\[.\]\s*/gm, '- ')])));
+      document.getElementById('btnCsv').onclick = () => App.downloadCsv('ket-qua.csv', [['Nộp lúc', 'Họ tên', 'Lớp', 'Đề', 'Điểm (thang 10)', 'Mục tiêu', 'Đạt mục tiêu', 'Điểm gốc', 'Điểm tối đa', 'Số câu đúng', 'Tổng câu', 'Thời gian làm', 'Ghi chú', 'Nhận xét']]
+        .concat(rs.map((r) => [r.nopLuc, r.hoTen, r.lop, r.tieuDe, fmtNum(r.diem), r.mucTieu == null ? '' : fmtNum(r.mucTieu), r.mucTieu == null ? '' : (r.diem >= r.mucTieu ? 'Đạt' : 'Chưa đạt'), fmtNum(r.diemGoc), fmtNum(r.diemToiDa), r.soCauDung, r.tongCau, r.thoiGianLam, r.ghiChu || '', String(r.nhanXet || '').replace(/^\[.\]\s*/gm, '- ')])));
       $app.onclick = async (e) => {
         const d = e.target.closest('[data-del-result]');
         if (!d) return;

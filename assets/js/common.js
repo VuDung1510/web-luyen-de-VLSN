@@ -228,6 +228,46 @@
     return it.score > 0 ? 'part' : 'wrong';
   }
 
+  /* ---------- khung "Mục tiêu" ---------- */
+  function goalHtml(v, opts) {
+    const g = v.goal;
+    if (!g) return '';
+    const pct = Math.max(3, Math.min(100, Math.round(v.diem / g.mucTieu * 100)));
+    const nWrong = (v.items || []).filter((it) => itemStatus(it) !== 'ok').length;
+    if (g.dat) {
+      const next = Math.min(10, Math.ceil((v.diem + 0.5) * 2) / 2);
+      const msg = g.chenh >= 1.5 ? `Bạn đã vượt xa mục tiêu! Lần sau hãy thử thách bản thân với mục tiêu <b>${fmtNum(next)}</b> điểm.`
+        : v.diem >= 10 ? 'Điểm tuyệt đối — xuất sắc! Thử sức với đề khó hơn nhé.'
+        : `Giữ vững phong độ này nhé! Lần sau có thể đặt mục tiêu <b>${fmtNum(next)}</b> điểm.`;
+      return `<div class="card goal-card goal-ok"><div class="goal-head"><span class="goal-ic">🎉</span><div>
+        <h2>Đạt mục tiêu!</h2><div>Mục tiêu <b>${fmtNum(g.mucTieu)}</b> · Đạt <b>${fmtNum(v.diem)}</b>${g.chenh > 0 ? ` · vượt ${fmtNum(g.chenh)} điểm` : ''}</div></div></div>
+        <p style="margin:10px 0 0">${msg}</p></div>`;
+    }
+    const gap = -g.chenh;
+    const cheer = gap <= 0.5 ? 'Chỉ thiếu một chút nữa thôi! Đúng thêm 1–2 câu là bạn chạm mục tiêu rồi.'
+      : gap <= 1.5 ? 'Bạn đang ở rất gần mục tiêu. Xem lại các câu sai, lấp chỗ còn hổng là lần sau sẽ đạt.'
+      : gap <= 3 ? 'Đừng nản! Mục tiêu vẫn trong tầm tay — luyện thêm vài đề cùng chủ đề sẽ giúp bạn tiến bộ rõ rệt.'
+      : 'Không sao cả, mỗi lần làm bài là một lần học thêm. Hãy ôn lại phần cơ bản rồi chinh phục dần — có thể đặt mục tiêu vừa sức hơn để tiến từng bước.';
+    const prog = g.lanTruoc != null && v.diem > g.lanTruoc ? `<p style="margin:8px 0 0">📈 Bạn đã tiến bộ <b>+${fmtNum(v.diem - g.lanTruoc)}</b> điểm so với lần làm trước — đang đi đúng hướng!</p>` : '';
+    let plan = '';
+    if (!opts.showName) {
+      const steps = [];
+      if (v.reveal && nWrong) steps.push(`<button class="btn btn-sm" data-showwrong>📖 Xem lời giải ${nWrong} câu chưa đúng</button>`);
+      if (g.lamLai) steps.push(`<a class="btn btn-sm" href="#/lam-bai/${encodeURIComponent(v.examId)}">🔁 Làm lại đề này</a>`);
+      const sug = (g.goiY || []).map((x) => `<a class="sug" href="#/lam-bai/${encodeURIComponent(x.id)}">
+          <b>${esc(x.tieuDe)}</b><span class="small">${esc(x.lyDo)}</span>
+          <span class="muted small">${x.soCau} câu · ${x.thoiGian} phút${x.diemCaoNhat != null ? ' · bạn từng đạt ' + fmtNum(x.diemCaoNhat) : ''}</span></a>`).join('');
+      plan = `<h3 style="margin-top:16px">Kế hoạch để đạt mục tiêu</h3>
+        ${steps.length ? `<div class="row">${steps.join('')}</div>` : ''}
+        ${sug ? `<div class="small muted" style="margin:12px 0 6px">Đề luyện tập có nội dung tương tự:</div><div class="sug-list">${sug}</div>`
+          : '<div class="small muted" style="margin-top:10px">Hiện chưa có đề tương tự đang mở — hãy làm lại đề này sau khi xem lời giải.</div>'}`;
+    }
+    return `<div class="card goal-card goal-miss"><div class="goal-head"><span class="goal-ic">💪</span><div>
+      <h2>Chưa đạt mục tiêu — còn thiếu ${fmtNum(gap)} điểm</h2><div>Mục tiêu <b>${fmtNum(g.mucTieu)}</b> · Đạt <b>${fmtNum(v.diem)}</b></div></div></div>
+      <div class="goal-bar" role="img" aria-label="Đạt ${pct}% mục tiêu"><i style="width:${pct}%"></i><span>${pct}% mục tiêu</span></div>
+      <p style="margin:10px 0 0">${cheer}</p>${prog}${plan}</div>`;
+  }
+
   /* ---------- khung "Nhận xét" chia mục ---------- */
   function reviewSummaryHtml(v) {
     const items = v.items || [];
@@ -266,7 +306,7 @@
     }
 
     // 3) Nhận xét: gom theo nhóm, bỏ các dòng đã thể hiện ở trên
-    const fb = (v.feedback || []).filter((f) => !/^(Kết quả:|Phần (trắc nghiệm|Đúng\/Sai|trả lời ngắn)|Còn bỏ trống)/i.test(f.text));
+    const fb = (v.feedback || []).filter((f) => !/^(Kết quả:|Phần (trắc nghiệm|Đúng\/Sai|trả lời ngắn)|Còn bỏ trống|Mục tiêu)/i.test(f.text));
     const list = (arr, type) => `<ul class="fb-list">${arr.map((f) => `<li class="fb-${type}"><span class="ic">${FB_ICON[type]}</span><span>${esc(f.text)}</span></li>`).join('')}</ul>`;
     const good = fb.filter((f) => f.type === 'good');
     const warn = fb.filter((f) => f.type === 'warn');
@@ -296,6 +336,13 @@
       }
       return;
     }
+    if (e.target.closest('[data-showwrong]')) {
+      const w = document.querySelector('[data-rvfilter="wrong"]');
+      if (w) w.click();
+      const d = document.getElementById('rvDetail');
+      if (d) d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     const r = e.target.closest('[data-rvfilter]');
     if (r) {
       const only = r.dataset.rvfilter === 'wrong';
@@ -318,6 +365,7 @@
         <div class="muted small">Thời gian làm: ${esc(v.thoiGianLam)} · Nộp lúc ${esc(v.nopLuc)}${v.ghiChu ? ' · <b>' + esc(v.ghiChu) + '</b>' : ''}</div>
         ${opts.actions || ''}
       </div></div></div>`;
+    h += goalHtml(v, opts);
     h += reviewSummaryHtml(v);
     const b = v.breakdown || {};
     h += `<div class="grid grid-2 section-gap">

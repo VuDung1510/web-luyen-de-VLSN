@@ -58,6 +58,10 @@ async function routeCdn(page) {
 
   await page.click('text=Bắt đầu làm bài');
   await page.waitForSelector('#btnStart');
+  await page.click('#btnStart'); // chưa đặt mục tiêu → báo lỗi
+  await page.waitForSelector('text=Hãy đặt mục tiêu');
+  await page.click('[data-goal="8"]');
+  await page.screenshot({ path: path.join(SHOTS, '03a-dat-muc-tieu.png'), fullPage: true });
   await page.click('#btnStart');
   await page.waitForSelector('.timer');
   // Câu 1: C, câu 2: B, câu 3: A, câu 4: Đ S Đ S, câu 5: 420, câu 6: 12,5
@@ -84,6 +88,20 @@ async function routeCdn(page) {
   await page.screenshot({ path: path.join(SHOTS, '05-ket-qua.png'), fullPage: true });
   const score = await page.$eval('.score-ring b', (e) => e.textContent);
   if (score !== '5,56') errors.push('Điểm sai: ' + score + ' (mong đợi 5,56)');
+  if (!(await page.$('text=Chưa đạt mục tiêu — còn thiếu 2,44 điểm'))) errors.push('Không thấy khung mục tiêu');
+  await (await page.$('.goal-card')).screenshot({ path: path.join(SHOTS, '05a-muc-tieu.png') });
+  await page.click('[data-showwrong]');
+  await page.waitForTimeout(300);
+  const shown = await page.$$eval('#rvDetail .q:not(.hidden)', (e) => e.length);
+  if (shown !== 3) errors.push('Lọc câu sai: hiện ' + shown + ' câu (mong đợi 3)');
+
+  // Đổi PIN
+  await page.click('#btnPin');
+  await page.fill('#pOld', '0101');
+  await page.fill('#pNew', '2580');
+  await page.fill('#pNew2', '2580');
+  await page.click('#pGo');
+  await page.waitForSelector('text=Đã đổi PIN');
 
   await page.goto(BASE + '/#/thong-ke');
   await page.waitForSelector('#chTimeline');
@@ -174,6 +192,14 @@ PHẦN I
   // Học sinh mới thấy đề mới
   await page.goto(BASE + '/');
   await page.waitForSelector('text=Kiểm tra 15 phút');
+  // Đăng nhập lại bằng PIN mới
+  await page.click('#btnLogout');
+  await page.click('[data-close="ok"]');
+  await page.waitForSelector('#selStudent option[value="HS0001"]', { state: 'attached' });
+  await page.selectOption('#selStudent', 'HS0001');
+  await page.fill('#pin', '2580');
+  await page.click('#btnLogin');
+  await page.waitForSelector('text=Đề đang mở');
 
   // Không tràn ngang trên điện thoại
   for (const h of ['#/', '#/thong-ke', '#/bang-xep-hang', '#/lich-su']) {

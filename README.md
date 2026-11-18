@@ -108,6 +108,7 @@ Vào **Học sinh** trong trang quản trị:
 - **⇪ Nhập danh sách:** bôi đen danh sách trong Excel hoặc Google Sheets theo cột *Họ tên | Lớp | Ngày sinh | Email* rồi dán vào.
 - **PIN** mặc định là ngày và tháng sinh. Ví dụ em sinh 05/03/2008 thì PIN là `0503`. Có thể đặt **PIN riêng** cho từng em.
 - **🖨 In phiếu đăng nhập:** in phiếu ghi tên, lớp, PIN để phát cho học sinh.
+- **Học sinh tự đổi PIN:** sau khi đăng nhập, bấm **Đổi PIN** ở góc trên (cần nhập PIN hiện tại). Học sinh quên PIN thì giáo viên vào **Sửa** để đặt lại.
 - Nhập sai PIN 5 lần thì tài khoản bị khóa tạm 10 phút. Muốn chặn hẳn một học sinh, chọn trạng thái **Khóa**.
 
 ### Soạn đề
@@ -144,6 +145,15 @@ Vào **Đề thi → + Tạo đề mới**. Có 3 cách nhập câu hỏi:
 Nên ghi **Chủ đề** và **Mức độ** (NB/TH/VD/VDC) cho mỗi câu. Phần nhận xét tự động và thống kê dựa vào hai thông tin này.
 
 **Tùy chọn của mỗi đề:** thời gian làm bài, dành cho lớp nào, giờ mở/đóng, số lần làm tối đa, trộn thứ tự câu, và thời điểm hiện đáp án (ngay sau khi nộp / sau khi đề đóng / không hiện).
+
+### Mục tiêu điểm
+
+Trước mỗi lần làm bài, học sinh **tự đặt mục tiêu** (0–10 điểm). Hệ thống gợi ý mục tiêu cao hơn điểm lần trước một chút.
+Nộp bài xong:
+- **Đạt:** hệ thống chúc mừng và gợi ý mục tiêu cao hơn cho lần sau.
+- **Chưa đạt:** hệ thống hiện lời động viên phù hợp với khoảng cách còn thiếu, kèm kế hoạch luyện tập: xem lời giải các câu sai, làm lại đề, và tối đa 3 **đề tương tự**. Đề tương tự là các đề đang mở có nhiều câu thuộc những chủ đề học sinh vừa mất điểm.
+
+Mục tiêu được lưu ở cột **Mục tiêu** trong trang tính `KetQua`. Trang thống kê đề có thêm tỉ lệ học sinh đạt mục tiêu tự đặt.
 
 ### Nhận xét tự động
 

@@ -189,4 +189,63 @@ t('gửi email cho giáo viên khi bật cài đặt', () => {
   assert(/Học Sinh Mẫu \(12A1\)/.test(g._mails[0].subject));
 });
 
+
+t('học sinh tự đổi PIN', () => {
+  assert(/PIN không đúng/.test(g.call('changePin', { token: stTok, oldPin: '1111', newPin: '2468' }).error));
+  Object.keys(g._cache).forEach(k => delete g._cache[k]);
+  assert(/dễ đoán/.test(g.call('changePin', { token: stTok, oldPin: '0101', newPin: '1111' }).error));
+  assert(/khác PIN hiện tại/.test(g.call('changePin', { token: stTok, oldPin: '0101', newPin: '0101' }).error));
+  ok(g.call('changePin', { token: stTok, oldPin: '0101', newPin: '2468' }));
+  assert(!g.call('loginPin', { studentId: 'HS0001', pin: '0101' }).ok);
+  ok(g.call('loginPin', { studentId: 'HS0001', pin: '2468' }));
+  Object.keys(g._cache).forEach(k => delete g._cache[k]);
+});
+
+t('mục tiêu điểm: lưu, so sánh, gợi ý đề cùng chủ đề', () => {
+  // Đề luyện thêm cùng chủ đề "Khí lí tưởng" mà HS0001 (12A1) thấy được
+  ok(g.call('adminSaveExam', { token: tTok, exam: { tieuDe: 'Luyện Khí lí tưởng', thoiGian: 10, trangThai: 'MO' }, questions: [
+    { loai: 'TN', noiDung: 'q1', A: '1', B: '2', C: '3', D: '4', dapAn: 'A', chuDe: 'Khí lí tưởng' },
+    { loai: 'TN', noiDung: 'q2', A: '1', B: '2', C: '3', D: '4', dapAn: 'A', chuDe: 'Khí lí tưởng' }] }));
+  ok(g.call('adminSaveExam', { token: tTok, exam: { tieuDe: 'Đề Từ trường', thoiGian: 10, trangThai: 'MO' }, questions: [
+    { loai: 'TN', noiDung: 'q1', A: '1', B: '2', C: '3', D: '4', dapAn: 'A', chuDe: 'Từ trường' }] }));
+  assert(/từ 0 đến 10/.test(g.call('startExam', { token: stTok, examId: 'DEMAU', mucTieu: '11' }).error));
+  const s = ok(g.call('startExam', { token: stTok, examId: 'DEMAU', mucTieu: '8,3' }));
+  assert.strictEqual(s.mucTieu, 8.25);
+  // sai câu 2 & câu 4 (Khí lí tưởng)
+  const r = ok(g.call('submitExam', { token: stTok, attemptToken: s.attemptToken, answers: { 1: 'C', 2: 'A', 3: 'A', 4: ['S', 'D', 'S', 'D'], 5: '420', 6: '12,5' } }));
+  assert.strictEqual(r.mucTieu, 8.25);
+  assert(r.goal && !r.goal.dat && r.goal.chenh < 0);
+  assert(r.goal.goiY.length >= 1);
+  assert.strictEqual(r.goal.goiY[0].tieuDe, 'Luyện Khí lí tưởng');
+  assert(/Khí lí tưởng/.test(r.goal.goiY[0].lyDo));
+  assert(!r.goal.goiY.some(x => x.id === 'DEMAU'));
+  assert(r.nhanXet.indexOf('Mục tiêu 8,25 điểm: chưa đạt') >= 0);
+  const row = g._sheets.KetQua._data()[0];
+  assert(row.indexOf('Mục tiêu') >= 0);
+  // đạt mục tiêu
+  const s2 = ok(g.call('startExam', { token: stTok, examId: 'DEMAU', mucTieu: 3 }));
+  const r2 = ok(g.call('submitExam', { token: stTok, attemptToken: s2.attemptToken, answers: { 1: 'C', 2: 'B', 3: 'A', 4: ['D', 'S', 'D', 'S'], 5: '420' } }));
+  assert(r2.goal.dat && !r2.goal.goiY);
+  // không đặt mục tiêu → vẫn chạy
+  const s3 = ok(g.call('startExam', { token: stTok, examId: 'DEMAU' }));
+  assert.strictEqual(ok(g.call('submitExam', { token: stTok, attemptToken: s3.attemptToken, answers: {} })).goal, null);
+  const st = ok(g.call('adminExamStats', { token: tTok, examId: 'DEMAU' }));
+  assert.strictEqual(st.goalRate, 50);
+  const ex = ok(g.call('listExams', { token: stTok })).find(e => e.id === 'DEMAU');
+  assert(ex.diemGanNhat != null);
+});
+
+t('file Google Sheet cũ thiếu cột "Mục tiêu" vẫn chạy', () => {
+  const g2 = createContext({ quiet: true });
+  g2.setup();
+  const data = g2._sheets.KetQua._data();
+  const c = data[0].indexOf('Mục tiêu');
+  data[0].splice(c, 1); // giả lập sheet tạo bằng phiên bản 1.0.0
+  const tok = ok(g2.call('loginPin', { studentId: 'HS0001', pin: '0101' })).token;
+  const s = ok(g2.call('startExam', { token: tok, examId: 'DEMAU', mucTieu: 7 }));
+  const r = ok(g2.call('submitExam', { token: tok, attemptToken: s.attemptToken, answers: { 1: 'C' } }));
+  assert.strictEqual(r.mucTieu, 7);
+  assert.strictEqual(g2._sheets.KetQua._data()[0].slice(-1)[0], 'Mục tiêu');
+});
+
 console.log(`\n${passed} kiểm thử đạt${process.exitCode ? ', CÓ LỖI' : ''}.`);

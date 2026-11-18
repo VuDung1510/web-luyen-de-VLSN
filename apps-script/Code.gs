@@ -13,7 +13,7 @@
  *   CaiDat   — cài đặt (mật khẩu quản trị, email giáo viên, Google Client ID…)
  */
 
-var APP_VERSION = '1.0.0';
+var APP_VERSION = '1.1.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 
 var SCHEMA = {
@@ -34,7 +34,7 @@ var SCHEMA = {
   ],
   KetQua: [
     ['nopLuc', 'Nộp lúc'], ['hoTen', 'Họ tên'], ['lop', 'Lớp'], ['tieuDe', 'Đề'],
-    ['diem', 'Điểm (thang 10)'], ['diemGoc', 'Điểm gốc'], ['diemToiDa', 'Điểm tối đa'],
+    ['diem', 'Điểm (thang 10)'], ['mucTieu', 'Mục tiêu'], ['diemGoc', 'Điểm gốc'], ['diemToiDa', 'Điểm tối đa'],
     ['soCauDung', 'Số câu đúng'], ['tongCau', 'Tổng số câu'], ['thoiGianLam', 'Thời gian làm'],
     ['nhanXet', 'Nhận xét'], ['id', 'Mã bài'], ['studentId', 'Mã HS'], ['examId', 'Mã đề'],
     ['batDauLuc', 'Bắt đầu lúc'], ['thoiGianGiay', 'Số giây'], ['ghiChu', 'Ghi chú'], ['chiTiet', 'Chi tiết (JSON)']
@@ -185,6 +185,7 @@ var ROUTES = {
   submitExam: apiSubmitExam_,
   myResults: apiMyResults_,
   getResult: apiGetResult_,
+  changePin: apiChangePin_,
   myStats: apiMyStats_,
   leaderboard: apiLeaderboard_,
   // Giáo viên
@@ -399,7 +400,9 @@ function apiListExams_(req) {
       batDau: e.batDau, ketThuc: e.ketThuc, soLanLam: max, daLam: rs.length,
       diemCaoNhat: best >= 0 ? best : null, open: info.open, trangThaiText: info.text,
       canStart: info.open && (!max || rs.length < max) && (counts[e.id] || 0) > 0,
-      lastResultId: rs.length ? rs[rs.length - 1].id : null
+      lastResultId: rs.length ? rs[rs.length - 1].id : null,
+      diemGanNhat: rs.length ? num_(rs[rs.length - 1].diem) : null,
+      mucTieuGanNhat: rs.length && rs[rs.length - 1].mucTieu !== '' ? num_(rs[rs.length - 1].mucTieu) : null
     };
   }).sort(function (a, b) { return (b.open - a.open) || String(b.batDau || '').localeCompare(String(a.batDau || '')); });
 }
@@ -423,9 +426,10 @@ function apiStartExam_(req) {
   // Nếu đề có giờ đóng, không cho làm quá giờ đóng
   var end = parseDate_(e.ketThuc);
   if (end) dur = Math.min(dur, Math.max(60, Math.floor((end.getTime() - now) / 1000)));
-  var attempt = { t: 'a', aid: Utilities.getUuid(), sid: st.id, eid: e.id, st: now, dur: dur, exp: now + (dur + 6 * 3600) * 1000 };
+  var goal = parseGoal_(req.mucTieu);
+  var attempt = { t: 'a', aid: Utilities.getUuid(), sid: st.id, eid: e.id, st: now, dur: dur, exp: now + (dur + 6 * 3600) * 1000, goal: goal };
   return {
-    attemptToken: signToken_(attempt), startedAt: now, durationSec: dur, serverNow: now,
+    attemptToken: signToken_(attempt), startedAt: now, durationSec: dur, serverNow: now, mucTieu: goal,
     exam: { id: e.id, tieuDe: e.tieuDe, moTa: e.moTa },
     questions: qs.map(function (q) {
       return { stt: q.stt, phan: q.phan, loai: q.loai, noiDung: q.noiDung, hinhAnh: q.hinhAnh, A: q.A, B: q.B, C: q.C, D: q.D, diem: q.diem };
@@ -453,12 +457,13 @@ function apiSubmitExam_(req) {
   var prev = readTable_('KetQua').filter(function (r) { return r.studentId === st.id; });
   var prevSame = prev.filter(function (r) { return r.examId === e.id; }).map(function (r) { return num_(r.diem); });
   var prevAll = prev.map(function (r) { return num_(r.diem); });
-  var fb = buildFeedback_(qs, graded, { usedSec: usedSec, limitSec: a.dur, prevSame: prevSame, prevAll: prevAll });
+  var goal = a.goal == null ? null : num_(a.goal);
+  var fb = buildFeedback_(qs, graded, { usedSec: usedSec, limitSec: a.dur, prevSame: prevSame, prevAll: prevAll, goal: goal });
   var diem10 = graded.max ? round2_(graded.score / graded.max * 10) : 0;
   var result = {
     id: 'KQ' + Utilities.formatDate(new Date(now), TZ, 'yyMMddHHmmss') + Math.floor(Math.random() * 900 + 100),
     nopLuc: fmtDateTime_(new Date(now)), hoTen: st.hoTen, lop: st.lop, tieuDe: e.tieuDe,
-    diem: diem10, diemGoc: graded.score, diemToiDa: graded.max, soCauDung: graded.correctCount, tongCau: qs.length,
+    diem: diem10, mucTieu: goal == null ? '' : goal, diemGoc: graded.score, diemToiDa: graded.max, soCauDung: graded.correctCount, tongCau: qs.length,
     thoiGianLam: fmtDuration_(usedSec), nhanXet: fb.text, studentId: st.id, examId: e.id,
     batDauLuc: fmtDateTime_(new Date(a.st)), thoiGianGiay: usedSec,
     ghiChu: late ? 'Nộp muộn ' + fmtDuration_(usedSec - a.dur) : '',
@@ -485,8 +490,80 @@ function apiGetResult_(req) {
   return buildResultView_(r, findExam_(r.examId), u.role);
 }
 
+/** Mục tiêu điểm hợp lệ: 0–10, làm tròn tới 0,25; bỏ trống → null */
+function parseGoal_(v) {
+  if (v == null || String(v).trim() === '') return null;
+  var n = parseNum_(v);
+  if (isNaN(n) || n <= 0 || n > 10) throw new Error('Mục tiêu điểm phải là số từ 0 đến 10.');
+  return Math.round(n * 4) / 4;
+}
+
+/** Học sinh tự đổi PIN: cần PIN hiện tại */
+function apiChangePin_(req) {
+  var st = requireStudent_(req);
+  checkPin_(st.id, req.oldPin);
+  var np = String(req.newPin || '').trim();
+  if (!/^\d{4}$/.test(np)) throw new Error('PIN mới phải gồm đúng 4 chữ số.');
+  if (np === pinOf_(st)) throw new Error('PIN mới phải khác PIN hiện tại.');
+  if (/^(\d)\1{3}$/.test(np) || np === '1234') throw new Error('PIN quá dễ đoán, hãy chọn PIN khác.');
+  withLock_(function () { updateRow_('HocSinh', st._row, { pin: np }); });
+  return true;
+}
+
+/**
+ * Gợi ý đề luyện tập tương tự: ưu tiên đề có nhiều câu thuộc các chủ đề học sinh vừa mất điểm.
+ */
+function suggestExams_(st, r, details) {
+  var lost = {};
+  details.forEach(function (d) {
+    var miss = num_(d.m) - num_(d.sc);
+    if (miss > 1e-9 && d.cd) lost[d.cd] = (lost[d.cd] || 0) + miss;
+  });
+  var mine = readTable_('KetQua').filter(function (x) { return x.studentId === st.id; });
+  var qByExam = {};
+  readTable_('CauHoi').forEach(function (q) { (qByExam[q.examId] = qByExam[q.examId] || []).push(q); });
+  var out = readTable_('DeThi').filter(function (e) {
+    if (e.id === r.examId || !examVisibleTo_(e, st) || !examStatus_(e).open || !(qByExam[e.id] || []).length) return false;
+    var max = num_(e.soLanLam);
+    return !max || mine.filter(function (x) { return x.examId === e.id; }).length < max;
+  }).map(function (e) {
+    var topics = {};
+    var score = 0;
+    qByExam[e.id].forEach(function (q) {
+      var t = str_(q.chuDe);
+      if (lost[t]) { topics[t] = (topics[t] || 0) + 1; score += lost[t]; }
+    });
+    var done = mine.filter(function (x) { return x.examId === e.id; });
+    var best = done.reduce(function (m, x) { return Math.max(m, num_(x.diem)); }, -1);
+    var names = Object.keys(topics).sort(function (a, b) { return topics[b] - topics[a]; });
+    return {
+      id: e.id, tieuDe: e.tieuDe, thoiGian: num_(e.thoiGian), soCau: qByExam[e.id].length, score: score, daLam: done.length,
+      diemCaoNhat: best >= 0 ? best : null,
+      lyDo: names.length ? 'Có ' + names.map(function (t) { return topics[t] + ' câu ' + t; }).join(', ') : (done.length ? 'Luyện thêm' : 'Đề bạn chưa làm')
+    };
+  });
+  var similar = out.filter(function (x) { return x.score > 0; });
+  var pool = similar.length ? similar : out.filter(function (x) { return !x.daLam; });
+  return pool.sort(function (a, b) { return (b.score - a.score) || (a.daLam - b.daLam); }).slice(0, 3)
+    .map(function (x) { delete x.score; return x; });
+}
+
 function buildResultView_(r, e, role) {
   var details = parseJson_(r.chiTiet, []);
+  var goal = null;
+  if (r.mucTieu !== '' && r.mucTieu != null) {
+    var g = num_(r.mucTieu), d = num_(r.diem);
+    goal = { mucTieu: g, dat: d >= g - 1e-9, chenh: round2_(d - g) };
+    if (role === 'student') {
+      var st = findStudent_(r.studentId);
+      var same = readTable_('KetQua').filter(function (x) { return x.studentId === r.studentId && x.examId === r.examId; });
+      var idx = same.map(function (x) { return x.id; }).indexOf(r.id);
+      goal.lanTruoc = idx > 0 ? num_(same[idx - 1].diem) : null;
+      var max = e ? num_(e.soLanLam) : 0;
+      goal.lamLai = !!(e && examStatus_(e).open && (!max || same.length < max));
+      if (!goal.dat && st) goal.goiY = suggestExams_(st, r, details);
+    }
+  }
   var qs = e ? examQuestions_(e.id) : [];
   var reveal = role === 'teacher' || (e && canReveal_(e));
   var byStt = {};
@@ -494,7 +571,7 @@ function buildResultView_(r, e, role) {
   var view = Object.assign(resultSummary_(r), {
     nhanXet: r.nhanXet, feedback: feedbackFromText_(r.nhanXet), ghiChu: r.ghiChu, reveal: !!reveal,
     revealNote: reveal ? '' : (e && e.hienLoiGiai === 'SAU_HAN' ? 'Đáp án và lời giải sẽ hiện sau khi đề đóng.' : 'Giáo viên không công bố đáp án cho đề này.'),
-    breakdown: breakdown_(details),
+    breakdown: breakdown_(details), goal: goal,
     items: details.map(function (d) {
       var q = byStt[d.s] || {};
       var it = { stt: d.s, loai: d.l, phan: d.p, chuDe: d.cd, mucDo: d.md, answer: d.a, score: d.sc, max: d.m, nCorrect: d.n };
@@ -517,7 +594,7 @@ function apiMyStats_(req) {
   var b = breakdown_(all);
   var scores = rs.map(function (r) { return num_(r.diem); });
   return {
-    timeline: rs.map(function (r) { return { id: r.id, nopLuc: r.nopLuc, tieuDe: r.tieuDe, diem: num_(r.diem) }; }),
+    timeline: rs.map(function (r) { return { id: r.id, nopLuc: r.nopLuc, tieuDe: r.tieuDe, diem: num_(r.diem), mucTieu: r.mucTieu === '' ? null : num_(r.mucTieu) }; }),
     count: rs.length,
     avg: scores.length ? round2_(avg_(scores)) : null,
     best: scores.length ? Math.max.apply(null, scores) : null,
@@ -745,6 +822,11 @@ function buildFeedback_(qs, graded, ctx) {
     lines.push(d10 >= a ? '[+] Cao hơn điểm trung bình các bài trước của bạn (' + fmtNum_(a) + ').' : '[i] Thấp hơn điểm trung bình các bài trước của bạn (' + fmtNum_(a) + ').');
   }
 
+  if (ctx && ctx.goal != null) {
+    var gap = round2_(ctx.goal - d10);
+    lines.push(gap <= 0 ? '[+] Mục tiêu ' + fmtNum_(ctx.goal) + ' điểm: ĐẠT' + (gap < 0 ? ' (vượt ' + fmtNum_(-gap) + ' điểm)' : '') + '.'
+      : '[!] Mục tiêu ' + fmtNum_(ctx.goal) + ' điểm: chưa đạt, còn thiếu ' + fmtNum_(gap) + ' điểm.');
+  }
   if (pct >= 90) lines.push('[>] Rất tốt! Thử sức với đề khó hơn hoặc giới hạn thời gian ngắn hơn để rèn tốc độ.');
   else if (weak.length) lines.push('[>] Gợi ý: xem lời giải các câu sai, ôn lại lí thuyết chủ đề "' + weak[0].name + '" rồi làm lại đề để củng cố.');
   return { text: lines.join('\n'), lines: lines };
@@ -991,6 +1073,10 @@ function apiAdminExamStats_(req) {
     min: scores.length ? sorted[0] : null,
     median: scores.length ? round2_(sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2) : null,
     passRate: scores.length ? Math.round(scores.filter(function (s) { return s >= 5; }).length / scores.length * 100) : null,
+    goalRate: (function () {
+      var w = rs.filter(function (r) { return r.mucTieu !== '' && r.mucTieu != null; });
+      return w.length ? Math.round(w.filter(function (r) { return num_(r.diem) >= num_(r.mucTieu) - 1e-9; }).length / w.length * 100) : null;
+    })(),
     bins: bins,
     byClass: Object.keys(classes).sort(sortVi_).map(function (k) { return { lop: k, n: classes[k].length, avg: round2_(avg_(classes[k])) }; }),
     questions: Object.keys(perQ).map(function (k) {
@@ -1145,7 +1231,18 @@ function cell_(v) {
   return v;
 }
 
-function headerOf_(sh) { return sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String); }
+function headerOf_(sh) {
+  var header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  var defs = SCHEMA[sh.getName()];
+  if (defs) {
+    var missing = defs.map(function (d) { return d[1]; }).filter(function (l) { return header.indexOf(l) < 0; });
+    if (missing.length) {
+      sh.getRange(1, header.length + 1, 1, missing.length).setValues([missing]).setFontWeight('bold').setBackground('#1e3a8a').setFontColor('#ffffff');
+      header = header.concat(missing);
+    }
+  }
+  return header;
+}
 
 function safe_(v) {
   if (typeof v === 'string' && /^[=+]/.test(v)) return "'" + v;
@@ -1324,7 +1421,7 @@ function shuffleWithinParts_(qs) {
 function resultSummary_(r) {
   return {
     id: r.id, nopLuc: r.nopLuc, hoTen: r.hoTen, lop: r.lop, studentId: r.studentId, examId: r.examId, tieuDe: r.tieuDe,
-    diem: num_(r.diem), diemGoc: num_(r.diemGoc), diemToiDa: num_(r.diemToiDa), soCauDung: num_(r.soCauDung), tongCau: num_(r.tongCau),
+    diem: num_(r.diem), mucTieu: r.mucTieu === '' || r.mucTieu == null ? null : num_(r.mucTieu), diemGoc: num_(r.diemGoc), diemToiDa: num_(r.diemToiDa), soCauDung: num_(r.soCauDung), tongCau: num_(r.tongCau),
     thoiGianLam: r.thoiGianLam, thoiGianGiay: num_(r.thoiGianGiay), ghiChu: r.ghiChu
   };
 }

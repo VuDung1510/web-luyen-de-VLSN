@@ -40,10 +40,35 @@
     if (!user) { box.innerHTML = ''; nav.classList.add('hidden'); return; }
     nav.classList.remove('hidden');
     box.innerHTML = `<span class="small"><b>${esc(user.hoTen)}</b> <span class="muted">· ${esc(user.lop)}</span></span>
-      <button class="btn btn-sm" id="btnLogout">Đăng xuất</button>`;
+      <button class="btn btn-sm" id="btnPin">Đổi PIN</button><button class="btn btn-sm" id="btnLogout">Đăng xuất</button>`;
+    document.getElementById('btnPin').onclick = changePinDialog;
     document.getElementById('btnLogout').onclick = async () => {
       if (await confirmBox('Đăng xuất?', 'Bạn có chắc muốn đăng xuất?', 'Đăng xuất')) logout();
     };
+  }
+
+  function changePinDialog() {
+    modal(`<h2>Đổi mã PIN</h2>
+      <div class="field"><label for="pOld">PIN hiện tại</label><input id="pOld" class="pin-input" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password"></div>
+      <div class="field"><label for="pNew">PIN mới (4 số)</label><input id="pNew" class="pin-input" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></div>
+      <div class="field"><label for="pNew2">Nhập lại PIN mới</label><input id="pNew2" class="pin-input" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></div>
+      <p class="muted small">Không dùng PIN dễ đoán như 0000, 1111, 1234. Quên PIN thì nhờ giáo viên đặt lại.</p>
+      <div class="modal-actions"><button class="btn" data-close="">Hủy</button><button class="btn btn-primary" id="pGo">Đổi PIN</button></div>`, {
+      onOpen(m, close) {
+        m.querySelectorAll('input').forEach((i) => { i.oninput = () => { i.value = i.value.replace(/\D/g, '').slice(0, 4); }; });
+        m.querySelector('#pOld').focus();
+        m.querySelector('#pGo').onclick = (e) => withBusy(e.currentTarget, async () => {
+          const o = m.querySelector('#pOld').value, n = m.querySelector('#pNew').value, n2 = m.querySelector('#pNew2').value;
+          if (!/^\d{4}$/.test(o) || !/^\d{4}$/.test(n)) return toast('PIN gồm đúng 4 chữ số', 'err');
+          if (n !== n2) return toast('Hai lần nhập PIN mới không khớp', 'err');
+          try {
+            await api('changePin', { oldPin: o, newPin: n });
+            close('ok');
+            toast('Đã đổi PIN. Lần sau hãy đăng nhập bằng PIN mới.', 'ok');
+          } catch (err) { toast(err.message, 'err'); }
+        });
+      }
+    });
   }
 
   function logout(silent) {
@@ -220,8 +245,9 @@
   }
 
   function resultsTable(rs) {
-    return `<div class="table-wrap"><table><thead><tr><th>Đề</th><th class="num">Điểm</th><th class="num">Số câu đúng</th><th>Thời gian</th><th>Nộp lúc</th><th></th></tr></thead><tbody>
+    return `<div class="table-wrap"><table><thead><tr><th>Đề</th><th class="num">Điểm</th><th class="num">Mục tiêu</th><th class="num">Số câu đúng</th><th>Thời gian</th><th>Nộp lúc</th><th></th></tr></thead><tbody>
       ${rs.map((r) => `<tr><td>${esc(r.tieuDe)}</td><td class="num"><span class="badge ${App.scoreClass(r.diem)}">${fmtNum(r.diem)}</span></td>
+        <td class="num nowrap">${r.mucTieu == null ? '—' : fmtNum(r.mucTieu) + (r.diem >= r.mucTieu ? ' <span style="color:var(--good)">✓</span>' : ' <span style="color:var(--bad)">✗</span>')}</td>
         <td class="num">${r.soCauDung}/${r.tongCau}</td><td class="nowrap">${esc(r.thoiGianLam)}</td><td class="nowrap">${esc(r.nopLuc)}</td>
         <td><a href="#/ket-qua/${encodeURIComponent(r.id)}">Xem</a></td></tr>`).join('')}</tbody></table></div>`;
   }
@@ -244,15 +270,25 @@
           <li>Bài làm được lưu trên máy — lỡ tải lại trang vẫn làm tiếp được.</li>
           <li>Phần trả lời ngắn: ghi số, dùng dấu phẩy cho phần thập phân (ví dụ <b>12,5</b>).</li>
           <li>Phần Đúng/Sai: chọn Đ hoặc S cho từng ý a, b, c, d.</li></ul>
-        ${e.canStart ? '<button class="btn btn-primary btn-block" id="btnStart">Bắt đầu làm bài</button>' : `<div class="notice warn">${esc(e.trangThaiText)} — bạn không thể làm đề này lúc này.</div>`}
+        ${e.canStart ? goalBoxHtml(e) + '<button class="btn btn-primary btn-block" id="btnStart">Bắt đầu làm bài</button>' : `<div class="notice warn">${esc(e.trangThaiText)} — bạn không thể làm đề này lúc này.</div>`}
         <div style="text-align:center;margin-top:12px"><a href="#/">← Quay lại</a></div></div>`;
+      const goalIn = document.getElementById('goal');
+      if (goalIn) {
+        goalIn.oninput = () => { goalIn.value = goalIn.value.replace(/[^0-9,.]/g, ''); markChips(); };
+        const markChips = () => document.querySelectorAll('[data-goal]').forEach((c) => c.classList.toggle('sel', c.dataset.goal === goalIn.value));
+        document.querySelectorAll('[data-goal]').forEach((c) => { c.onclick = () => { goalIn.value = c.dataset.goal; markChips(); }; });
+        markChips();
+      }
       const b = document.getElementById('btnStart');
       if (b) b.onclick = () => withBusy(b, async () => {
+        const g = parseFloat(String(goalIn.value).replace(',', '.'));
+        if (!goalIn.value.trim()) { toast('Hãy đặt mục tiêu điểm cho lần làm này', 'err'); goalIn.focus(); return; }
+        if (isNaN(g) || g <= 0 || g > 10) { toast('Mục tiêu là số từ 0 đến 10, ví dụ 7 hoặc 8,5', 'err'); goalIn.focus(); return; }
         try {
-          const s = await api('startExam', { examId });
+          const s = await api('startExam', { examId, mucTieu: g });
           const offset = s.serverNow - Date.now();
           const att = {
-            attemptToken: s.attemptToken, exam: s.exam, questions: s.questions, studentId: user.id,
+            attemptToken: s.attemptToken, exam: s.exam, questions: s.questions, studentId: user.id, mucTieu: s.mucTieu,
             endAt: s.startedAt + s.durationSec * 1000 - offset, durationSec: s.durationSec, answers: {}, flags: {}
           };
           store.set(ATTEMPT_KEY, att);
@@ -260,6 +296,18 @@
         } catch (err) { toast(err.message, 'err'); }
       });
     } catch (e) { $app.innerHTML = errorBox(e); }
+  }
+
+  function goalBoxHtml(e) {
+    const last = e.diemGanNhat;
+    const suggest = last == null ? '' : fmtNum(Math.min(10, Math.ceil((last + 0.5) * 2) / 2));
+    const hist = last == null ? 'Lần đầu làm đề này — hãy đặt mục tiêu vừa sức.'
+      : `Lần trước: <b>${fmtNum(last)}</b>${e.mucTieuGanNhat != null ? ` (mục tiêu ${fmtNum(e.mucTieuGanNhat)})` : ''} · Cao nhất: <b>${fmtNum(e.diemCaoNhat)}</b>`;
+    return `<div class="goal-box"><label for="goal"><b>🎯 Mục tiêu điểm lần này</b></label>
+      <div class="muted small">${hist}</div>
+      <div class="row" style="margin-top:8px"><input id="goal" class="goal-input" inputmode="decimal" autocomplete="off" placeholder="VD: 8" value="${suggest}" aria-describedby="goalHint"><span class="muted">/ 10 điểm</span></div>
+      <div class="chips" style="margin-top:8px">${['5', '6,5', '8', '9', '10'].map((v) => `<button type="button" class="chip goal-chip" data-goal="${v}">${v}</button>`).join('')}</div>
+      <div class="muted small" id="goalHint" style="margin-top:6px">Sau khi nộp bài, bạn sẽ thấy mình đã đạt mục tiêu chưa.</div></div>`;
   }
 
   function runExam(att) {
@@ -464,11 +512,12 @@
         type: 'line',
         data: {
           labels: s.timeline.map((t, i) => 'Lần ' + (i + 1)),
-          datasets: [{ label: 'Điểm', data: s.timeline.map((t) => t.diem), borderColor: primary, backgroundColor: primary, tension: 0.25, pointRadius: 4 }]
+          datasets: [{ label: 'Điểm', data: s.timeline.map((t) => t.diem), borderColor: primary, backgroundColor: primary, tension: 0.25, pointRadius: 4 },
+            { label: 'Mục tiêu', data: s.timeline.map((t) => t.mucTieu), borderColor: App.cssVar('--accent'), backgroundColor: App.cssVar('--accent'), borderDash: [6, 4], pointStyle: 'rectRot', pointRadius: 4, spanGaps: true, tension: 0 }]
         },
         options: {
           maintainAspectRatio: false, scales: { y: { min: 0, max: 10, ticks: { stepSize: 2 } } },
-          plugins: { legend: { display: false }, tooltip: { callbacks: { title: (it) => s.timeline[it[0].dataIndex].tieuDe, afterTitle: (it) => s.timeline[it[0].dataIndex].nopLuc } } }
+          plugins: { legend: { display: s.timeline.some((t) => t.mucTieu != null) }, tooltip: { callbacks: { title: (it) => s.timeline[it[0].dataIndex].tieuDe, afterTitle: (it) => s.timeline[it[0].dataIndex].nopLuc } } }
         }
       });
     } catch (e) { $app.innerHTML = errorBox(e); }
