@@ -13,7 +13,9 @@
  *   CaiDat   — cài đặt (mật khẩu quản trị, email giáo viên, Google Client ID…)
  */
 
-var APP_VERSION = '1.1.0';
+var APP_VERSION = '1.2.0';
+/** Tính năng máy chủ này hỗ trợ. Giao diện bật/tắt nút theo danh sách này (không so số phiên bản). */
+var FEATURES = ['changePin', 'goal', 'bootstrap', 'cache'];
 var TZ = 'Asia/Ho_Chi_Minh';
 
 var SCHEMA = {
@@ -58,6 +60,10 @@ var TEXT_SHEETS = ['HocSinh', 'DeThi', 'CauHoi', 'CaiDat'];
 var MAX_FAIL = 5;            // số lần nhập sai PIN/mật khẩu trước khi bị khóa tạm
 var LOCK_SECONDS = 600;      // khóa 10 phút
 var GRACE_SECONDS = 120;     // cho phép nộp trễ tối đa 2 phút so với giờ làm bài
+var CACHE_SECONDS = 60;      // máy chủ nhớ tạm dữ liệu trang tính 60 giây (QUYET-DINH §7)
+var CACHE_CHUNK_BYTES = 90000;   // mỗi mảnh đệm ≤ 90 000 byte (CacheService giới hạn 100 KB/khóa)
+var CACHE_MAX_BYTES = 900000;    // bảng lớn hơn ~900 KB thì không đệm
+var GEN_SECONDS = 21600;         // khóa thế hệ tbgen_* sống tối đa 6 giờ
 
 /* =====================================================================
  *  CÀI ĐẶT BAN ĐẦU
@@ -66,6 +72,7 @@ var GRACE_SECONDS = 120;     // cho phép nộp trễ tối đa 2 phút so với
 /** Chạy hàm này MỘT LẦN sau khi dán code (nút ▶ Chạy). Chạy lại cũng không mất dữ liệu. */
 function setup() {
   var ss = ss_();
+  bumpAllGens_();
   Object.keys(SCHEMA).forEach(function (name) {
     var sh = ss.getSheetByName(name);
     if (!sh) sh = ss.insertSheet(name);
@@ -104,6 +111,7 @@ function setup() {
     var s = ss.getSheetByName(n);
     if (s && s.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(s);
   });
+  bumpAllGens_();
   var pw = getSetting_('MAT_KHAU_QUAN_TRI');
   Logger.log('✅ Cài đặt xong! Mật khẩu trang quản trị: ' + pw + '  (xem/đổi ở trang tính CaiDat)');
   return 'OK';
@@ -180,6 +188,7 @@ var ROUTES = {
   loginAdminPassword: apiLoginAdminPassword_,
   // Học sinh
   me: apiMe_,
+  bootstrap: apiBootstrap_,
   listExams: apiListExams_,
   startExam: apiStartExam_,
   submitExam: apiSubmitExam_,
@@ -189,6 +198,7 @@ var ROUTES = {
   myStats: apiMyStats_,
   leaderboard: apiLeaderboard_,
   // Giáo viên
+  adminBootstrap: apiAdminBootstrap_,
   adminOverview: apiAdminOverview_,
   adminListStudents: apiAdminListStudents_,
   adminSaveStudent: apiAdminSaveStudent_,
@@ -217,7 +227,8 @@ function apiPublicConfig_() {
     teacherName: getSetting_('TEN_GIAO_VIEN') || '',
     googleClientId: getSetting_('GOOGLE_CLIENT_ID') || '',
     showLeaderboard: yes_(getSetting_('HIEN_BANG_XEP_HANG')),
-    version: APP_VERSION
+    version: APP_VERSION,
+    features: FEATURES.slice()
   };
 }
 
@@ -254,9 +265,14 @@ function apiLinkGoogle_(req) {
   if (!yes_(getSetting_('CHO_LIEN_KET_GOOGLE'))) throw new Error('Giáo viên chưa cho phép tự liên kết Google. Hãy đăng nhập bằng PIN.');
   var g = verifyGoogle_(req.credential);
   var st = checkPin_(req.studentId, req.pin);
-  var other = readTable_('HocSinh').filter(function (s) { return low_(s.email) === g.email && s.id !== st.id; })[0];
-  if (other) throw new Error('Email này đã được liên kết với học sinh khác. Hãy báo giáo viên.');
-  withLock_(function () { updateRow_('HocSinh', st._row, { email: g.email }); });
+  withLock_(function () {
+    var all = readTable_('HocSinh', { fresh: true });
+    var other = all.filter(function (s) { return low_(s.email) === g.email && s.id !== st.id; })[0];
+    if (other) throw new Error('Email này đã được liên kết với học sinh khác. Hãy báo giáo viên.');
+    var cur = all.filter(function (s) { return s.id === st.id; })[0];
+    if (!cur) throw new Error('Không tìm thấy học sinh hoặc tài khoản đã bị khóa.');
+    updateRow_('HocSinh', cur._row, { email: g.email }, 'id', st.id);
+  });
   return { token: makeSession_({ role: 'student', sid: st.id }), user: publicStudent_(Object.assign(st, { email: g.email })) };
 }
 
@@ -386,6 +402,12 @@ function apiMe_(req) {
   return u.role === 'teacher' ? { role: 'teacher', email: u.email } : publicStudent_(u.student);
 }
 
+/** Gộp các lần gọi khi học sinh mở trang: thông tin của em, cấu hình, danh sách đề, kết quả (không có đáp án). */
+function apiBootstrap_(req) {
+  var st = requireStudent_(req);
+  return { me: publicStudent_(st), pub: apiPublicConfig_(), exams: apiListExams_(req), results: apiMyResults_(req), v: APP_VERSION };
+}
+
 function apiListExams_(req) {
   var st = requireStudent_(req);
   var mine = readTable_('KetQua').filter(function (r) { return r.studentId === st.id; });
@@ -500,13 +522,16 @@ function parseGoal_(v) {
 
 /** Học sinh tự đổi PIN: cần PIN hiện tại */
 function apiChangePin_(req) {
-  var st = requireStudent_(req);
-  checkPin_(st.id, req.oldPin);
-  var np = String(req.newPin || '').trim();
-  if (!/^\d{4}$/.test(np)) throw new Error('PIN mới phải gồm đúng 4 chữ số.');
-  if (np === pinOf_(st)) throw new Error('PIN mới phải khác PIN hiện tại.');
-  if (/^(\d)\1{3}$/.test(np) || np === '1234') throw new Error('PIN quá dễ đoán, hãy chọn PIN khác.');
-  withLock_(function () { updateRow_('HocSinh', st._row, { pin: np }); });
+  var me = requireStudent_(req);
+  withLock_(function () {
+    readTable_('HocSinh', { fresh: true }); // đọc thẳng trang tính trong khóa; checkPin_ dùng lại bản này
+    var st = checkPin_(me.id, req.oldPin);
+    var np = String(req.newPin || '').trim();
+    if (!/^\d{4}$/.test(np)) throw new Error('PIN mới phải gồm đúng 4 chữ số.');
+    if (np === pinOf_(st)) throw new Error('PIN mới phải khác PIN hiện tại.');
+    if (/^(\d)\1{3}$/.test(np) || np === '1234') throw new Error('PIN quá dễ đoán, hãy chọn PIN khác.');
+    updateRow_('HocSinh', st._row, { pin: np }, 'id', st.id);
+  });
   return true;
 }
 
@@ -864,6 +889,12 @@ function overallAdvice_(b, scores) {
  *  GIÁO VIÊN
  * ===================================================================== */
 
+/** Gộp các lần gọi khi giáo viên mở trang quản trị. Không gồm học sinh (có PIN) và kết quả (lớn). */
+function apiAdminBootstrap_(req) {
+  var u = requireTeacher_(req);
+  return { me: { role: 'teacher', email: u.email }, overview: apiAdminOverview_(req), exams: apiAdminListExams_(req), v: APP_VERSION };
+}
+
 function apiAdminOverview_(req) {
   requireTeacher_(req);
   var rs = readTable_('KetQua');
@@ -916,11 +947,11 @@ function apiAdminSaveStudent_(req) {
   if (!ngaySinh && !pin) throw new Error('Cần ngày sinh (để tạo PIN) hoặc PIN riêng.');
   var email = low_(s.email);
   return withLock_(function () {
-    var all = readTable_('HocSinh');
+    var all = readTable_('HocSinh', { fresh: true });
     if (email && all.some(function (x) { return low_(x.email) === email && x.id !== s.id; })) throw new Error('Email đã được dùng cho học sinh khác.');
     var obj = { hoTen: hoTen, lop: lop, ngaySinh: ngaySinh, pin: pin, email: email, trangThai: s.trangThai === 'KHOA' ? 'KHOA' : 'HOAT_DONG' };
     var cur = s.id ? all.filter(function (x) { return x.id === s.id; })[0] : null;
-    if (cur) { updateRow_('HocSinh', cur._row, obj); obj.id = cur.id; }
+    if (cur) { updateRow_('HocSinh', cur._row, obj, 'id', cur.id); obj.id = cur.id; }
     else { obj.id = nextStudentId_(all, 0); obj.ngayTao = nowIso_(); appendRows_('HocSinh', [obj]); }
     return obj;
   });
@@ -931,7 +962,7 @@ function apiAdminImportStudents_(req) {
   requireTeacher_(req);
   var rows = req.rows || [];
   return withLock_(function () {
-    var all = readTable_('HocSinh');
+    var all = readTable_('HocSinh', { fresh: true });
     var added = [], skipped = [];
     rows.forEach(function (r, i) {
       var hoTen = str_(r.hoTen), lop = str_(r.lop).toUpperCase(), ngaySinh = normalizeDob_(r.ngaySinh), email = low_(r.email);
@@ -948,9 +979,9 @@ function apiAdminImportStudents_(req) {
 function apiAdminDeleteStudent_(req) {
   requireTeacher_(req);
   return withLock_(function () {
-    var st = readTable_('HocSinh').filter(function (x) { return x.id === req.id; })[0];
+    var st = readTable_('HocSinh', { fresh: true }).filter(function (x) { return x.id === req.id; })[0];
     if (!st) throw new Error('Không tìm thấy học sinh.');
-    deleteRows_('HocSinh', [st._row]);
+    deleteRows_('HocSinh', [st._row], 'id', [st.id]);
     return true;
   });
 }
@@ -983,7 +1014,7 @@ function apiAdminSaveExam_(req) {
   if (!str_(ex.tieuDe)) throw new Error('Cần nhập tên đề.');
   qs.forEach(function (q, i) { validateQuestion_(q, i); });
   return withLock_(function () {
-    var exams = readTable_('DeThi');
+    var exams = readTable_('DeThi', { fresh: true });
     var cur = ex.id ? exams.filter(function (x) { return x.id === ex.id; })[0] : null;
     var obj = {
       tieuDe: str_(ex.tieuDe), lop: String(ex.lop || '').split(/[,;]+/).map(function (x) { return x.trim().toUpperCase(); }).filter(String).join(', '),
@@ -994,7 +1025,7 @@ function apiAdminSaveExam_(req) {
       tronCau: yes_(ex.tronCau) ? 'CO' : 'KHONG', capNhat: nowIso_()
     };
     var id;
-    if (cur) { id = cur.id; updateRow_('DeThi', cur._row, obj); }
+    if (cur) { id = cur.id; updateRow_('DeThi', cur._row, obj, 'id', cur.id); }
     else {
       id = 'DE' + Utilities.formatDate(new Date(), TZ, 'yyMMdd') + Math.floor(Math.random() * 9000 + 1000);
       obj.id = id; obj.ngayTao = nowIso_();
@@ -1008,10 +1039,10 @@ function apiAdminSaveExam_(req) {
 function apiAdminDeleteExam_(req) {
   requireTeacher_(req);
   return withLock_(function () {
-    var e = readTable_('DeThi').filter(function (x) { return x.id === req.examId; })[0];
+    var e = readTable_('DeThi', { fresh: true }).filter(function (x) { return x.id === req.examId; })[0];
     if (!e) throw new Error('Không tìm thấy đề.');
     replaceQuestions_(e.id, []);
-    deleteRows_('DeThi', [e._row]);
+    deleteRows_('DeThi', [e._row], 'id', [e.id]);
     return true;
   });
 }
@@ -1026,9 +1057,9 @@ function apiAdminResults_(req) {
 function apiAdminDeleteResult_(req) {
   requireTeacher_(req);
   return withLock_(function () {
-    var r = readTable_('KetQua').filter(function (x) { return x.id === req.resultId; })[0];
+    var r = readTable_('KetQua', { fresh: true }).filter(function (x) { return x.id === req.resultId; })[0];
     if (!r) throw new Error('Không tìm thấy bài làm.');
-    deleteRows_('KetQua', [r._row]);
+    deleteRows_('KetQua', [r._row], 'id', [r.id]);
     return true;
   });
 }
@@ -1157,13 +1188,13 @@ function apiAdminSaveSettings_(req) {
   requireTeacher_(req);
   var s = req.settings || {};
   return withLock_(function () {
-    var rows = readTable_('CaiDat');
+    var rows = readTable_('CaiDat', { fresh: true });
     Object.keys(s).forEach(function (k) {
       if (EDITABLE_SETTINGS.indexOf(k) < 0 && k !== 'MAT_KHAU_QUAN_TRI') return;
       var v = str_(s[k]);
       if (k === 'MAT_KHAU_QUAN_TRI') { if (!v) return; if (v.length < 6) throw new Error('Mật khẩu cần ít nhất 6 kí tự.'); }
       var r = rows.filter(function (x) { return x.khoa === k; })[0];
-      if (r) updateRow_('CaiDat', r._row, { giaTri: v });
+      if (r) updateRow_('CaiDat', r._row, { giaTri: v }, 'khoa', k);
       else appendRows_('CaiDat', [{ khoa: k, giaTri: v, ghiChu: '' }]);
     });
     return true;
@@ -1200,10 +1231,34 @@ function sheet_(name) {
 
 function labelOf_(name, key) { return SCHEMA[name].filter(function (d) { return d[0] === key; })[0][1]; }
 
+/* ---------- đọc trang tính: MEMO_ (trong 1 request) → đệm CacheService (60 s) → Sheet ----------
+ * Quy tắc an toàn (đặc tả Pha 1):
+ *  - Đọc: (1) đọc thế hệ gen = tbgen_<tên> TRƯỚC; (2) đọc các mảnh tb_<tên>_<gen>_*; trượt thì (3) đọc Sheet
+ *    và (4) cất dưới CHÍNH gen đã đọc ở bước 1 → dữ liệu cũ không thể nằm dưới thế hệ mới.
+ *  - Ghi: luôn trong withLock_, đọc lại bằng readTable_(…, {fresh:true}), kiểm ô khóa của hàng trước khi ghi,
+ *    ghi xong flush() rồi đặt thế hệ mới (afterWrite_).
+ */
 var MEMO_ = {};
 
-function readTable_(name) {
-  if (MEMO_[name]) return MEMO_[name].map(function (o) { return Object.assign({}, o); });
+function readTable_(name, opts) {
+  var fresh = !!(opts && opts.fresh);
+  if (!fresh && MEMO_[name]) return copyRows_(MEMO_[name]);
+  var cache = fresh ? null : scriptCache_();
+  var gen = null;
+  if (cache) {
+    gen = readGen_(cache, name);
+    var hit = gen ? readCachedTable_(cache, name, gen) : null;
+    if (hit) { MEMO_[name] = hit; return copyRows_(hit); }
+  }
+  var rows = readSheet_(name);
+  if (cache && gen) writeCachedTable_(cache, name, gen, rows);
+  MEMO_[name] = rows;
+  return copyRows_(rows);
+}
+
+function copyRows_(rows) { return rows.map(function (o) { return Object.assign({}, o); }); }
+
+function readSheet_(name) {
   var sh = sheet_(name);
   var values = sh.getDataRange().getValues();
   if (!values.length) return [];
@@ -1218,8 +1273,102 @@ function readTable_(name) {
     defs.forEach(function (d, i) { o[d[0]] = idx[i] >= 0 ? cell_(row[idx[i]]) : ''; });
     rows.push(o);
   }
-  MEMO_[name] = rows;
-  return rows.map(function (x) { return Object.assign({}, x); });
+  return rows;
+}
+
+function scriptCache_() {
+  try { return CacheService.getScriptCache(); } catch (e) { return null; }
+}
+
+/** Thế hệ mới: thời điểm + số ngẫu nhiên (không đếm từ 0, nên không trùng thế hệ cũ khi khóa bị xóa sớm). */
+function newGen_() {
+  return Date.now().toString(36) + Math.floor(Math.random() * 1e9).toString(36);
+}
+
+function readGen_(cache, name) {
+  try {
+    var g = cache.get('tbgen_' + name);
+    if (!g) { g = newGen_(); cache.put('tbgen_' + name, g, GEN_SECONDS); }
+    return g;
+  } catch (e) { return null; }
+}
+
+function bumpGen_(name) {
+  var cache = scriptCache_();
+  if (!cache) return;
+  try { cache.put('tbgen_' + name, newGen_(), GEN_SECONDS); } catch (e) { /* bỏ qua: đệm hết hạn sau CACHE_SECONDS */ }
+}
+
+function bumpAllGens_() { Object.keys(SCHEMA).forEach(bumpGen_); }
+
+function tableKey_(name, gen) { return 'tb_' + name + '_' + gen; }
+
+function readCachedTable_(cache, name, gen) {
+  try {
+    var head = tableKey_(name, gen);
+    var got = cache.getAll([head, head + '_0']);
+    var meta = String(got[head] || '').split(':'); // "số mảnh:độ dài chuỗi"
+    var n = parseInt(meta[0], 10), len = parseInt(meta[1], 10);
+    if (!(n > 0) || !(len >= 0) || got[head + '_0'] == null) return null;
+    var parts = [got[head + '_0']];
+    if (n > 1) {
+      var keys = [];
+      for (var i = 1; i < n; i++) keys.push(head + '_' + i);
+      var more = cache.getAll(keys);
+      for (var j = 0; j < keys.length; j++) {
+        if (more[keys[j]] == null) return null; // thiếu một mảnh → coi như trượt đệm
+        parts.push(more[keys[j]]);
+      }
+    }
+    var json = parts.join('');
+    if (json.length !== len) return null; // mảnh của hai lần cất khác nhau xen nhau → coi như trượt đệm
+    var obj = JSON.parse(json);
+    var defs = SCHEMA[name];
+    if (!obj || !obj.k || obj.k.join(',') !== defs.map(function (d) { return d[0]; }).join(',')) return null;
+    return obj.r.map(function (arr) {
+      var o = { _row: arr[0] };
+      for (var c = 0; c < obj.k.length; c++) o[obj.k[c]] = arr[c + 1];
+      return o;
+    });
+  } catch (e) { return null; }
+}
+
+function writeCachedTable_(cache, name, gen, rows) {
+  try {
+    var keys = SCHEMA[name].map(function (d) { return d[0]; });
+    var json = JSON.stringify({ k: keys, r: rows.map(function (o) { return [o._row].concat(keys.map(function (k) { return o[k]; })); }) });
+    var parts = splitByBytes_(json, CACHE_CHUNK_BYTES, CACHE_MAX_BYTES);
+    if (!parts) return false; // quá lớn: không đệm, vẫn trả dữ liệu đúng
+    var head = tableKey_(name, gen);
+    var put = {};
+    parts.forEach(function (p, i) { put[head + '_' + i] = p; });
+    put[head] = parts.length + ':' + json.length;
+    cache.putAll(put, CACHE_SECONDS);
+    return true;
+  } catch (e) { return false; }
+}
+
+/** Cắt chuỗi thành các mảnh có số byte UTF-8 ≤ max; tổng vượt total thì trả null. */
+function splitByBytes_(s, max, total) {
+  var out = [], start = 0, bytes = 0, all = 0;
+  for (var i = 0; i < s.length; i++) {
+    var c = s.charCodeAt(i);
+    var b = c < 0x80 ? 1 : c < 0x800 ? 2 : (c >= 0xD800 && c <= 0xDBFF) ? 4 : (c >= 0xDC00 && c <= 0xDFFF) ? 0 : 3;
+    all += b;
+    if (all > total) return null;
+    if (bytes + b > max) { out.push(s.slice(start, i)); start = i; bytes = 0; }
+    bytes += b;
+  }
+  out.push(s.slice(start));
+  return out;
+}
+
+/** Sửa tay trên Google Sheet → đặt thế hệ mới cho trang tính đó (chèn/xóa/sắp xếp hàng không gọi onEdit: trễ ≤ CACHE_SECONDS). */
+function onEdit(e) {
+  try {
+    var name = e && e.range && e.range.getSheet().getName();
+    if (name && SCHEMA[name]) bumpGen_(name);
+  } catch (err) { /* không làm phiền người đang sửa Sheet */ }
 }
 
 function cell_(v) {
@@ -1264,21 +1413,46 @@ function appendRows_(name, objs) {
   var header = headerOf_(sh);
   var rows = objs.map(function (o) { return rowFromObj_(name, header, o); });
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, header.length).setValues(rows);
-  delete MEMO_[name];
+  afterWrite_(name);
 }
 
-function updateRow_(name, rowNum, obj) {
+/**
+ * Sửa một hàng. keyField/keyValue: ô khóa mong đợi ở hàng đó (Mã HS / Mã đề / Mã bài / Khóa).
+ * Ô khóa không khớp (có người chèn/xóa hàng) thì đọc lại cả bảng để tìm đúng hàng; vẫn không thấy thì báo lỗi, không ghi.
+ */
+function updateRow_(name, rowNum, obj, keyField, keyValue) {
   var sh = sheet_(name);
   var header = headerOf_(sh);
+  rowNum = verifyRow_(sh, name, header, rowNum, keyField, keyValue);
   var cur = sh.getRange(rowNum, 1, 1, header.length).getValues()[0];
   sh.getRange(rowNum, 1, 1, header.length).setValues([rowFromObj_(name, header, obj, cur)]);
-  delete MEMO_[name];
+  afterWrite_(name);
 }
 
-function deleteRows_(name, rowNums) {
+function deleteRows_(name, rowNums, keyField, keyValues) {
   var sh = sheet_(name);
-  rowNums.slice().sort(function (a, b) { return b - a; }).forEach(function (r) { sh.deleteRow(r); });
+  var header = headerOf_(sh);
+  var rows = rowNums.map(function (r, i) { return verifyRow_(sh, name, header, r, keyField, keyValues[i]); });
+  rows.sort(function (a, b) { return b - a; }).forEach(function (r) { sh.deleteRow(r); });
+  afterWrite_(name);
+}
+
+function verifyRow_(sh, name, header, rowNum, keyField, keyValue) {
+  if (!keyField) throw new Error('Thiếu ô khóa khi ghi trang tính "' + name + '".');
+  var col = header.indexOf(labelOf_(name, keyField)) + 1;
+  if (col < 1) throw new Error('Trang tính "' + name + '" thiếu cột "' + labelOf_(name, keyField) + '".');
+  var want = str_(keyValue);
+  if (want && rowNum >= 2 && rowNum <= sh.getLastRow() && str_(cell_(sh.getRange(rowNum, col).getValues()[0][0])) === want) return rowNum;
+  var hit = readTable_(name, { fresh: true }).filter(function (r) { return str_(r[keyField]) === want; });
+  if (!want || hit.length !== 1) throw new Error('Dữ liệu trang tính "' + name + '" vừa thay đổi, không xác định được dòng cần ghi. Hãy tải lại trang rồi thử lại.');
+  return hit[0]._row;
+}
+
+/** Sau mỗi lần ghi (trong khóa): đẩy dữ liệu xuống Sheet rồi đặt thế hệ đệm mới. */
+function afterWrite_(name) {
+  try { SpreadsheetApp.flush(); } catch (e) { /* bỏ qua */ }
   delete MEMO_[name];
+  bumpGen_(name);
 }
 
 function replaceQuestions_(examId, newRows) {
@@ -1292,7 +1466,7 @@ function replaceQuestions_(examId, newRows) {
   var oldCount = values.length - 1;
   if (oldCount > 0) sh.getRange(2, 1, oldCount, header.length).clearContent();
   if (all.length) sh.getRange(2, 1, all.length, header.length).setValues(all);
-  delete MEMO_.CauHoi;
+  afterWrite_('CauHoi');
 }
 
 function withLock_(fn) {

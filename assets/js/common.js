@@ -10,6 +10,27 @@
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* bỏ qua */ } }
   };
 
+  /* ---------- cờ tính năng của máy chủ ----------
+   * publicConfig (từ máy chủ 1.2.0) trả features: [...]. Thiếu features = máy chủ 1.0.0.
+   * Giao diện bật nút theo danh sách này, không so số phiên bản. */
+  const PUB_KEY = 'ld_pub', PUB_TIME_KEY = 'ld_pub_t', PUB_MAX_AGE = 10 * 60 * 1000;
+  const unsupported = {}; // action/tính năng máy chủ báo "Không có chức năng" trong phiên này
+  const FEATURE_OF = { changePin: 'changePin', bootstrap: 'bootstrap', adminBootstrap: 'bootstrap' };
+  function savePub(p) { store.set(PUB_KEY, p); store.set(PUB_TIME_KEY, Date.now()); }
+  function pubFresh() { return !!store.get(PUB_KEY, null) && Date.now() - (+store.get(PUB_TIME_KEY, 0) || 0) < PUB_MAX_AGE; }
+  /** Máy chủ chắc chắn có tính năng f (đã biết cấu hình và trong danh sách features). */
+  function has(f) {
+    const p = store.get(PUB_KEY, null);
+    return !!(p && Array.isArray(p.features) && p.features.indexOf(f) >= 0) && !unsupported[f];
+  }
+  /** Đáng thử gọi action (chưa biết cấu hình máy chủ thì cứ thử, lỗi "Không có chức năng" sẽ dùng đường dự phòng). */
+  function canTry(action) {
+    const f = FEATURE_OF[action] || action;
+    if (unsupported[action] || unsupported[f]) return false;
+    const p = store.get(PUB_KEY, null);
+    return !p || has(f);
+  }
+
   /* ---------- gọi máy chủ ---------- */
   let onAuthError = null;
   async function api(action, body, opts) {
@@ -32,19 +53,181 @@
         data = await res.json();
         break;
       } catch (e) {
-        if (attempt >= (opts.retries || 1)) throw new Error('Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.');
+        if (attempt >= (opts.retries || 1)) {
+          const err = new Error('Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.');
+          err.network = true;
+          throw err;
+        }
         await sleep(800 * (attempt + 1));
       }
     }
     if (!data.ok) {
       const msg = String(data.error || 'Lỗi không xác định');
       if (/^AUTH:/.test(msg)) {
+        clearCache();
         if (onAuthError) onAuthError(msg.replace(/^AUTH:\s*/, ''));
-        throw new Error(msg.replace(/^AUTH:\s*/, ''));
+        const err = new Error(msg.replace(/^AUTH:\s*/, ''));
+        err.auth = true;
+        throw err;
+      }
+      const m = msg.match(/^Không có chức năng: (\S+)/);
+      if (m) {
+        // Máy chủ cũ chưa có action này: ghi nhớ trong phiên, nơi gọi tự dùng đường dự phòng (không hiện lỗi đỏ).
+        unsupported[m[1]] = true;
+        if (FEATURE_OF[m[1]]) unsupported[FEATURE_OF[m[1]]] = true;
+        const err = new Error('Chức năng này cần cập nhật máy chủ.');
+        err.unsupported = true;
+        throw err;
       }
       throw new Error(msg);
     }
     return data.data;
+  }
+
+  /* ---------- bộ đệm trình duyệt: "hiện ngay – cập nhật ngầm" ----------
+   * Học sinh: localStorage, khóa ld_c_v1_<mã HS>_<tên>, tổng ≤ 1 MB/người (quá thì bỏ khóa cũ nhất).
+   * Giáo viên: sessionStorage (mất khi đóng tab), khóa ld_c_v1_admin_<tên>.
+   * Không bao giờ lưu dữ liệu có đáp án, lời giải hay PIN. */
+  const C_ROOT = 'ld_c_', C_PREFIX = 'ld_c_v1_', C_MAX = 1024 * 1024;
+  const FORBIDDEN = /"(dapAn|loiGiai|pin)"\s*:/;
+  let scope = null; // { st: Storage, prefix }
+  const storageOf = (kind) => { try { return kind === 'session' ? window.sessionStorage : window.localStorage; } catch (e) { return null; } };
+  function setCacheScope(kind, id) {
+    const st = storageOf(kind);
+    scope = st && id ? { st, prefix: C_PREFIX + String(id).replace(/[^\w-]/g, '') + '_', limit: kind === 'session' ? Infinity : C_MAX } : null;
+  }
+  function scopeKeys() {
+    const out = [];
+    if (!scope) return out;
+    try { for (let i = 0; i < scope.st.length; i++) { const k = scope.st.key(i); if (k && k.indexOf(scope.prefix) === 0) out.push(k); } } catch (e) { /* bỏ qua */ }
+    return out;
+  }
+  function cacheGet(key) {
+    if (!scope) return null;
+    try { const v = JSON.parse(scope.st.getItem(scope.prefix + key)); return v && 'd' in v ? v : null; } catch (e) { return null; }
+  }
+  let epoch = 0; // tăng mỗi lần cacheDel: lời gọi bắt đầu trước khi xóa sẽ không cất lại bản cũ
+  /** Thẻ "kho hiện tại": lấy trước khi gọi máy chủ, đưa vào cacheSet để không ghi nhầm kho người khác / bản cũ. */
+  function cacheToken() { return { sc: scope, ep: epoch }; }
+  function cacheSet(key, data, tok) {
+    if (!scope) return;
+    if (tok && (tok.sc !== scope || tok.ep !== epoch)) return;
+    let json;
+    try { json = JSON.stringify({ t: Date.now(), d: data }); } catch (e) { return; }
+    if (FORBIDDEN.test(json)) return; // an toàn: không lưu đáp án / lời giải / PIN
+    const full = scope.prefix + key;
+    const size = (k) => { try { return (k.length + (scope.st.getItem(k) || '').length) * 2; } catch (e) { return 0; } };
+    if ((full.length + json.length) * 2 > scope.limit) return;
+    const others = scopeKeys().filter((k) => k !== full).map((k) => {
+      let t = 0;
+      try { t = JSON.parse(scope.st.getItem(k)).t || 0; } catch (e) { /* hỏng → bỏ trước */ }
+      return { k, t, n: size(k) };
+    }).sort((a, b) => a.t - b.t);
+    let total = others.reduce((s, o) => s + o.n, 0) + (full.length + json.length) * 2;
+    while (total > scope.limit && others.length) { const o = others.shift(); total -= o.n; try { scope.st.removeItem(o.k); } catch (e) { /* bỏ qua */ } }
+    for (let i = 0; i < 3; i++) {
+      try { scope.st.setItem(full, json); return; } catch (e) {
+        const o = others.shift(); // kho đầy: bỏ khóa cũ nhất rồi thử lại
+        if (!o) return;
+        try { scope.st.removeItem(o.k); } catch (e2) { /* bỏ qua */ }
+      }
+    }
+  }
+  /** Xóa khóa đệm trong phạm vi hiện tại; tên kết thúc bằng * là xóa theo tiền tố. */
+  function cacheDel(...keys) {
+    epoch++;
+    if (!scope) return;
+    scopeKeys().forEach((k) => {
+      const name = k.slice(scope.prefix.length);
+      if (keys.some((p) => (p.endsWith('*') ? name.indexOf(p.slice(0, -1)) === 0 : name === p))) { try { scope.st.removeItem(k); } catch (e) { /* bỏ qua */ } }
+    });
+  }
+  /** Đăng xuất / lỗi AUTH: xóa mọi ld_c_* trong cả hai kho, và ld_lastResult. */
+  function clearCache() {
+    ['local', 'session'].forEach((kind) => {
+      const st = storageOf(kind);
+      if (!st) return;
+      try {
+        const del = [];
+        for (let i = 0; i < st.length; i++) { const k = st.key(i); if (k && (k.indexOf(C_ROOT) === 0 || k === 'ld_lastResult')) del.push(k); }
+        del.forEach((k) => st.removeItem(k));
+      } catch (e) { /* bỏ qua */ }
+    });
+  }
+
+  let viewId = 0;
+  /** Gọi ở đầu mỗi lần chuyển màn: dữ liệu về muộn của màn cũ sẽ không vẽ đè màn mới. */
+  function newView() { ++viewId; syncPill(false); return viewId; }
+
+  // Chỉ báo "Đang cập nhật…" đếm theo từng màn: chỉ hiện khi màn ĐANG XEM còn lời gọi chưa xong
+  const syncing = {};
+  function syncPill(on, id) {
+    if (id != null) {
+      syncing[id] = Math.max(0, (syncing[id] || 0) + (on ? 1 : -1));
+      if (!syncing[id]) delete syncing[id];
+    }
+    let el = document.getElementById('syncPill');
+    if (!el) {
+      if (!document.body) return;
+      el = document.createElement('div');
+      el.id = 'syncPill';
+      el.className = 'sync-pill hidden';
+      el.setAttribute('role', 'status');
+      el.innerHTML = '<span class="spinner"></span><span>Đang cập nhật…</span>';
+      document.body.appendChild(el);
+    }
+    el.classList.toggle('hidden', !syncing[viewId]);
+  }
+
+  /**
+   * Có bản lưu thì vẽ ngay render(data, {stale:true}) rồi gọi loader() ngầm; dữ liệu mới khác thì vẽ lại (giữ vị trí cuộn).
+   * Chưa có bản lưu thì vẽ opts.skeleton() rồi chờ loader(). Lỗi mạng khi đã có bản lưu: chỉ hiện thông báo nhẹ.
+   */
+  async function cached(key, loader, render, opts) {
+    opts = opts || {};
+    const my = viewId;
+    let hit = cacheGet(key);
+    if (hit) {
+      try { render(hit.d, { stale: true }); } catch (e) {
+        // bản lưu hỏng / sai định dạng: bỏ đi, tải lại như chưa có đệm
+        hit = null;
+        cacheDel(key);
+      }
+    }
+    const tok = cacheToken(); // đổi người dùng / xóa đệm giữa chừng thì không ghi dữ liệu cũ vào kho
+    if (hit) syncPill(true, my);
+    else if (opts.skeleton) opts.skeleton();
+    try {
+      const d = await loader();
+      cacheSet(key, d, tok);
+      if (my === viewId && (!hit || JSON.stringify(hit.d) !== JSON.stringify(d))) {
+        const y = window.scrollY;
+        render(d, { stale: false });
+        if (hit) window.scrollTo(0, y);
+      }
+      return d;
+    } catch (e) {
+      if (my !== viewId) return undefined; // đã sang màn khác (hoặc lỗi AUTH đã chuyển về đăng nhập): không vẽ lỗi đè lên
+      if (hit && !e.auth && !e.unsupported) {
+        // đang hiện bản lưu: giữ nguyên, chỉ báo nhẹ (mất mạng hoặc máy chủ tạm lỗi)
+        toast(e.network ? 'Mất kết nối — đang hiện dữ liệu đã lưu trên máy.' : 'Chưa cập nhật được (' + e.message + ') — đang hiện dữ liệu đã lưu.');
+        return hit.d;
+      }
+      throw e;
+    } finally {
+      if (hit) syncPill(false, my);
+    }
+  }
+
+  /** Khung xương khi chưa có dữ liệu. kind: 'cards' (trang chủ), 'table' (bảng), 'stats' */
+  function skeletonHtml(kind) {
+    const line = (w) => `<div class="skeleton sk-line" style="width:${w}"></div>`;
+    const stats = (n) => `<div class="stats">${'<div class="stat skeleton sk-stat"></div>'.repeat(n)}</div>`;
+    let h = `<div class="sk-wrap" aria-busy="true" aria-label="Đang tải">${line('40%').replace('sk-line', 'sk-line sk-title')}`;
+    if (kind === 'cards') h += stats(4) + line('25%') + `<div class="grid grid-3">${'<div class="card skeleton sk-card"></div>'.repeat(3)}</div>`;
+    else if (kind === 'stats') h += stats(3) + '<div class="card skeleton sk-card"></div><div class="card skeleton sk-chart"></div>';
+    else h += `<div class="table-wrap sk-table">${Array.from({ length: 6 }, () => `<div class="sk-row">${line('100%')}</div>`).join('')}</div>`;
+    return h + '</div>';
   }
 
   /* ---------- định dạng ---------- */
@@ -416,7 +599,8 @@
   }
 
   const App = {
-    CFG, store, api, esc, fmtNum, fmtDateIso, fmtClock, sleep, rich, math, toast, modal, confirmBox, loadingHtml, withBusy,
+    CFG, store, api, has, canTry, savePub, pubFresh, cached, cacheGet, cacheSet, cacheDel, cacheToken, clearCache, setCacheScope, newView, skeletonHtml,
+    esc, fmtNum, fmtDateIso, fmtClock, sleep, rich, math, toast, modal, confirmBox, loadingHtml, withBusy,
     renderGoogleButton, resultHtml, feedbackHtml, barsHtml, questionReviewHtml, chart, cssVar, downloadCsv, scoreClass, gradeName,
     LEVELS, TYPES, PARTS, tokenKey: 'ld_token',
     setAuthErrorHandler(fn) { onAuthError = fn; }

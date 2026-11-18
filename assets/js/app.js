@@ -1,13 +1,14 @@
 /* Trang học sinh */
 (function () {
   'use strict';
-  const { api, esc, fmtNum, fmtClock, rich, math, toast, modal, confirmBox, loadingHtml, withBusy, store } = App;
+  const { api, esc, fmtNum, fmtClock, rich, math, toast, modal, confirmBox, loadingHtml, withBusy, store, cached } = App;
   App.tokenKey = 'ld_token';
   const $app = document.getElementById('app');
   const ATTEMPT_KEY = 'ld_attempt';
   let pub = { appName: 'Luyện đề Vật lý', googleClientId: '', showLeaderboard: true };
   let user = store.get('ld_user', null);
   let timerId = null;
+  if (user) App.setCacheScope('local', user.id);
 
   App.setAuthErrorHandler((msg) => { logout(true); toast(msg, 'err'); });
 
@@ -19,15 +20,22 @@
         <p class="muted">Giáo viên: mở file <code>assets/js/config.js</code> và dán URL ứng dụng web vào <code>API_URL</code>. Xem hướng dẫn trong README.</p></div>`;
       return;
     }
-    const cached = store.get('ld_pub', null);
-    if (cached) applyPub(cached);
-    api('publicConfig', {}, { tokenKey: false, retries: 2 }).then((p) => { store.set('ld_pub', p); applyPub(p); }).catch(() => {});
+    const saved = store.get('ld_pub', null);
+    if (saved) applyPub(saved);
+    // Không gọi lại publicConfig nếu bản lưu mới hơn 10 phút (bootstrap cũng trả cấu hình)
+    if (!App.pubFresh()) refreshPub();
     window.addEventListener('hashchange', route);
     route();
   }
 
+  function refreshPub() {
+    return api('publicConfig', {}, { tokenKey: false, retries: 2 }).then((p) => { App.savePub(p); applyPub(p); }).catch(() => {});
+  }
+
   function applyPub(p) {
+    const featuresChanged = JSON.stringify((pub && pub.features) || null) !== JSON.stringify(p.features || null);
     pub = p;
+    if (featuresChanged && user) renderUserBox();
     document.getElementById('appName').textContent = p.appName;
     document.title = p.appName;
     document.getElementById('navBoard').classList.toggle('hidden', !p.showLeaderboard);
@@ -39,9 +47,11 @@
     const nav = document.getElementById('nav');
     if (!user) { box.innerHTML = ''; nav.classList.add('hidden'); return; }
     nav.classList.remove('hidden');
+    // Nút Đổi PIN chỉ hiện khi máy chủ có tính năng changePin (máy chủ 1.0.0 đang chạy thật thì ẩn)
     box.innerHTML = `<span class="small"><b>${esc(user.hoTen)}</b> <span class="muted">· ${esc(user.lop)}</span></span>
-      <button class="btn btn-sm" id="btnPin">Đổi PIN</button><button class="btn btn-sm" id="btnLogout">Đăng xuất</button>`;
-    document.getElementById('btnPin').onclick = changePinDialog;
+      ${App.has('changePin') ? '<button class="btn btn-sm" id="btnPin">Đổi PIN</button>' : ''}<button class="btn btn-sm" id="btnLogout">Đăng xuất</button>`;
+    const bp = document.getElementById('btnPin');
+    if (bp) bp.onclick = changePinDialog;
     document.getElementById('btnLogout').onclick = async () => {
       if (await confirmBox('Đăng xuất?', 'Bạn có chắc muốn đăng xuất?', 'Đăng xuất')) logout();
     };
@@ -65,7 +75,10 @@
             await api('changePin', { oldPin: o, newPin: n });
             close('ok');
             toast('Đã đổi PIN. Lần sau hãy đăng nhập bằng PIN mới.', 'ok');
-          } catch (err) { toast(err.message, 'err'); }
+          } catch (err) {
+            if (err.unsupported) { close(null); renderUserBox(); toast('Chức năng đổi PIN sẽ có sau khi giáo viên cập nhật máy chủ.'); return; }
+            toast(err.message, 'err');
+          }
         });
       }
     });
@@ -73,6 +86,9 @@
 
   function logout(silent) {
     store.del('ld_token'); store.del('ld_user'); store.del(ATTEMPT_KEY);
+    App.clearCache();
+    App.setCacheScope(null);
+    homeInflight = null;
     user = null;
     if (!silent) toast('Đã đăng xuất');
     location.hash = '#/dang-nhap';
@@ -84,6 +100,7 @@
   }
 
   function route() {
+    App.newView();
     clearInterval(timerId);
     document.getElementById('topbar').classList.remove('hidden');
     document.getElementById('footer').classList.remove('hidden');
@@ -190,41 +207,75 @@
   }
 
   function loginDone(r) {
+    App.clearCache(); // không để sót dữ liệu của người dùng trước trên máy dùng chung
     store.set('ld_token', r.token);
     store.set('ld_user', r.user);
     user = r.user;
+    App.setCacheScope('local', user.id);
     if (!location.hash || location.hash === '#/dang-nhap') location.hash = '#/';
     route();
   }
 
   /* ---------- trang chủ ---------- */
-  async function viewHome() {
-    $app.innerHTML = loadingHtml();
-    const pending = store.get(ATTEMPT_KEY, null);
-    try {
+  // Máy chủ mới: 1 lần gọi bootstrap. Máy chủ cũ (1.0.0): listExams + myResults song song.
+  let homeInflight = null;
+  function loadHome() {
+    if (homeInflight) return homeInflight;
+    const uid = user && user.id;
+    const tok = App.cacheToken();
+    const mine = () => user && user.id === uid;
+    const p = (async () => {
+      if (App.canTry('bootstrap')) {
+        try {
+          const b = await api('bootstrap');
+          if (b.pub) { App.savePub(b.pub); applyPub(b.pub); }
+          if (!mine()) throw new Error('Đã đổi tài khoản.');
+          if (b.me && b.me.id === user.id && (b.me.hoTen !== user.hoTen || b.me.lop !== user.lop)) {
+            user = Object.assign({}, user, b.me); store.set('ld_user', user); renderUserBox();
+          }
+          App.cacheSet('history', b.results, tok);
+          return { exams: b.exams, results: b.results };
+        } catch (e) { if (!e.unsupported) throw e; }
+      }
       const [exams, results] = await Promise.all([api('listExams'), api('myResults')]);
-      const scores = results.map((r) => r.diem);
-      const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
-      const open = exams.filter((e) => e.open);
-      const other = exams.filter((e) => !e.open);
-      let h = `<h1>Xin chào, ${esc(user.hoTen.split(' ').slice(-1)[0])} 👋</h1>`;
-      if (pending && pending.endAt > Date.now() && pending.studentId === user.id) {
-        h += `<div class="notice warn" style="margin-bottom:16px"><b>Bạn đang làm dở đề "${esc(pending.exam.tieuDe)}".</b>
-          Còn khoảng ${fmtClock((pending.endAt - Date.now()) / 1000)}. <a href="#/lam-bai/${encodeURIComponent(pending.exam.id)}">Tiếp tục làm bài →</a></div>`;
-      }
-      h += `<div class="stats">
-        <div class="stat"><b>${results.length}</b><span>Bài đã làm</span></div>
-        <div class="stat"><b>${avg == null ? '—' : fmtNum(avg)}</b><span>Điểm trung bình</span></div>
-        <div class="stat"><b>${scores.length ? fmtNum(Math.max(...scores)) : '—'}</b><span>Điểm cao nhất</span></div>
-        <div class="stat"><b>${open.length}</b><span>Đề đang mở</span></div></div>`;
-      h += '<h2>Đề đang mở</h2>';
-      h += open.length ? `<div class="grid grid-3">${open.map(examCard).join('')}</div>` : '<div class="card empty">Hiện chưa có đề nào đang mở.</div>';
-      if (other.length) h += `<h2 class="section-gap">Đề khác</h2><div class="grid grid-3">${other.map(examCard).join('')}</div>`;
-      if (results.length) {
-        h += `<div class="card-title section-gap"><h2>Bài làm gần đây</h2><a href="#/lich-su">Xem tất cả →</a></div>` + resultsTable(results.slice(0, 5));
-      }
-      $app.innerHTML = h;
-    } catch (e) { $app.innerHTML = errorBox(e); }
+      if (!mine()) throw new Error('Đã đổi tài khoản.');
+      App.cacheSet('history', results, tok);
+      return { exams, results };
+    })();
+    homeInflight = p;
+    p.then(() => { if (homeInflight === p) homeInflight = null; }, () => { if (homeInflight === p) homeInflight = null; });
+    return p;
+  }
+
+  function viewHome() {
+    return cached('home', loadHome, renderHome, { skeleton: () => { $app.innerHTML = App.skeletonHtml('cards'); } })
+      .catch((e) => { $app.innerHTML = errorBox(e); });
+  }
+
+  function renderHome(d) {
+    const pending = store.get(ATTEMPT_KEY, null);
+    const { exams, results } = d;
+    const scores = results.map((r) => r.diem);
+    const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+    const open = exams.filter((e) => e.open);
+    const other = exams.filter((e) => !e.open);
+    let h = `<h1>Xin chào, ${esc(user.hoTen.split(' ').slice(-1)[0])} 👋</h1>`;
+    if (pending && pending.endAt > Date.now() && pending.studentId === user.id) {
+      h += `<div class="notice warn" style="margin-bottom:16px"><b>Bạn đang làm dở đề "${esc(pending.exam.tieuDe)}".</b>
+        Còn khoảng ${fmtClock((pending.endAt - Date.now()) / 1000)}. <a href="#/lam-bai/${encodeURIComponent(pending.exam.id)}">Tiếp tục làm bài →</a></div>`;
+    }
+    h += `<div class="stats">
+      <div class="stat"><b>${results.length}</b><span>Bài đã làm</span></div>
+      <div class="stat"><b>${avg == null ? '—' : fmtNum(avg)}</b><span>Điểm trung bình</span></div>
+      <div class="stat"><b>${scores.length ? fmtNum(Math.max(...scores)) : '—'}</b><span>Điểm cao nhất</span></div>
+      <div class="stat"><b>${open.length}</b><span>Đề đang mở</span></div></div>`;
+    h += '<h2>Đề đang mở</h2>';
+    h += open.length ? `<div class="grid grid-3">${open.map(examCard).join('')}</div>` : '<div class="card empty">Hiện chưa có đề nào đang mở.</div>';
+    if (other.length) h += `<h2 class="section-gap">Đề khác</h2><div class="grid grid-3">${other.map(examCard).join('')}</div>`;
+    if (results.length) {
+      h += `<div class="card-title section-gap"><h2>Bài làm gần đây</h2><a href="#/lich-su">Xem tất cả →</a></div>` + resultsTable(results.slice(0, 5));
+    }
+    $app.innerHTML = h;
   }
 
   function examCard(e) {
@@ -258,7 +309,8 @@
     if (pending && pending.exam.id === examId && pending.studentId === user.id && pending.endAt + 5 * 3600000 > Date.now()) return runExam(pending); // hết giờ → runExam tự nộp
     $app.innerHTML = loadingHtml();
     try {
-      const exams = await api('listExams');
+      // cần biết máy chủ có tính năng "goal" chưa trước khi vẽ ô mục tiêu
+      const [exams] = await Promise.all([api('listExams'), store.get('ld_pub', null) ? null : refreshPub()]);
       const e = exams.find((x) => x.id === examId);
       if (!e) throw new Error('Không tìm thấy đề.');
       $app.innerHTML = `<div class="card" style="max-width:640px;margin:0 auto">
@@ -270,7 +322,7 @@
           <li>Bài làm được lưu trên máy — lỡ tải lại trang vẫn làm tiếp được.</li>
           <li>Phần trả lời ngắn: ghi số, dùng dấu phẩy cho phần thập phân (ví dụ <b>12,5</b>).</li>
           <li>Phần Đúng/Sai: chọn Đ hoặc S cho từng ý a, b, c, d.</li></ul>
-        ${e.canStart ? goalBoxHtml(e) + '<button class="btn btn-primary btn-block" id="btnStart">Bắt đầu làm bài</button>' : `<div class="notice warn">${esc(e.trangThaiText)} — bạn không thể làm đề này lúc này.</div>`}
+        ${e.canStart ? (App.has('goal') ? goalBoxHtml(e) : '') + '<button class="btn btn-primary btn-block" id="btnStart">Bắt đầu làm bài</button>' : `<div class="notice warn">${esc(e.trangThaiText)} — bạn không thể làm đề này lúc này.</div>`}
         <div style="text-align:center;margin-top:12px"><a href="#/">← Quay lại</a></div></div>`;
       const goalIn = document.getElementById('goal');
       if (goalIn) {
@@ -281,11 +333,16 @@
       }
       const b = document.getElementById('btnStart');
       if (b) b.onclick = () => withBusy(b, async () => {
-        const g = parseFloat(String(goalIn.value).replace(',', '.'));
-        if (!goalIn.value.trim()) { toast('Hãy đặt mục tiêu điểm cho lần làm này', 'err'); goalIn.focus(); return; }
-        if (isNaN(g) || g <= 0 || g > 10) { toast('Mục tiêu là số từ 0 đến 10, ví dụ 7 hoặc 8,5', 'err'); goalIn.focus(); return; }
+        // Ô mục tiêu chỉ có khi máy chủ hỗ trợ (cờ "goal"); máy chủ cũ thì bắt đầu luôn, không gửi mục tiêu
+        const body = { examId };
+        if (goalIn) {
+          const g = parseFloat(String(goalIn.value).replace(',', '.'));
+          if (!goalIn.value.trim()) { toast('Hãy đặt mục tiêu điểm cho lần làm này', 'err'); goalIn.focus(); return; }
+          if (isNaN(g) || g <= 0 || g > 10) { toast('Mục tiêu là số từ 0 đến 10, ví dụ 7 hoặc 8,5', 'err'); goalIn.focus(); return; }
+          body.mucTieu = g;
+        }
         try {
-          const s = await api('startExam', { examId, mucTieu: g });
+          const s = await api('startExam', body);
           const offset = s.serverNow - Date.now();
           const att = {
             attemptToken: s.attemptToken, exam: s.exam, questions: s.questions, studentId: user.id, mucTieu: s.mucTieu,
@@ -437,6 +494,13 @@
           const r = await api('submitExam', { attemptToken: att.attemptToken, answers: att.answers }, { retries: 1 });
           clearInterval(timerId);
           store.del(ATTEMPT_KEY);
+          // Dữ liệu cũ của trang chủ / lịch sử / thống kê không còn đúng: xóa rồi làm mới ngầm
+          App.cacheDel('home', 'history', 'stats');
+          homeInflight = null;
+          // thẻ kho lấy SAU khi xóa: nếu đăng xuất / đổi tài khoản trước khi dữ liệu về thì không cất (R-1)
+          const tok = App.cacheToken();
+          loadHome().then((d) => App.cacheSet('home', d, tok)).catch(() => {});
+          api('myStats').then((d) => App.cacheSet('stats', d, tok)).catch(() => {});
           store.set('ld_lastResult', r);
           location.hash = '#/ket-qua/' + encodeURIComponent(r.id);
           return;
@@ -485,19 +549,20 @@
   }
 
   /* ---------- lịch sử ---------- */
-  async function viewHistory() {
-    $app.innerHTML = loadingHtml();
-    try {
-      const rs = await api('myResults');
+  function viewHistory() {
+    return cached('history', () => api('myResults'), (rs) => {
       $app.innerHTML = '<h1>Lịch sử làm bài</h1>' + (rs.length ? resultsTable(rs) : '<div class="card empty">Bạn chưa làm bài nào.</div>');
-    } catch (e) { $app.innerHTML = errorBox(e); }
+    }, { skeleton: () => { $app.innerHTML = App.skeletonHtml('table'); } }).catch((e) => { $app.innerHTML = errorBox(e); });
   }
 
   /* ---------- thống kê ---------- */
-  async function viewStats() {
-    $app.innerHTML = loadingHtml();
-    try {
-      const s = await api('myStats');
+  function viewStats() {
+    return cached('stats', () => api('myStats'), renderStats, { skeleton: () => { $app.innerHTML = App.skeletonHtml('stats'); } })
+      .catch((e) => { $app.innerHTML = errorBox(e); });
+  }
+
+  function renderStats(s) {
+    {
       if (!s.count) { $app.innerHTML = '<h1>Thống kê</h1><div class="card empty">Làm ít nhất một bài để xem thống kê.</div>'; return; }
       $app.innerHTML = `<h1>Thống kê học tập</h1>
         <div class="stats"><div class="stat"><b>${s.count}</b><span>Bài đã làm</span></div>
@@ -520,15 +585,19 @@
           plugins: { legend: { display: s.timeline.some((t) => t.mucTieu != null) }, tooltip: { callbacks: { title: (it) => s.timeline[it[0].dataIndex].tieuDe, afterTitle: (it) => s.timeline[it[0].dataIndex].nopLuc } } }
         }
       });
-    } catch (e) { $app.innerHTML = errorBox(e); }
+    }
   }
 
   /* ---------- bảng xếp hạng ---------- */
-  async function viewBoard(examId) {
-    $app.innerHTML = loadingHtml();
-    try {
-      const lopOnly = store.get('ld_board_lop', false);
-      const d = await api('leaderboard', { examId, lop: lopOnly ? user.lop : '' });
+  function viewBoard(examId) {
+    const lopOnly = store.get('ld_board_lop', false);
+    return cached('board_' + (examId || '') + '_' + (lopOnly ? 1 : 0), () => api('leaderboard', { examId, lop: lopOnly ? user.lop : '' }),
+      (d) => renderBoard(d, examId, lopOnly), { skeleton: () => { $app.innerHTML = App.skeletonHtml('table'); } })
+      .catch((e) => { $app.innerHTML = errorBox(e); });
+  }
+
+  function renderBoard(d, examId, lopOnly) {
+    {
       const isExam = !!examId;
       let h = `<h1>Bảng xếp hạng</h1><div class="row" style="margin-bottom:12px">
         <select id="bExam" style="max-width:420px"><option value="">Tổng hợp (trung bình điểm cao nhất mỗi đề)</option>
@@ -542,8 +611,8 @@
         </tbody></table></div>` : '<div class="card empty">Chưa có ai làm bài.</div>';
       $app.innerHTML = h;
       document.getElementById('bExam').onchange = (e) => { location.hash = '#/bang-xep-hang/' + encodeURIComponent(e.target.value); };
-      document.getElementById('bLop').onchange = (e) => { store.set('ld_board_lop', e.target.checked); viewBoard(examId); };
-    } catch (e) { $app.innerHTML = errorBox(e); }
+      document.getElementById('bLop').onchange = (e) => { store.set('ld_board_lop', e.target.checked); App.newView(); viewBoard(examId); };
+    }
   }
   const medal = (n) => (n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : n);
 

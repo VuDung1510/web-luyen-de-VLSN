@@ -1,15 +1,31 @@
 // Máy chủ thử nghiệm cục bộ: chạy giao diện + máy chủ giả lập (Code.gs trên Node).
 // node tests/dev-server.js [cổng]   → mở http://localhost:8787
+//
+// Biến môi trường:
+//   SERVER_COMPAT=1.0.0  nạp đúng Code.gs 1.0.0 (tests/fixtures/Code-1.0.0.gs) thay cho apps-script/Code.gs,
+//                        để thử giao diện với máy chủ cũ đang chạy thật.
+//   LATENCY_MS=1500      mỗi lần gọi máy chủ chậm thêm chừng ấy mili-giây (giả lập Apps Script).
+//   SHEET_READ_MS=300    chi phí giả mỗi lần đọc cả một trang tính (gas-shim).
+//   CACHE_MS=20          chi phí giả mỗi lần gọi CacheService (gas-shim).
+// GET /__stats trả số lần đọc trang tính / gọi CacheService / số request theo action; /__stats?reset=1 để đặt lại.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { createContext } = require('./gas-shim');
 
-const PORT = +process.argv[2] || 8787;
+const PORT = +process.argv[2] || +process.env.PORT || 8787;
 const ROOT = path.join(__dirname, '..');
-const g = createContext({ quiet: true });
+const COMPAT = process.env.SERVER_COMPAT || '';
+const LATENCY = +process.env.LATENCY_MS || 0;
+let codePath;
+if (COMPAT) {
+  codePath = path.join(__dirname, 'fixtures', 'Code-' + COMPAT + '.gs');
+  if (!fs.existsSync(codePath)) { console.error('Không có ' + codePath); process.exit(1); }
+}
+const g = createContext({ quiet: true, codePath });
 g.setup();
 const adminPw = g._sheets.CaiDat._data().find((r) => r[0] === 'MAT_KHAU_QUAN_TRI')[1];
+let actions = {};
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json' };
 
@@ -18,12 +34,23 @@ const server = http.createServer((req, res) => {
     let body = '';
     req.on('data', (c) => { body += c; });
     req.on('end', () => {
-      g.__MEMO();
-      const out = g.doPost({ postData: { contents: body } });
-      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-      res.end(out.getContent());
+      const run = () => {
+        try { const a = JSON.parse(body).action; actions[a] = (actions[a] || 0) + 1; } catch (e) { /* bỏ qua */ }
+        g.__MEMO();
+        const out = g.doPost({ postData: { contents: body } });
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(out.getContent());
+      };
+      if (LATENCY) setTimeout(run, LATENCY); else run();
     });
     return;
+  }
+  if (req.url.startsWith('/__stats')) {
+    const s = g._stats;
+    const out = JSON.stringify({ compat: COMPAT || null, reads: s.reads, writes: s.writes, cacheCalls: s.cacheCalls, actions });
+    if (/reset=1/.test(req.url)) { g._resetStats(); actions = {}; }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(out);
   }
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (p === '/assets/js/config.js') {
@@ -38,7 +65,8 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Đang chạy: http://localhost:${PORT}  (quản trị: /admin.html, mật khẩu: ${adminPw})`);
+  console.log(`Đang chạy: http://localhost:${PORT}  (quản trị: /admin.html, mật khẩu: ${adminPw})` +
+    (COMPAT ? `  [máy chủ giả lập ${COMPAT}]` : '') + (LATENCY ? `  [trễ ${LATENCY} ms]` : ''));
   console.log('Học sinh mẫu: lớp 12A1, Học Sinh Mẫu, PIN 0101');
 });
-module.exports = { server, adminPw };
+module.exports = { server, adminPw, g };

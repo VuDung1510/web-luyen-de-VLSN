@@ -1,12 +1,15 @@
 // Kiểm thử giao diện đầu-cuối bằng Playwright: node tests/e2e.js [thư mục ảnh chụp]
 // Cần dev-server đang chạy ở cổng 8787 (node tests/dev-server.js).
+// SERVER_COMPAT=1.0.0 (chạy cùng dev-server SERVER_COMPAT=1.0.0): bỏ qua bước mục tiêu điểm và Đổi PIN,
+// đồng thời khẳng định hai mục này bị ẩn (00-quy-trinh §5).
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
 
-const BASE = 'http://localhost:8787';
+const BASE = 'http://localhost:' + (process.env.PORT || 8787);
 const SHOTS = process.argv[2] || path.join(__dirname, 'screenshots');
 const LIBS = process.env.LIBS_DIR; // node_modules chứa katex & chart.js (khi CDN bị chặn)
+const COMPAT = process.env.SERVER_COMPAT === '1.0.0';
 fs.mkdirSync(SHOTS, { recursive: true });
 
 async function routeCdn(page) {
@@ -56,12 +59,17 @@ async function routeCdn(page) {
   await page.waitForSelector('text=Đề đang mở');
   await page.screenshot({ path: path.join(SHOTS, '02-trang-chu.png'), fullPage: true });
 
+  if (COMPAT && (await page.$('#btnPin'))) errors.push('Máy chủ 1.0.0: nút Đổi PIN phải bị ẩn');
   await page.click('text=Bắt đầu làm bài');
   await page.waitForSelector('#btnStart');
-  await page.click('#btnStart'); // chưa đặt mục tiêu → báo lỗi
-  await page.waitForSelector('text=Hãy đặt mục tiêu');
-  await page.click('[data-goal="8"]');
-  await page.screenshot({ path: path.join(SHOTS, '03a-dat-muc-tieu.png'), fullPage: true });
+  if (COMPAT) {
+    if (await page.$('#goal')) errors.push('Máy chủ 1.0.0: hộp mục tiêu điểm phải bị ẩn');
+  } else {
+    await page.click('#btnStart'); // chưa đặt mục tiêu → báo lỗi
+    await page.waitForSelector('text=Hãy đặt mục tiêu');
+    await page.click('[data-goal="8"]');
+    await page.screenshot({ path: path.join(SHOTS, '03a-dat-muc-tieu.png'), fullPage: true });
+  }
   await page.click('#btnStart');
   await page.waitForSelector('.timer');
   // Câu 1: C, câu 2: B, câu 3: A, câu 4: Đ S Đ S, câu 5: 420, câu 6: 12,5
@@ -88,20 +96,26 @@ async function routeCdn(page) {
   await page.screenshot({ path: path.join(SHOTS, '05-ket-qua.png'), fullPage: true });
   const score = await page.$eval('.score-ring b', (e) => e.textContent);
   if (score !== '5,56') errors.push('Điểm sai: ' + score + ' (mong đợi 5,56)');
-  if (!(await page.$('text=Chưa đạt mục tiêu — còn thiếu 2,44 điểm'))) errors.push('Không thấy khung mục tiêu');
-  await (await page.$('.goal-card')).screenshot({ path: path.join(SHOTS, '05a-muc-tieu.png') });
-  await page.click('[data-showwrong]');
+  if (!COMPAT) {
+    if (!(await page.$('text=Chưa đạt mục tiêu — còn thiếu 2,44 điểm'))) errors.push('Không thấy khung mục tiêu');
+    await (await page.$('.goal-card')).screenshot({ path: path.join(SHOTS, '05a-muc-tieu.png') });
+  }
+  await page.click(COMPAT ? '[data-rvfilter="wrong"]' : '[data-showwrong]'); // nút trong khung mục tiêu chỉ có ở máy chủ mới
   await page.waitForTimeout(300);
   const shown = await page.$$eval('#rvDetail .q:not(.hidden)', (e) => e.length);
   if (shown !== 3) errors.push('Lọc câu sai: hiện ' + shown + ' câu (mong đợi 3)');
 
   // Đổi PIN
-  await page.click('#btnPin');
-  await page.fill('#pOld', '0101');
-  await page.fill('#pNew', '2580');
-  await page.fill('#pNew2', '2580');
-  await page.click('#pGo');
-  await page.waitForSelector('text=Đã đổi PIN');
+  if (COMPAT) {
+    if (await page.$('#btnPin')) errors.push('Máy chủ 1.0.0: nút Đổi PIN phải bị ẩn');
+  } else {
+    await page.click('#btnPin');
+    await page.fill('#pOld', '0101');
+    await page.fill('#pNew', '2580');
+    await page.fill('#pNew2', '2580');
+    await page.click('#pGo');
+    await page.waitForSelector('text=Đã đổi PIN');
+  }
 
   await page.goto(BASE + '/#/thong-ke');
   await page.waitForSelector('#chTimeline');
@@ -192,12 +206,12 @@ PHẦN I
   // Học sinh mới thấy đề mới
   await page.goto(BASE + '/');
   await page.waitForSelector('text=Kiểm tra 15 phút');
-  // Đăng nhập lại bằng PIN mới
+  // Đăng nhập lại bằng PIN mới (máy chủ 1.0.0: PIN cũ)
   await page.click('#btnLogout');
   await page.click('[data-close="ok"]');
   await page.waitForSelector('#selStudent option[value="HS0001"]', { state: 'attached' });
   await page.selectOption('#selStudent', 'HS0001');
-  await page.fill('#pin', '2580');
+  await page.fill('#pin', COMPAT ? '0101' : '2580');
   await page.click('#btnLogin');
   await page.waitForSelector('text=Đề đang mở');
 
@@ -209,7 +223,11 @@ PHẦN I
     if (over) errors.push('Tràn ngang trên điện thoại ở ' + h);
   }
 
+  if (COMPAT) {
+    const bad = await page.evaluate(() => document.body.innerText.includes('Không có chức năng'));
+    if (bad) errors.push('Máy chủ 1.0.0: hiện chữ "Không có chức năng"');
+  }
   await browser.close();
   if (errors.length) { console.error('LỖI:\n' + errors.join('\n')); process.exit(1); }
-  console.log('✓ Giao diện: học sinh làm bài + giáo viên quản trị đều chạy đúng. Ảnh chụp ở', SHOTS);
+  console.log((COMPAT ? '[máy chủ 1.0.0] ' : '') + '✓ Giao diện: học sinh làm bài + giáo viên quản trị đều chạy đúng. Ảnh chụp ở', SHOTS);
 })().catch((e) => { console.error(e); process.exit(1); });
