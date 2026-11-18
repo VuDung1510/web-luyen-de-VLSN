@@ -15,7 +15,10 @@
    * Giao diện bật nút theo danh sách này, không so số phiên bản. */
   const PUB_KEY = 'ld_pub', PUB_TIME_KEY = 'ld_pub_t', PUB_MAX_AGE = 10 * 60 * 1000;
   const unsupported = {}; // action/tính năng máy chủ báo "Không có chức năng" trong phiên này
-  const FEATURE_OF = { changePin: 'changePin', bootstrap: 'bootstrap', adminBootstrap: 'bootstrap' };
+  const FEATURE_OF = {
+    changePin: 'changePin', bootstrap: 'bootstrap', adminBootstrap: 'bootstrap',
+    adminBankMeta: 'bank', adminBankList: 'bank', adminBankSource: 'bank', adminBankMatrix: 'bank', adminBankToQuestions: 'bank'
+  };
   function savePub(p) { store.set(PUB_KEY, p); store.set(PUB_TIME_KEY, Date.now()); }
   function pubFresh() { return !!store.get(PUB_KEY, null) && Date.now() - (+store.get(PUB_TIME_KEY, 0) || 0) < PUB_MAX_AGE; }
   /** Máy chủ chắc chắn có tính năng f (đã biết cấu hình và trong danh sách features). */
@@ -257,18 +260,40 @@
   const TYPES = { TN: 'Trắc nghiệm', DS: 'Đúng/Sai', TL: 'Trả lời ngắn' };
   const PARTS = { 1: 'PHẦN I. Trắc nghiệm nhiều phương án lựa chọn', 2: 'PHẦN II. Trắc nghiệm đúng sai', 3: 'PHẦN III. Trắc nghiệm trả lời ngắn' };
 
-  /** Nội dung câu hỏi: giữ xuống dòng, cho phép **đậm**, *nghiêng*, ảnh ![](url); công thức $...$ do KaTeX hiển thị */
+  /**
+   * Nội dung câu hỏi: giữ xuống dòng, cho phép **đậm**, *nghiêng*, ảnh ![](url); công thức $...$ do KaTeX hiển thị.
+   * Khối bảng (định dạng kho câu hỏi): dòng "[BẢNG] Cột 1 | Cột 2" rồi các dòng "ô | ô" liền sau → <table>.
+   */
   function rich(text) {
     // tách công thức ra trước để không bị định dạng nhầm
     const keep = [];
-    let s = String(text == null ? '' : text).replace(/\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\]/g, (m) => { keep.push(m); return `\u0000${keep.length - 1}\u0000`; });
-    s = esc(s);
-    s = s.replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, (m, alt, url) => `<img src="${url}" alt="${alt}" loading="lazy">`);
-    s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
-    s = s.replace(/(^|[^*\\])\*([^*\n]+)\*/g, '$1<i>$2</i>');
-    s = s.replace(/\n/g, '<br>');
+    const s = String(text == null ? '' : text).replace(/\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\]/g, (m) => { keep.push(m); return `\u0000${keep.length - 1}\u0000`; });
+    const inline = (t) => {
+      let h = esc(t);
+      h = h.replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, (m, alt, url) => `<img src="${url}" alt="${alt}" loading="lazy">`);
+      h = h.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+      h = h.replace(/(^|[^*\\])\*([^*\n]+)\*/g, '$1<i>$2</i>');
+      return h.replace(/\n/g, '<br>');
+    };
+    const lines = s.split('\n');
+    const out = [];
+    let buf = [];
+    const flush = () => { if (buf.length) out.push(inline(buf.join('\n'))); buf = []; };
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/^\s*\[BẢNG\]\s*(.*)$/i);
+      if (!m) { buf.push(lines[i]); continue; }
+      if (buf.length && buf[buf.length - 1].trim() === '') buf.pop(); // dòng trống ngay trước bảng
+      flush();
+      const rows = m[1].trim() ? [m[1]] : [];
+      while (i + 1 < lines.length && lines[i + 1].indexOf('|') >= 0 && lines[i + 1].trim()) rows.push(lines[++i]);
+      const cells = rows.map((r) => r.split('|').map((c) => c.trim()));
+      const n = Math.max(1, ...cells.map((r) => r.length));
+      const tr = (r, tag) => `<tr>${Array.from({ length: n }, (_, j) => `<${tag}>${inline(r[j] || '')}</${tag}>`).join('')}</tr>`;
+      out.push(`<div class="table-wrap q-table-wrap"><table class="q-table">${cells.length ? `<thead>${tr(cells[0], 'th')}</thead>` : ''}<tbody>${cells.slice(1).map((r) => tr(r, 'td')).join('')}</tbody></table></div>`);
+    }
+    flush();
     // dấu phẩy thập phân kiểu Việt Nam trong công thức: 2,67 → 2{,}67 để KaTeX không chèn khoảng trắng
-    return s.replace(/\u0000(\d+)\u0000/g, (m, i) => esc(keep[+i].replace(/(\d),(?=\d)/g, '$1{,}')));
+    return out.join('').replace(/\u0000(\d+)\u0000/g, (m, i) => esc(keep[+i].replace(/(\d),(?=\d)/g, '$1{,}')));
   }
 
   function math(el) {
