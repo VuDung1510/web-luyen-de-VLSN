@@ -1,86 +1,89 @@
 # Pha 1 — Tăng tốc
 
 ## Mục tiêu
-Chuyển tab gần như tức thì khi đã có dữ liệu; giảm số lần gọi máy chủ; giảm thời gian mỗi lần gọi bằng bộ nhớ đệm phía máy chủ. Có số đo trước/sau.
+Chuyển tab gần như tức thì khi đã có dữ liệu; giảm số lần gọi máy chủ; giảm thời gian mỗi lần gọi bằng bộ nhớ đệm phía máy chủ mà **không bao giờ ghi nhầm hàng**. Có số đo trước/sau. Sửa lỗi Đổi PIN/mục tiêu điểm đang có trên trang thật.
 
 ## Phạm vi
 **Làm**
-1. Bộ nhớ đệm trên trình duyệt kiểu "hiện ngay – cập nhật ngầm" (stale-while-revalidate) cho các trang đọc dữ liệu: học sinh (trang chủ, lịch sử, thống kê, bảng xếp hạng), quản trị (tổng quan, đề thi, học sinh, kết quả, bảng điểm, cài đặt).
+0. **Việc đầu tiên** (gộp riêng được, nếu giáo viên muốn phát hành sớm): ẩn nút Đổi PIN và hộp mục tiêu điểm khi máy chủ không có cờ `changePin`/`goal`; thêm `tests/fixtures/Code-1.0.0.gs` và `SERVER_COMPAT=1.0.0` trong dev-server (xem 00 §5).
+1. Bộ đệm trình duyệt kiểu "hiện ngay – cập nhật ngầm" cho **4 màn học sinh** (Trang chủ, Lịch sử, Thống kê, Bảng xếp hạng) và **3 tab quản trị** (Tổng quan, Đề thi, Kết quả).
 2. Action gộp `bootstrap` (học sinh) và `adminBootstrap` (quản trị).
-3. Bộ nhớ đệm máy chủ cho `readTable_()` bằng CacheService, chia mảnh, tự xóa khi ghi.
-4. Hàm giữ ấm + hàm cài hẹn giờ; xóa đệm khi giáo viên sửa trực tiếp Sheet (trigger `onEdit` đơn giản).
-5. Khung xương (skeleton) khi chưa có dữ liệu; chỉ báo nhỏ "đang cập nhật".
-6. Hạ tầng đo: `tests/dev-server.js` thêm `LATENCY_MS` (trễ giả mỗi request) và `SERVER_COMPAT=1.0.0`.
+3. Đệm máy chủ cho `readTable_()` (CacheService, chia mảnh, theo thế hệ), với đường ghi an toàn.
+4. Skeleton khi chưa có dữ liệu; chỉ báo nhỏ "đang cập nhật".
+5. Hạ tầng đo: dev-server `LATENCY_MS`; shim có chi phí giả `SHEET_READ_MS`, `CACHE_MS`.
 
-**Không làm**: đổi giao diện/màu (Pha 5); lưu bài đang làm dở; service worker/offline; thay đổi chấm điểm.
+**Không làm**: đổi màu/giao diện (Pha 5); lưu bài làm dở; service worker/offline; đổi cách chấm điểm.
+
+**Hoãn sau**: hẹn giờ giữ ấm `giuAm`/`caiHenGio` (thời hạn đệm 60 s nên hẹn giờ 10 phút gần như vô ích); trigger cài đặt `onChange`; đệm tab Học sinh, Bảng điểm, Cài đặt và trình soạn đề.
 
 ## Thiết kế kỹ thuật
 
-### API mới (Code.gs → 1.2.0)
+### API (Code.gs: tăng số phụ, dự kiến 1.2.0)
 | Action | Tham số | Kết quả |
 |---|---|---|
-| `publicConfig` (sửa) | — | thêm `features: ["bootstrap","cache"]`, `serverTime` |
-| `bootstrap` | `token` | `{ me, pub, exams, results, stats, v }` — `exams` = kết quả `apiListExams_`, `results` = `apiMyResults_`, `stats` = `apiMyStats_` (có thể `null` nếu tốn > 1 s), `v` = chuỗi phiên bản dữ liệu |
-| `adminBootstrap` | `token` | `{ me, overview, exams, students, settings, v }` (không gồm `adminResults` vì lớn; trang Kết quả gọi riêng) |
-Cả hai đọc mỗi trang tính tối đa 1 lần (dùng `MEMO_`). Không trả đáp án/lời giải. Token hết hạn ⇒ lỗi `AUTH:` như cũ.
+| `publicConfig` (sửa) | — | thêm `features: ["changePin","goal","bootstrap","cache"]` |
+| `bootstrap` | `token` | `{ me, pub, exams, results, v }`: `exams` = `apiListExams_`, `results` = `apiMyResults_`. Không gồm thống kê (tab Thống kê gọi `myStats` khi cần, có đệm). |
+| `adminBootstrap` | `token` | `{ me, overview, exams, v }`. Không gồm học sinh (có PIN) và kết quả (lớn). |
+Mỗi trang tính được đọc tối đa 1 lần cho mỗi request (`MEMO_`). Không trả đáp án/lời giải. Token hết hạn trả lỗi `AUTH:` như cũ.
 
-### Bộ nhớ đệm máy chủ
-- Bọc trong `readTable_(name)`: trước khi gọi `getDataRange()`, thử `cacheGetTable_(name)`; sau khi đọc Sheet, `cachePutTable_(name, rows)`.
-- Khóa: `tb_<name>_<gen>` với `gen` = số thế hệ lưu ở khóa `tbgen_<name>` (CacheService, 6 giờ). Mảnh: `tb_<name>_<gen>_<i>` + khóa đầu chứa số mảnh; mỗi mảnh ≤ 90 000 ký tự; ghi bằng `putAll`, đọc bằng `getAll`. Thời hạn mảnh 60 s (`CACHE_SECONDS`, đặt được trong CaiDat `THOI_GIAN_NHO_TAM`).
-- Bảng tuần tự hóa > 900 KB ⇒ không đệm (đọc Sheet như cũ). Thiếu bất kỳ mảnh nào ⇒ coi như trượt đệm.
-- Xóa đệm: `appendRows_`, `updateRow_`, `deleteRows_`, `replaceQuestions_` và `apiAdminSaveSettings_` tăng `tbgen_<name>` (không cần xóa từng mảnh). Hàm `onEdit(e)` đơn giản tăng thế hệ của trang tính vừa sửa (người làm xác minh CacheService chạy được trong trigger đơn giản; nếu không, ghi rõ và giới hạn trễ = 60 s).
-- Trang `CaiDat` có MAT_KHAU_QUAN_TRI: được đệm (chỉ nằm trong CacheService của máy chủ), không bao giờ trả về giao diện.
-- Không đệm: kết quả kiểm tra PIN/khóa sai (đã dùng cache riêng), `startExam`, `submitExam` (vẫn đọc qua `readTable_` nên hưởng đệm khi đọc; ghi xong thì thế hệ tăng).
-
-### Giữ ấm
-- `giuAm()`: đọc trước HocSinh, DeThi, CauHoi, CaiDat, KetQua vào đệm. `caiHenGio()`: xóa trigger `giuAm` cũ rồi tạo trigger mỗi 10 phút (chạy lại không sinh trigger trùng). `goHenGio()`: gỡ. Ước tính ≤ 15 phút/ngày quota trigger.
-- Ghi chú: giữ ấm không bảo đảm hết "khởi động lạnh" của Apps Script; lợi ích chính là đệm luôn đầy.
+### Đệm máy chủ — quy tắc bắt buộc
+- `readTable_(name, opts)`: mặc định thử đệm trước. `opts.fresh=true` thì đọc thẳng Sheet, bỏ qua đệm (và không dùng `MEMO_` cũ).
+- **Thứ tự khi đọc:** (1) đọc `gen = tbgen_<name>` **trước**; (2) đọc mảnh `tb_<name>_<gen>_*` bằng `getAll`; trượt đệm thì (3) đọc Sheet và (4) cất dưới **chính `gen` đã đọc ở bước 1**. Như vậy dữ liệu cũ không thể nằm dưới thế hệ mới.
+- `gen` mới tạo bằng `Date.now() + số ngẫu nhiên` (không đếm từ 0). Nếu khóa `tbgen_*` bị xóa sớm thì tạo lại giá trị mới, không trùng thế hệ cũ.
+- Mảnh ≤ 90 000 ký tự; khóa đầu chứa số mảnh; thời hạn hằng số `CACHE_SECONDS = 60` trong Code.gs (không đọc từ CaiDat). Bảng tuần tự hóa > 900 KB thì không đệm. Thiếu một mảnh thì coi là trượt đệm.
+- **Đường ghi:** mọi hàm ghi chạy trong `withLock_`, và trong khóa phải đọc lại bằng `readTable_(…, {fresh:true})` để lấy `_row`. Áp dụng cho: `apiChangePin_`, `apiAdminSaveStudent_`, `apiAdminDeleteStudent_`, `apiAdminImportStudents_` (`nextStudentId_`), `apiAdminSaveExam_`, `apiAdminDeleteExam_`, `apiAdminDeleteResult_`, `apiAdminSaveSettings_`, `apiLinkGoogle_`.
+- `updateRow_`/`deleteRows_` nhận thêm ô khóa mong đợi (Mã HS / Mã bài / Mã đề / Khóa). Trước khi ghi, đọc ô khóa ở hàng đó; không khớp thì đọc lại toàn bảng (fresh), tìm lại hàng; vẫn không thấy thì báo lỗi, không ghi.
+- Ghi xong: `SpreadsheetApp.flush()`, rồi đặt `tbgen_<name>` mới, vẫn trong khóa.
+- `onEdit(e)` đơn giản đặt `gen` mới cho trang tính vừa sửa. Người làm xác minh CacheService dùng được trong trigger đơn giản; nếu không được thì sửa tay thấy trễ tối đa `CACHE_SECONDS` (ghi README). Chèn/xóa hàng hoặc sửa qua API không gọi `onEdit`: chấp nhận đọc trễ ≤ 60 s, còn ghi vẫn an toàn nhờ quy tắc trên.
+- CaiDat (có `MAT_KHAU_QUAN_TRI`) được đệm phía máy chủ, không bao giờ trả về giao diện.
 
 ### Giao diện (`common.js`, `app.js`, `admin.js`)
-- `common.js` thêm `cached(key, loader, render, opts)`: đọc `localStorage` khóa `ld_c_<userId>_<key>` ⇒ gọi `render(data, {stale:true})` ngay; đồng thời gọi `loader()`; khi về, nếu JSON khác thì `render(newData, {stale:false})` giữ vị trí cuộn; lỗi mạng khi đã có dữ liệu ⇒ toast nhẹ, giữ dữ liệu cũ.
-- Học sinh: sau đăng nhập/tải trang gọi `bootstrap` một lần, chia ra các khóa `home`, `history`, `stats`. Máy chủ cũ ⇒ dự phòng `Promise.all([listExams, myResults])` như hiện tại.
-- Kích thước đệm ≤ 1 MB/người dùng; quá thì bỏ khóa cũ nhất. Đăng xuất (`logout`) xóa mọi khóa `ld_c_*`. Khóa có phiên bản giao diện (`ld_c_v1_`) để đổi định dạng thì bỏ đệm cũ.
-- Sau `submitExam` thành công: xóa khóa `home`, `history`, `stats` rồi làm mới ngầm.
-- Không đệm: `startExam`, câu hỏi khi đang làm bài, `getResult` của bài chưa được xem lời giải (đệm `getResult` được phép vì đó là dữ liệu đã được máy chủ cho phép hiện).
-- Skeleton: lớp CSS `.skeleton` (khối xám nhấp nháy) cho thẻ đề/bảng; hiện khi không có đệm.
-- Chuyển tab không gọi lại `publicConfig` nếu đã có `ld_pub` < 10 phút (vẫn làm mới ngầm khi tải trang).
+- `common.js` thêm `cached(key, loader, render, opts)`: có bản lưu thì `render(data,{stale:true})` ngay, đồng thời gọi `loader()`; dữ liệu về mà khác thì vẽ lại, giữ vị trí cuộn; lỗi mạng khi đã có bản lưu thì hiện toast nhẹ.
+- Học sinh: `localStorage`, khóa `ld_c_v1_<userId>_<key>`, tổng ≤ 1 MB/người (quá thì bỏ khóa cũ nhất). Gọi `bootstrap` một lần khi vào trang; máy chủ cũ thì dùng `Promise.all([listExams, myResults])`.
+- Quản trị: **`sessionStorage`** (mất khi đóng tab); chỉ 3 tab đã nêu; không lưu dữ liệu có `pin` hay `dapAn`.
+- Gặp lỗi `AUTH:` hoặc đăng xuất: xóa mọi `ld_c_*` trong cả hai kho lưu, và xóa thêm `ld_lastResult`.
+- Sau `submitExam`: xóa khóa `home`, `history`, `stats` rồi làm mới ngầm.
+- Không đệm: `startExam`, câu hỏi đang làm.
+- Skeleton: lớp `.skeleton` cho thẻ đề/bảng. `publicConfig` không gọi lại khi chuyển tab nếu `ld_pub` mới hơn 10 phút.
 
 ### Tương thích máy chủ cũ
-Toàn bộ phần giao diện chạy với 1.0.0 (dùng đệm trình duyệt + gọi API cũ). Chỉ `bootstrap`, đệm máy chủ, giữ ấm cần máy chủ mới.
+Phần giao diện chạy với 1.0.0 (đệm trình duyệt + API cũ; ẩn Đổi PIN/mục tiêu). `bootstrap` và đệm máy chủ cần máy chủ mới.
 
 ## Tiêu chí nghiệm thu
-Đo trên dev-server với `LATENCY_MS=1500` trừ khi ghi khác; trình duyệt Playwright Chromium, khổ 390×844.
-- **TC-1.1** Đã có đệm: chuyển Trang chủ → Lịch sử → Thống kê → Trang chủ, mỗi lần nội dung chính hiện **< 300 ms** kể từ `hashchange` (trung vị 5 lần đo). Tương tự 4 tab quản trị.
-- **TC-1.2** Chưa có đệm: skeleton hiện **< 150 ms** sau `hashchange`; không có màn hình trắng.
-- **TC-1.3** Máy chủ mới: từ lúc tải trang học sinh đã đăng nhập đến khi trang chủ đầy đủ, số request POST = **1** (`bootstrap`) + tối đa 1 `publicConfig` ngầm. Trước Pha 1 ghi số đo gốc (hiện 3).
-- **TC-1.4** Máy chủ cũ (`SERVER_COMPAT=1.0.0`): toàn bộ e2e hiện có đạt; không có lỗi console; không hiện thông báo "Không có chức năng".
-- **TC-1.5** Đệm máy chủ (test Node có đếm số lần `getDataRange`): 2 request `listExams` liên tiếp trong 60 s (hai lần chạy, `MEMO_` đã xóa) ⇒ lần 2 không đọc Sheet DeThi/CauHoi/KetQua.
-- **TC-1.6** Sau mỗi thao tác ghi (`submitExam`, `adminSaveExam`, `adminSaveStudent`, `adminDeleteResult`, `adminSaveSettings`, `changePin`), request đọc kế tiếp trả dữ liệu mới (không dữ liệu cũ) — 6 trường hợp.
-- **TC-1.7** Chia mảnh: bảng KetQua giả 600 hàng (~1,2 KB/hàng) lưu/đọc lại giống hệt; shim từ chối giá trị > 100 KB/khóa (shim phải mô phỏng giới hạn này). Bảng > 900 KB không đệm nhưng kết quả vẫn đúng.
-- **TC-1.8** Mất một mảnh (xóa tay trong shim) ⇒ đọc lại từ Sheet, kết quả đúng, không lỗi.
-- **TC-1.9** Đăng xuất HS A, đăng nhập HS B trên cùng trình duyệt ⇒ không hiện bất kỳ dữ liệu nào của A (kiểm tra `localStorage` không còn khóa của A).
-- **TC-1.10** Nộp bài xong quay về trang chủ: điểm mới hiện ngay (≤ 1 lần trễ mạng), không phải tải lại trang.
-- **TC-1.11** Không khóa đệm nào trong `localStorage` chứa trường `dapAn`, `loiGiai` của đề chưa nộp (quét toàn bộ giá trị sau khi bắt đầu làm bài).
-- **TC-1.12** `caiHenGio()` gọi 3 lần ⇒ đúng 1 trigger `giuAm` (shim giả lập `ScriptApp`).
-- **TC-1.13** Mất mạng (Playwright offline) khi đã có đệm: các tab vẫn hiển thị dữ liệu cũ kèm thông báo nhẹ; không mất dữ liệu bài đang hiển thị.
-- **TC-1.14** Báo cáo có bảng số đo trước/sau: thời gian chuyển tab, số request khi mở trang chủ, thời gian `listExams` lần 1/lần 2 trong shim (ms). (khuyến nghị) Sau Pha 6, đo lại trên máy chủ thật.
-- **TC-1.15** Mọi test cũ đạt.
+Đo trên dev-server `LATENCY_MS=1500`, Chromium 390×844, trừ khi ghi khác.
+- **TC-1.0** Máy chủ 1.0.0: nút Đổi PIN và hộp mục tiêu điểm không hiển thị; máy chủ mới: hiển thị và hoạt động như e2e hiện tại.
+- **TC-1.1** Đã có đệm: chuyển giữa 4 màn học sinh, và giữa 3 tab quản trị, nội dung chính hiện **< 300 ms** kể từ `hashchange` (trung vị của 5 lần).
+- **TC-1.2** Chưa có đệm: skeleton hiện **< 150 ms**, không có màn trắng.
+- **TC-1.3** Máy chủ mới: tải trang học sinh đã đăng nhập đến lúc trang chủ đầy đủ = **1** POST `bootstrap` + tối đa 1 `publicConfig` ngầm (số gốc trước Pha 1 ghi vào báo cáo).
+- **TC-1.4** `SERVER_COMPAT=1.0.0` (Code.gs 1.0.0 thật): e2e chạy hết, bỏ qua các bước Đổi PIN/mục tiêu, khẳng định nút bị ẩn; không lỗi console; không hiện "Không có chức năng".
+- **TC-1.5** Shim đếm `getDataRange`: hai request `listExams` cách nhau < 60 s (hai lần chạy riêng) thì lần 2 không đọc DeThi/CauHoi/KetQua.
+- **TC-1.6** Sau mỗi thao tác ghi (`submitExam`, `adminSaveExam`, `adminSaveStudent`, `adminDeleteResult`, `adminSaveSettings`, `changePin`), lần đọc kế tiếp trả dữ liệu mới.
+- **TC-1.7** Chia mảnh: KetQua giả 600 hàng (~1,2 KB/hàng) lưu/đọc giống hệt; shim từ chối giá trị > 100 KB/khóa; bảng > 900 KB không đệm nhưng kết quả vẫn đúng.
+- **TC-1.8** Xóa tay một mảnh, hoặc xóa khóa `tbgen_*`: đọc lại từ Sheet, kết quả đúng, thế hệ mới khác mọi thế hệ cũ.
+- **TC-1.9** Đăng xuất HS A, đăng nhập HS B: không còn khóa nào của A; không hiện dữ liệu của A.
+- **TC-1.9b** Giáo viên: sau đăng xuất hoặc token hết hạn (`AUTH:`), `localStorage` và `sessionStorage` không chứa chuỗi PIN nào, không chứa `ld_lastResult`.
+- **TC-1.10** Nộp bài xong về trang chủ: điểm mới hiện mà không phải tải lại trang.
+- **TC-1.11** Đang làm bài: không giá trị nào trong `localStorage` chứa `dapAn` hoặc `loiGiai`.
+- **TC-1.12** Ghi an toàn: (a) xóa tay 1 hàng HocSinh trong shim (không gọi `onEdit`, đệm còn sống) rồi HS khác `changePin` thì PIN ghi đúng hàng của HS đó, không hàng nào khác bị đổi; (b) chèn 1 hàng lên đầu KetQua rồi `adminDeleteResult` thì xóa đúng bài; (c) thêm học sinh sau khi xóa tay thì không sinh Mã HS trùng.
+- **TC-1.13** Tranh chấp (giả lập trong shim): lần A đọc Sheet, lần B ghi và đổi `gen`, rồi A mới cất đệm; lần đọc sau vẫn thấy dữ liệu của B.
+- **TC-1.14** Offline (Playwright) khi đã có đệm: các tab vẫn hiển thị kèm thông báo nhẹ.
+- **TC-1.15** Số đo: (a) **số gốc trên máy chủ thật 1.0.0 trước khi bắt đầu Pha 1**: thời gian `listExams`, `myResults`, thời gian chuyển tab, đo bằng trình duyệt thật (giáo viên, hoặc agent có quyền mở trang); (b) shim với `SHEET_READ_MS`: số lần đọc Sheet trước/sau (chỉ số chính), ms để tham khảo; (c) số đo lại trên máy chủ thật làm ở TC-6.7.
+- **TC-1.16** Mọi test cũ đạt.
 
 ## Kế hoạch kiểm thử
-- Node: `tests/pha1.test.js` (TC-1.5 → 1.8, 1.12) — mở rộng `gas-shim.js`: `getAll/putAll/removeAll`, giới hạn 100 KB, bộ đếm `getDataRange`, `ScriptApp` giả.
-- E2E: `tests/e2e-pha1.js` (TC-1.1 → 1.4, 1.9 → 1.11, 1.13), chạy với `LATENCY_MS=1500` và `SERVER_COMPAT=1.0.0`. Đo bằng `performance.now()` trong trang + chờ selector nội dung.
-- Ảnh: skeleton, trang chủ hiện từ đệm có chỉ báo "đang cập nhật", trang quản trị đề thi.
+Node `tests/pha1.test.js` (TC-1.5 → 1.8, 1.12, 1.13). Shim cần thêm: `getAll/putAll/removeAll`, giới hạn 100 KB, bộ đếm `getDataRange`, `flush`, chi phí giả. E2E `tests/e2e-pha1.js` chạy hai chế độ máy chủ (TC-1.0 → 1.4, 1.9 → 1.11, 1.14). Ảnh: skeleton, trang chủ từ đệm có chỉ báo, trang chủ máy chủ 1.0.0 không có nút Đổi PIN.
 
 ## Rủi ro & cách giảm
 | Rủi ro | Giảm |
 |---|---|
-| Dữ liệu cũ hiển thị gây hiểu nhầm (đề vừa đóng vẫn hiện "Đang mở") | Luôn làm mới ngầm; `startExam` vẫn kiểm tra trên máy chủ; chỉ báo "đang cập nhật" |
-| Giáo viên sửa Sheet trực tiếp, đệm cũ tới 60 s | `onEdit` tăng thế hệ; thời hạn ngắn; README ghi rõ |
-| Đệm vượt 100 KB/khóa, lỗi ngầm | Chia mảnh + ngưỡng 900 KB + test TC-1.7 |
-| Lớp 40 HS nộp cùng lúc, đệm bị tăng thế hệ liên tục | Chấp nhận; ghi vẫn qua `withLock_`; đọc trượt đệm chỉ chậm như hiện tại |
-| Lộ dữ liệu trên máy dùng chung | Khóa theo userId, xóa khi đăng xuất (TC-1.9) |
+| Ghi nhầm hàng vì đệm cũ | Đọc fresh trong khóa + kiểm ô khóa + thứ tự gen (TC-1.12, 1.13) |
+| Đọc dữ liệu cũ ≤ 60 s khi sửa Sheet bằng tay hoặc qua Cowork | `onEdit`; thời hạn ngắn; README; câu hỏi mở số 3 |
+| Vượt 100 KB/khóa | Chia mảnh, ngưỡng 900 KB (TC-1.7) |
+| Lộ dữ liệu trên máy dùng chung | Khóa theo người dùng; quản trị dùng sessionStorage, không lưu PIN (TC-1.9, 1.9b) |
 
 ## Việc giáo viên cần làm (gộp vào Pha 6)
-Dán Code.gs; chạy `setup`; chạy `caiHenGio` một lần (cấp quyền "chạy khi bạn không có mặt"); Triển khai → Quản lý → Phiên bản mới.
+Dán Code.gs; chạy `setup`; Triển khai → Quản lý → Phiên bản mới. Trước pha: đo số gốc TC-1.15a (hoặc cho phép agent đo).
 
-## Ước lượng: **M**
+## Ước lượng: **M** (sau khi cắt giữ ấm và thu hẹp số màn được đệm)
+
+Sửa đặc tả ngày 18/11/2026: theo `soat-pha-0.md` S-1, S-4, S-5, S-11, S-13, S-15, S-21, S-22.
