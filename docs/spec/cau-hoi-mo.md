@@ -36,3 +36,10 @@ Thầy chưa trả lời thì người làm theo đề xuất. **Ngoại lệ:**
 - **Đề xuất:** thầy xác nhận trước Pha 5; không ảnh hưởng Pha 1–4.
 
 Sửa đặc tả ngày 18/11/2026: gộp lại theo `soat-pha-0.md` (bỏ câu đã có quyết định; thêm câu 2, 3, 6, 7).
+
+---
+## Giáo viên đã trả lời (18/11/2026)
+- Thứ tự pha: **giữ nguyên 1 → 2 → 3 → 4 → 5 → 6** (không làm song song Pha 1 và Pha 3).
+- Câu 2 (ẩn Đổi PIN / mục tiêu đầu Pha 1), 3 (nhớ tạm 60 giây), 4 (hoãn nhiều mã đề), 5 (KetQuaLuyenTap), 6 (loại câu đang thi khỏi luyện tập): **đồng ý đề xuất**.
+- Câu 7: đề Word gõ công thức bằng **Equation** có sẵn của Word. Bộ đọc Pha 3 phải nhận dạng mẫu "Form VLSN cho file Word đề" (QUYET-DINH mục 6).
+- Câu 8: làm theo file quyết định chung. Cowork đã chốt: **giữ bố cục hiện tại, đổi màu chủ đạo sang xanh #1D6B3E và logo VLSN từ vatly.ai** — đặc tả `pha-5-thiet-ke.md` phải được kiến trúc sư viết lại theo quyết định này trước khi bắt đầu Pha 5.
