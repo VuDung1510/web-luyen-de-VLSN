@@ -10,10 +10,14 @@ function busySleep(ms) { if (ms > 0) Atomics.wait(SLEEP_BUF, 0, 0, ms); }
 const CACHE_MAX_BYTES = 100 * 1024; // CacheService: tối đa 100 KB mỗi giá trị
 const CACHE_MAX_TTL = 21600;        // tối đa 6 giờ
 
-function makeSheet(name, env) {
+function makeSheet(name, env, tag) {
   let data = [];
   const formats = {};
-  const wrote = () => { env.stats.writes[name] = (env.stats.writes[name] || 0) + 1; };
+  // tag: id của bảng tính ngoài (vd kho câu hỏi mở bằng openById) → mọi lần ghi đếm thêm vào stats.extWrites[tag]
+  const wrote = () => {
+    env.stats.writes[name] = (env.stats.writes[name] || 0) + 1;
+    if (tag) env.stats.extWrites[tag] = (env.stats.extWrites[tag] || 0) + 1;
+  };
   const sh = {
     name,
     _data: () => data,
@@ -44,6 +48,8 @@ function makeSheet(name, env) {
         getSheet: () => sh,
         getRow: () => r,
         getValues: () => {
+          env.stats.cells[name] = (env.stats.cells[name] || 0) + nr * nc;
+          env.stats.ranges[name] = (env.stats.ranges[name] || 0) + 1;
           const out = [];
           for (let i = 0; i < nr; i++) {
             const row = [];
@@ -79,6 +85,11 @@ function makeSheet(name, env) {
       return range;
     },
     deleteRow: (r) => { wrote(); data.splice(r - 1, 1); },
+    appendRow: (row) => { wrote(); data.push(row.slice()); return sh; },
+    insertRows: () => { wrote(); return sh; },
+    insertRowBefore: () => { wrote(); return sh; },
+    insertColumns: () => { wrote(); return sh; },
+    _setData: (rows) => { data = rows.map((r) => r.slice()); },
     setFrozenRows: () => {}
   };
   return sh;
@@ -102,9 +113,14 @@ function createContext(opts = {}) {
     sheetReadMs: +(opts.sheetReadMs != null ? opts.sheetReadMs : process.env.SHEET_READ_MS || 0),
     cacheMs: +(opts.cacheMs != null ? opts.cacheMs : process.env.CACHE_MS || 0),
     stats: null,
-    hooks: {}
+    hooks: {},
+    clockOffset: 0, // đồng hồ giả (ms) cộng vào nowMs_() của Code.gs
+    makeCopyMs: +(opts.makeCopyMs || 0) // chi phí GIẢ mỗi lần makeCopy (chỉ cộng vào đồng hồ giả, không chờ thật)
   };
-  const resetStats = () => { env.stats = { reads: {}, writes: {}, cacheCalls: 0, flushes: 0 }; };
+  const resetStats = () => {
+    env.stats = { reads: {}, writes: {}, cacheCalls: 0, flushes: 0, cells: {}, ranges: {}, extWrites: {}, openById: 0,
+      makeCopy: 0, setSharing: {}, getFilesByName: 0, folderScans: 0 };
+  };
   resetStats();
   const cacheCall = () => { env.stats.cacheCalls++; busySleep(env.cacheMs); };
   const cacheGet = (k) => (cache[k] && cache[k].exp > Date.now() ? cache[k].v : null);
@@ -122,6 +138,58 @@ function createContext(opts = {}) {
     deleteSheet: (s) => { delete sheets[s.name]; order.splice(order.indexOf(s.name), 1); },
     getUrl: () => 'https://docs.google.com/spreadsheets/d/FAKE/edit'
   };
+  // Bảng tính khác (vd kho câu hỏi) mở bằng SpreadsheetApp.openById: ctx._addSpreadsheet(id, { 'Tên trang': [[...], ...] })
+  const external = {};
+  const addSpreadsheet = (id, tabs) => {
+    const tsheets = {};
+    Object.keys(tabs).forEach((n) => { tsheets[n] = makeSheet(n, env, id); tsheets[n]._setData(tabs[n]); });
+    external[id] = {
+      getId: () => id,
+      getSheetByName: (n) => tsheets[n] || null,
+      getSheets: () => Object.keys(tsheets).map((n) => tsheets[n]),
+      insertSheet: (n) => { env.stats.extWrites[id] = (env.stats.extWrites[id] || 0) + 1; tsheets[n] = makeSheet(n, env, id); return tsheets[n]; },
+      deleteSheet: () => { env.stats.extWrites[id] = (env.stats.extWrites[id] || 0) + 1; },
+      getUrl: () => 'https://docs.google.com/spreadsheets/d/' + id + '/edit',
+      _sheets: tsheets
+    };
+    return external[id];
+  };
+  // Drive giả: thư mục, file, makeCopy (đếm + chi phí giả), setSharing (đếm theo id file)
+  const drive = { folders: {}, files: {}, seq: 0 };
+  const iter = (arr) => { let i = 0; return { hasNext: () => i < arr.length, next: () => arr[i++] }; };
+  const newId = (p) => p + (++drive.seq).toString(36).padStart(4, '0') + crypto.randomBytes(3).toString('hex');
+  function mkFile(name, folderId, blobObj) {
+    const id = newId('F');
+    const f = {
+      id, name, folderId, blob: blobObj || null, copyOf: null,
+      getId: () => id, getName: () => name, getBlob: () => f.blob,
+      setSharing: () => { env.stats.setSharing[id] = (env.stats.setSharing[id] || 0) + 1; return f; },
+      makeCopy: (n, folder) => {
+        env.stats.makeCopy++;
+        env.clockOffset += env.makeCopyMs;
+        const c = mkFile(n || name, folder ? folder.getId() : null, f.blob);
+        c.copyOf = id;
+        return c;
+      }
+    };
+    drive.files[id] = f;
+    if (folderId && drive.folders[folderId]) drive.folders[folderId].fileIds.push(id);
+    return f;
+  }
+  function mkFolder(name, parentId) {
+    const id = newId('D');
+    const d = {
+      id, name, fileIds: [], folderIds: [],
+      getId: () => id, getName: () => name,
+      getFiles: () => { env.stats.folderScans++; return iter(d.fileIds.map((x) => drive.files[x])); },
+      getFolders: () => iter(d.folderIds.map((x) => drive.folders[x])),
+      createFile: (b) => mkFile((b && b.name) || 'file', id, b),
+      createFolder: (n) => mkFolder(n, id)
+    };
+    drive.folders[id] = d;
+    if (parentId && drive.folders[parentId]) drive.folders[parentId].folderIds.push(id);
+    return d;
+  }
   const tzFormat = (d, tz, fmt) => {
     const t = new Date(d.getTime() + 7 * 3600 * 1000); // giờ VN
     const p = (n, l = 2) => String(n).padStart(l, '0');
@@ -135,7 +203,15 @@ function createContext(opts = {}) {
   });
   const ctx = {
     console,
-    SpreadsheetApp: { getActiveSpreadsheet: () => spreadsheet, flush: () => { env.stats.flushes++; } },
+    SpreadsheetApp: {
+      getActiveSpreadsheet: () => spreadsheet,
+      flush: () => { env.stats.flushes++; },
+      openById: (id) => {
+        env.stats.openById++;
+        if (!external[id]) throw new Error('Không tìm thấy bảng tính có id ' + id + ' hoặc không có quyền truy cập.');
+        return external[id];
+      }
+    },
     Utilities: {
       getUuid: () => crypto.randomUUID(),
       formatDate: tzFormat,
@@ -186,12 +262,20 @@ function createContext(opts = {}) {
     MailApp: { sendEmail: (m) => mails.push(m) },
     DriveApp: {
       Access: { ANYONE_WITH_LINK: 1 }, Permission: { VIEW: 1 },
-      getFolderById: () => ({ createFile: () => ({ setSharing() {}, getId: () => 'IMG' + Date.now() }) }),
-      createFolder: () => ({ getId: () => 'FOLDER', createFile: () => ({ setSharing() {}, getId: () => 'IMG' + Date.now() }) })
+      getFolderById: (id) => { if (!drive.folders[id]) throw new Error('Không tìm thấy thư mục ' + id); return drive.folders[id]; },
+      getFileById: (id) => { if (!drive.files[id]) throw new Error('Không tìm thấy file ' + id); return drive.files[id]; },
+      getFilesByName: (n) => { env.stats.getFilesByName++; return iter(Object.values(drive.files).filter((f) => f.name === n)); },
+      createFolder: (n) => mkFolder(n, null)
     },
     Logger: { log: (...a) => opts.quiet ? null : console.log(...a) },
     Session: { getScriptTimeZone: () => 'Asia/Ho_Chi_Minh' },
-    _sheets: sheets, _mails: mails, _cache: cache, _hooks: env.hooks, _env: env
+    _sheets: sheets, _mails: mails, _cache: cache, _hooks: env.hooks, _env: env, _props: props,
+    _external: external, _addSpreadsheet: addSpreadsheet,
+    _drive: {
+      folders: drive.folders, files: drive.files,
+      addFolder: (name, parentId) => mkFolder(name, parentId).id,
+      addFile: (name, folderId) => mkFile(name, folderId, blob([137, 80, 78, 71], 'image/png', name)).id
+    }
   };
   Object.defineProperty(ctx, '_stats', { get: () => env.stats });
   ctx._resetStats = resetStats;
@@ -199,6 +283,9 @@ function createContext(opts = {}) {
   const codePath = opts.codePath || path.join(__dirname, '..', 'apps-script', 'Code.gs');
   const code = fs.readFileSync(codePath, 'utf8');
   vm.runInContext(code + '\n;this.__ROUTES = ROUTES; this.__MEMO = function(){ MEMO_ = {}; };', ctx, { filename: 'Code.gs' });
+  // Đồng hồ giả cho việc chia lô (Code.gs ≥ 1.3.0 đọc giờ qua nowMs_()); ctx._clock.advance(ms) để tua.
+  if (typeof ctx.nowMs_ === 'function') ctx.nowMs_ = () => Date.now() + env.clockOffset;
+  ctx._clock = { advance: (ms) => { env.clockOffset += ms; }, offset: () => env.clockOffset };
   ctx.call = (action, body = {}) => {
     ctx.__MEMO(); // mỗi request Apps Script là 1 lần chạy mới
     const out = ctx.doPost({ postData: { contents: JSON.stringify(Object.assign({ action }, body)) } });

@@ -10,12 +10,15 @@
  *   DeThi    — thông tin các đề
  *   CauHoi   — câu hỏi + đáp án + lời giải (KHÔNG bao giờ gửi đáp án cho học sinh trước khi nộp)
  *   KetQua   — mỗi lần nộp bài là 1 dòng: họ tên, lớp, đề, điểm, thời gian, nhận xét…
- *   CaiDat   — cài đặt (mật khẩu quản trị, email giáo viên, Google Client ID…)
+ *   CaiDat   — cài đặt (mật khẩu quản trị, email giáo viên, Google Client ID, id kho câu hỏi…)
+ *
+ * Ngân hàng câu hỏi (Pha 2) nằm ở file Google Sheet RIÊNG "KHO CÂU HỎI VẬT LÝ" (id trong CaiDat → KHO_CAU_HOI_ID).
+ * Máy chủ chỉ ĐỌC kho và thư mục hình của kho; câu được chọn được chép sang CauHoi, hình được chép sang thư mục web.
  */
 
-var APP_VERSION = '1.2.0';
+var APP_VERSION = '1.3.0';
 /** Tính năng máy chủ này hỗ trợ. Giao diện bật/tắt nút theo danh sách này (không so số phiên bản). */
-var FEATURES = ['changePin', 'goal', 'bootstrap', 'cache'];
+var FEATURES = ['changePin', 'goal', 'bootstrap', 'cache', 'bank'];
 var TZ = 'Asia/Ho_Chi_Minh';
 
 var SCHEMA = {
@@ -32,7 +35,9 @@ var SCHEMA = {
   CauHoi: [
     ['examId', 'Mã đề'], ['stt', 'STT'], ['phan', 'Phần'], ['loai', 'Loại'], ['noiDung', 'Nội dung'],
     ['hinhAnh', 'Hình ảnh'], ['A', 'A'], ['B', 'B'], ['C', 'C'], ['D', 'D'], ['dapAn', 'Đáp án'],
-    ['diem', 'Điểm'], ['saiSo', 'Sai số'], ['chuDe', 'Chủ đề'], ['mucDo', 'Mức độ'], ['loiGiai', 'Lời giải']
+    ['diem', 'Điểm'], ['saiSo', 'Sai số'], ['chuDe', 'Chủ đề'], ['mucDo', 'Mức độ'], ['loiGiai', 'Lời giải'],
+    // Pha 2: thêm ở cuối (câu nhập tay để trống)
+    ['maKho', 'Mã câu kho'], ['chuong', 'Chương'], ['bai', 'Bài'], ['mucDoY', 'Mức độ từng ý'], ['nguon', 'Nguồn']
   ],
   KetQua: [
     ['nopLuc', 'Nộp lúc'], ['hoTen', 'Họ tên'], ['lop', 'Lớp'], ['tieuDe', 'Đề'],
@@ -53,7 +58,9 @@ var DEFAULT_SETTINGS = [
   ['HIEN_BANG_XEP_HANG', 'CO', 'CO = học sinh xem được bảng xếp hạng; KHONG = ẩn'],
   ['BXH_AN_TEN', 'KHONG', 'CO = bảng xếp hạng chỉ hiện tên viết tắt (VD: Nguyễn V. A)'],
   ['GUI_EMAIL_KHI_NOP', 'KHONG', 'CO = gửi email báo kết quả cho giáo viên mỗi khi có bài nộp'],
-  ['CHO_LIEN_KET_GOOGLE', 'CO', 'CO = học sinh tự liên kết tài khoản Google (sau khi xác minh bằng PIN)']
+  ['CHO_LIEN_KET_GOOGLE', 'CO', 'CO = học sinh tự liên kết tài khoản Google (sau khi xác minh bằng PIN)'],
+  ['KHO_CAU_HOI_ID', '', 'Id (hoặc đường link) file Google Sheet "KHO CÂU HỎI VẬT LÝ". Để trống = tắt Ngân hàng câu hỏi'],
+  ['THU_MUC_HINH_KHO_ID', '', 'Id (hoặc link) thư mục "02. HÌNH VẼ" của kho. Để trống = tìm hình theo tên file trên toàn Drive (chậm hơn)']
 ];
 
 var TEXT_SHEETS = ['HocSinh', 'DeThi', 'CauHoi', 'CaiDat'];
@@ -214,7 +221,13 @@ var ROUTES = {
   adminGradebook: apiAdminGradebook_,
   adminUploadImage: apiAdminUploadImage_,
   adminGetSettings: apiAdminGetSettings_,
-  adminSaveSettings: apiAdminSaveSettings_
+  adminSaveSettings: apiAdminSaveSettings_,
+  // Ngân hàng câu hỏi (Pha 2)
+  adminBankMeta: apiAdminBankMeta_,
+  adminBankList: apiAdminBankList_,
+  adminBankSource: apiAdminBankSource_,
+  adminBankMatrix: apiAdminBankMatrix_,
+  adminBankToQuestions: apiAdminBankToQuestions_
 };
 
 /* =====================================================================
@@ -1176,7 +1189,8 @@ function imageFolder_() {
   return f;
 }
 
-var EDITABLE_SETTINGS = ['TEN_UNG_DUNG', 'TEN_GIAO_VIEN', 'GOOGLE_CLIENT_ID', 'EMAIL_GIAO_VIEN', 'HIEN_BANG_XEP_HANG', 'BXH_AN_TEN', 'GUI_EMAIL_KHI_NOP', 'CHO_LIEN_KET_GOOGLE'];
+var EDITABLE_SETTINGS = ['TEN_UNG_DUNG', 'TEN_GIAO_VIEN', 'GOOGLE_CLIENT_ID', 'EMAIL_GIAO_VIEN', 'HIEN_BANG_XEP_HANG', 'BXH_AN_TEN', 'GUI_EMAIL_KHI_NOP', 'CHO_LIEN_KET_GOOGLE',
+  'KHO_CAU_HOI_ID', 'THU_MUC_HINH_KHO_ID'];
 
 function apiAdminGetSettings_(req) {
   requireTeacher_(req);
@@ -1215,6 +1229,558 @@ function notifyTeacher_(r) {
         '\n\nXem toàn bộ kết quả: ' + ss_().getUrl()
     });
   } catch (e) { /* không làm hỏng việc nộp bài nếu gửi mail lỗi */ }
+}
+
+/* =====================================================================
+ *  NGÂN HÀNG CÂU HỎI (Pha 2) — chỉ ĐỌC file "KHO CÂU HỎI VẬT LÝ"
+ *   - Đọc kho theo TÊN cột tiêu đề, dựng chỉ mục gọn, đệm 10 phút (chia mảnh, ngưỡng 2 MB).
+ *   - Câu đầy đủ đọc theo số hàng, chỉ các hàng được chọn.
+ *   - Hình: tìm theo tên file trong thư mục hình của kho, CHÉP sang thư mục web (không đổi quyền file gốc).
+ *   - Chỉ câu có đáp án hợp lệ mới dùng được (QUYET-DINH §5); Phần IV bỏ qua.
+ * ===================================================================== */
+
+var BANK_SHEET = 'Kho câu hỏi';
+/** khóa nội bộ → [tên cột trong kho, bắt buộc?] */
+var BANK_COLS = {
+  maKho: ['Mã câu', 1], lop: ['Lớp', 1], chuong: ['Chương', 1], bai: ['Bài', 1], dang: ['Dạng câu hỏi', 1],
+  mucDo: ['Mức độ', 1], mucDoY: ['Mức độ từng ý (Phần II)', 0], noiDung: ['Nội dung câu hỏi', 1],
+  A: ['A / a)', 1], B: ['B / b)', 1], C: ['C / c)', 1], D: ['D / d)', 1], dapAn: ['Đáp án', 1],
+  loiGiai: ['Lời giải', 0], hinhVe: ['Hình vẽ', 0], nguon: ['Nguồn', 1], viTri: ['Vị trí trong đề gốc', 1]
+};
+/** Cột cần để dựng chỉ mục (không đọc Lời giải, Mức độ từng ý… cho nhẹ). */
+var BANK_INDEX_KEYS = ['maKho', 'lop', 'chuong', 'bai', 'dang', 'mucDo', 'noiDung', 'A', 'B', 'C', 'D', 'dapAn', 'hinhVe', 'nguon', 'viTri'];
+var BANK_CACHE_SECONDS = 600;        // chỉ mục và bản đồ hình: 10 phút
+var BANK_INDEX_MAX_BYTES = 2000000;  // chỉ mục lớn hơn 2 MB thì không đệm (vẫn đúng, chậm hơn)
+var BANK_WARN_ROWS = 3000;
+var BANK_TOM_CHARS = 160;
+var BANK_IMG_PER_CALL = 40;          // mỗi lần gọi chép tối đa 40 hình
+var BANK_TIME_LIMIT_MS = 270000;     // dừng ở mốc 4,5 phút (Apps Script giới hạn 6 phút)
+var BANK_TIME_MARGIN_MS = 15000;     // chừa thời gian cho một lần chép hình
+var BANK_MAX_PICK = 500;
+var BANK_LEVELS = { BIET: 'NB', NHANBIET: 'NB', NB: 'NB', HIEU: 'TH', THONGHIEU: 'TH', TH: 'TH', VANDUNG: 'VD', VD: 'VD', VANDUNGCAO: 'VDC', VDC: 'VDC' };
+var BANK_LOI = {
+  tuLuan: 'Phần IV (tự luận) — chưa hỗ trợ chấm',
+  khongRoDang: 'không rõ dạng câu (Phần I/II/III)',
+  khongDapAn: 'chưa có đáp án',
+  dapAnSai: 'đáp án không đúng định dạng',
+  thieuPhuongAn: 'thiếu phương án / ý a–d',
+  thieuNoiDung: 'thiếu nội dung'
+};
+
+function nowMs_() { return Date.now(); } // kiểm thử thay bằng đồng hồ giả
+
+/* ---------- ánh xạ một hàng kho → câu hỏi web (hàm thuần) ---------- */
+
+/** Phần của câu: "Phần I/II/III/IV – …"; không rõ thì xem mã câu "…-P2-…". */
+function bankPart_(dang, maKho) {
+  var m = /Ph[aầ]n\s*(IV|III|II|I)(?![IVX])/i.exec(String(dang || ''));
+  if (m) return { I: 1, II: 2, III: 3, IV: 4 }[m[1].toUpperCase()];
+  m = /-P([1-4])-/i.exec(String(maKho || ''));
+  return m ? +m[1] : 0;
+}
+
+/** Mức độ: ánh xạ tường minh Biết→NB, Hiểu→TH, Vận dụng→VD, Vận dụng cao→VDC. */
+function bankLevel_(m) { return BANK_LEVELS[plain_(m)] || ''; }
+
+/** Đáp án Phần II: "a) Đúng b) Sai…", "a) S b) Đ…", "a) đúng; b) Sai, c) S. d) Đ" → "ĐSSĐ"; thiếu ý → ''. */
+function bankTF_(s) {
+  var re = /([a-d])\)\s*(Đúng|Sai|Đ|S)(?=[\s,;.]|$)/gi;
+  var got = {}, m;
+  while ((m = re.exec(String(s || '')))) {
+    var k = m[1].toLowerCase();
+    if (!got[k]) got[k] = /^s/i.test(m[2]) ? 'S' : 'Đ';
+  }
+  return got.a && got.b && got.c && got.d ? got.a + got.b + got.c + got.d : '';
+}
+
+/** Đáp án Phần III: giữ nguyên chuỗi số (vd "3,0", "-120"); không phải số → ''. */
+function bankShort_(s) {
+  var t = str_(s).replace(/^'/, '').trim();
+  if (!t) return '';
+  var ok = t.split('|').every(function (x) { return /^[-+−]?\s*\d+([.,]\d+)?$/.test(x.trim()); });
+  return ok ? t.replace(/−/g, '-') : '';
+}
+
+/** Tên file hình trong ô "Có – L12C2B11-P1-00001.png (02. HÌNH VẼ/Lớp 12)"; không có hình → ''. */
+function bankImageName_(s) {
+  var t = str_(s);
+  if (!t || /^kh[oô]ng/i.test(t)) return '';
+  var m = /([^\s\/\\()–—]+\.(?:png|jpe?g|gif|webp|svg))/i.exec(t);
+  return m ? m[1] : '';
+}
+
+/** Vị trí trong đề gốc: "P1 – Câu 3", "Mã 101 – P1 Câu 12", "P2 – Câu 1 (trang 3) – file: …". */
+function bankPosition_(s) {
+  var t = String(s || '');
+  var m = /P\s*([1-4])\s*[–—\-:.]?\s*C[aâ]u\s*(\d+)/i.exec(t);
+  var f = /file:\s*(.+?)\s*$/i.exec(t);
+  return { phan: m ? +m[1] : 0, cau: m ? +m[2] : 0, file: f ? f[1] : '' };
+}
+
+/** Chủ đề theo Bài (bỏ tiền tố "Bài N. "); không có Bài thì theo Chương. */
+function bankTopic_(bai, chuong) {
+  return str_(bai).replace(/^B[aà]i\s*\d+\s*[.:\-–]?\s*/i, '') || str_(chuong).replace(/^Ch[uư][oơ]ng\s*[IVXLC\d]+\s*[.:\-–]?\s*/i, '');
+}
+
+/**
+ * Hàng kho (object theo khóa BANK_COLS) → { q, loi, coDapAn, hinh }.
+ * q = câu hỏi web (null nếu không dùng được); loi = mã lý do bị loại (xem BANK_LOI); hinh = tên file hình.
+ * Câu Phần II: dapAn dạng "ĐSSĐ". Hình: hinhAnh để trống, adminBankToQuestions điền URL bản chép.
+ */
+function bankToQuestion_(row) {
+  var r = row || {};
+  var phan = bankPart_(r.dang, r.maKho);
+  var hinh = bankImageName_(r.hinhVe);
+  var raw = str_(r.dapAn).replace(/^'/, '');
+  var out = { q: null, loi: '', coDapAn: false, hinh: hinh };
+  if (phan === 4) { out.loi = 'tuLuan'; out.coDapAn = !!raw; return out; }
+  if (!phan) { out.loi = 'khongRoDang'; return out; }
+  var loai = ['', 'TN', 'DS', 'TL'][phan];
+  var dapAn = '';
+  if (loai === 'TN') { var c = raw.toUpperCase().replace(/[\s.)]/g, ''); dapAn = /^[ABCD]$/.test(c) ? c : ''; }
+  else if (loai === 'DS') dapAn = bankTF_(raw);
+  else dapAn = bankShort_(raw);
+  out.coDapAn = !!dapAn;
+  if (!raw) { out.loi = 'khongDapAn'; return out; }
+  if (!dapAn) { out.loi = 'dapAnSai'; return out; }
+  var opt = function (k) { return loai === 'TL' ? '' : String(r[k] == null ? '' : r[k]); };
+  if (loai !== 'TL' && !['A', 'B', 'C', 'D'].every(function (k) { return str_(r[k]); })) { out.loi = 'thieuPhuongAn'; return out; }
+  if (!str_(r.noiDung) && !hinh) { out.loi = 'thieuNoiDung'; return out; }
+  out.q = {
+    loai: loai, phan: phan, noiDung: String(r.noiDung == null ? '' : r.noiDung), hinhAnh: '',
+    A: opt('A'), B: opt('B'), C: opt('C'), D: opt('D'), dapAn: dapAn, diem: '', saiSo: '',
+    chuDe: bankTopic_(r.bai, r.chuong), mucDo: bankLevel_(r.mucDo), loiGiai: String(r.loiGiai == null ? '' : r.loiGiai),
+    maKho: str_(r.maKho), chuong: str_(r.chuong), bai: str_(r.bai), mucDoY: str_(r.mucDoY), nguon: str_(r.nguon)
+  };
+  return out;
+}
+
+/* ---------- mở kho, đọc theo cột tiêu đề ---------- */
+
+function idFromSetting_(v) {
+  var s = str_(v);
+  var m = /\/(?:d|folders)\/([\w-]{10,})/.exec(s) || /[?&]id=([\w-]{10,})/.exec(s);
+  return m ? m[1] : s;
+}
+
+function bankId_() {
+  var id = idFromSetting_(getSetting_('KHO_CAU_HOI_ID'));
+  if (!id) throw new Error('Chưa cấu hình kho câu hỏi: dán id (hoặc link) file "KHO CÂU HỎI VẬT LÝ" vào CaiDat → KHO_CAU_HOI_ID (hoặc mục Cài đặt).');
+  return id;
+}
+
+/** Mở kho một lần mỗi request: { sh, col: {khóa: số cột}, lastRow, lastCol }. */
+function bankOpen_() {
+  if (MEMO_.__kho) return MEMO_.__kho;
+  var id = bankId_();
+  var ss;
+  try { ss = SpreadsheetApp.openById(id); } catch (e) {
+    throw new Error('Không mở được kho câu hỏi (' + (e && e.message || e) + '). Kiểm tra KHO_CAU_HOI_ID trong CaiDat; nếu là lần đầu, mở Apps Script và chạy hàm setup() một lần để cấp quyền đọc Drive.');
+  }
+  var sh = ss.getSheetByName(BANK_SHEET);
+  if (!sh) throw new Error('File kho không có trang tính "' + BANK_SHEET + '".');
+  var lastCol = sh.getLastColumn(), lastRow = sh.getLastRow();
+  var header = lastCol ? sh.getRange(1, 1, 1, lastCol).getValues()[0].map(str_) : [];
+  var plainHeader = header.map(plain_);
+  var col = {}, missing = [];
+  Object.keys(BANK_COLS).forEach(function (k) {
+    var name = BANK_COLS[k][0];
+    var i = header.indexOf(name);
+    if (i < 0) i = plainHeader.indexOf(plain_(name));
+    if (i >= 0) col[k] = i + 1;
+    else if (BANK_COLS[k][1]) missing.push('"' + name + '"');
+  });
+  if (missing.length) throw new Error('Trang "' + BANK_SHEET + '" của kho thiếu cột: ' + missing.join(', ') + '. Không đổi tên cột tiêu đề của kho.');
+  MEMO_.__kho = { id: id, sh: sh, col: col, lastRow: lastRow, lastCol: lastCol };
+  return MEMO_.__kho;
+}
+
+/** Đọc các cột `keys` của những hàng liền nhau [start, start+n) — mỗi khối cột liền nhau 1 lần getRange. */
+function bankReadBlock_(kho, keys, start, n) {
+  var cols = keys.filter(function (k) { return kho.col[k]; }).map(function (k) { return kho.col[k]; })
+    .filter(function (c, i, a) { return a.indexOf(c) === i; }).sort(function (a, b) { return a - b; });
+  var rows = [];
+  for (var i = 0; i < n; i++) rows.push({ _row: start + i });
+  var g = 0;
+  while (g < cols.length) {
+    var e = g;
+    while (e + 1 < cols.length && cols[e + 1] === cols[e] + 1) e++;
+    var vals = kho.sh.getRange(start, cols[g], n, cols[e] - cols[g] + 1).getValues();
+    keys.forEach(function (k) {
+      var c = kho.col[k];
+      if (c >= cols[g] && c <= cols[e]) for (var r = 0; r < n; r++) rows[r][k] = cell_(vals[r][c - cols[g]]);
+    });
+    g = e + 1;
+  }
+  keys.forEach(function (k) { if (!kho.col[k]) rows.forEach(function (o) { o[k] = ''; }); });
+  return rows;
+}
+
+/** Đọc đầy đủ các hàng cho trước (chỉ những hàng đó), gom thành từng khối hàng liền nhau. */
+function bankReadRows_(kho, rowNums) {
+  var nums = rowNums.filter(function (r, i, a) { return r >= 2 && r <= kho.lastRow && a.indexOf(r) === i; }).sort(function (a, b) { return a - b; });
+  var out = {};
+  var i = 0;
+  while (i < nums.length) {
+    var j = i;
+    while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++;
+    bankReadBlock_(kho, Object.keys(BANK_COLS), nums[i], j - i + 1).forEach(function (o) { out[o._row] = o; });
+    i = j + 1;
+  }
+  return out;
+}
+
+/* ---------- chỉ mục gọn + đệm ---------- */
+
+/**
+ * Chỉ mục kho: { id, docLuc, rows:[{maKho,hang,lop,chuong,bai,loai,phan,cau,mucDo,nguon,viTri,coDapAn,coHinh,loi,tom}], ten:{nguồn→tên}, khongDem }.
+ * Đọc từ đệm (10 phút) nếu có; opts.refresh = đọc lại kho.
+ */
+function bankIndex_(opts) {
+  var refresh = !!(opts && opts.refresh);
+  if (!refresh && MEMO_.__bank) return MEMO_.__bank;
+  var id = bankId_();
+  var cache = scriptCache_();
+  var head = null;
+  if (cache) {
+    try {
+      var gen = refresh ? null : cache.get('bankgen');
+      if (!gen) { gen = newGen_(); cache.put('bankgen', gen, GEN_SECONDS); }
+      head = 'bk_' + gen;
+      if (!refresh) {
+        var json = cacheGetChunked_(cache, head);
+        var packed = json ? parseJson_(json, null) : null;
+        if (packed && packed.id === id && packed.v === 1) { MEMO_.__bank = bankUnpack_(packed); return MEMO_.__bank; }
+      }
+    } catch (e) { head = null; }
+  }
+  var packed2 = bankBuildIndex_();
+  var stored = false;
+  if (cache && head) { try { stored = cachePutChunked_(cache, head, JSON.stringify(packed2), BANK_CACHE_SECONDS, BANK_INDEX_MAX_BYTES); } catch (e) { stored = false; } }
+  MEMO_.__bank = bankUnpack_(packed2);
+  MEMO_.__bank.khongDem = !stored;
+  return MEMO_.__bank;
+}
+
+function bankBuildIndex_() {
+  var kho = bankOpen_();
+  var n = Math.max(0, kho.lastRow - 1);
+  var raw = n ? bankReadBlock_(kho, BANK_INDEX_KEYS, 2, n) : [];
+  var dict = { lop: [], chuong: [], bai: [], nguon: [] }, pos = { lop: {}, chuong: {}, bai: {}, nguon: {} };
+  var put = function (d, v) { if (!(v in pos[d])) { pos[d][v] = dict[d].length; dict[d].push(v); } return pos[d][v]; };
+  var rows = [];
+  raw.forEach(function (o) {
+    if (!str_(o.maKho) && !str_(o.noiDung) && !str_(o.dang)) return; // hàng trống
+    var c = bankToQuestion_(o);
+    var p = bankPosition_(o.viTri);
+    var phan = bankPart_(o.dang, o.maKho);
+    var src = str_(o.nguon) + (p.file ? ' | ' + p.file : '');
+    var viTri = p.phan ? 'P' + p.phan + ' – Câu ' + p.cau : str_(o.viTri).slice(0, 40);
+    var tom = c.loi ? '' : String(o.noiDung || '').replace(/\s+/g, ' ').trim().slice(0, BANK_TOM_CHARS);
+    rows.push([str_(o.maKho), o._row, put('lop', str_(o.lop)), put('chuong', str_(o.chuong)), put('bai', str_(o.bai)),
+      phan, p.cau, bankLevel_(o.mucDo), put('nguon', src), viTri, c.coDapAn ? 1 : 0, c.hinh ? 1 : 0, c.loi, tom]);
+  });
+  return { v: 1, id: bankOpen_().id, docLuc: fmtDateTime_(new Date(nowMs_())), d: dict, r: rows };
+}
+
+function bankUnpack_(p) {
+  var files = {}; // nguồn → số file đề gốc khác nhau (để đặt tên hiển thị)
+  p.d.nguon.forEach(function (k) { var b = k.split(' | ')[0]; files[b] = (files[b] || 0) + 1; });
+  var ten = {};
+  p.d.nguon.forEach(function (k) {
+    var parts = k.split(' | ');
+    var f = parts[1] ? parts[1].split('/').pop().replace(/\.[a-z0-9]+$/i, '') : '';
+    ten[k] = parts[0] + (f && files[parts[0]] > 1 ? ' — ' + f : '');
+  });
+  var rows = p.r.map(function (a) {
+    return {
+      maKho: a[0], hang: a[1], lop: p.d.lop[a[2]], chuong: p.d.chuong[a[3]], bai: p.d.bai[a[4]], phan: a[5],
+      loai: ['', 'TN', 'DS', 'TL', 'TU'][a[5]] || '', cau: a[6], mucDo: a[7], nguon: p.d.nguon[a[8]], viTri: a[9],
+      coDapAn: !!a[10], coHinh: !!a[11], loi: a[12], tom: a[13]
+    };
+  });
+  return { id: p.id, docLuc: p.docLuc, rows: rows, ten: ten };
+}
+
+/** Số đề web đang dùng mỗi mã câu kho (đếm đề, không đếm câu). */
+function bankUsage_() {
+  var m = {};
+  readTable_('CauHoi').forEach(function (q) {
+    var k = str_(q.maKho);
+    if (!k) return;
+    m[k] = m[k] || {};
+    m[k][q.examId] = 1;
+  });
+  var out = {};
+  Object.keys(m).forEach(function (k) { out[k] = Object.keys(m[k]).length; });
+  return out;
+}
+
+function fold_(s) {
+  return String(s == null ? '' : s).toLowerCase().replace(/đ/g, 'd').normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function arr_(v) { return (Array.isArray(v) ? v : v == null || v === '' ? [] : [v]).map(str_).filter(String); }
+
+/** Lọc câu DÙNG ĐƯỢC theo {lop, chuong[], bai[], loai[], mucDo[], nguon, q}. */
+function bankFilter_(rows, f) {
+  f = f || {};
+  var lop = str_(f.lop), chuong = arr_(f.chuong), bai = arr_(f.bai), loai = arr_(f.loai), muc = arr_(f.mucDo), nguon = str_(f.nguon);
+  var q = fold_(str_(f.q));
+  return rows.filter(function (x) {
+    if (x.loi) return false;
+    if (lop && x.lop !== lop) return false;
+    if (chuong.length && chuong.indexOf(x.chuong) < 0) return false;
+    if (bai.length && bai.indexOf(x.bai) < 0) return false;
+    if (loai.length && loai.indexOf(x.loai) < 0) return false;
+    if (muc.length && muc.indexOf(x.mucDo) < 0) return false;
+    if (nguon && x.nguon !== nguon) return false;
+    if (q && fold_(x.tom + ' ' + x.maKho).indexOf(q) < 0) return false;
+    return true;
+  });
+}
+
+function bankItem_(x, b, used) {
+  return {
+    maKho: x.maKho, loai: x.loai, phan: x.phan, mucDo: x.mucDo, lop: x.lop, chuong: x.chuong, bai: x.bai, tom: x.tom,
+    coHinh: x.coHinh, nguon: b.ten[x.nguon] || x.nguon, maNguon: x.nguon, viTri: x.viTri, daDung: used[x.maKho] || 0
+  };
+}
+
+/* ---------- API ---------- */
+
+function apiAdminBankMeta_(req) {
+  requireTeacher_(req);
+  var b = bankIndex_({ refresh: !!req.refresh });
+  var ok = b.rows.filter(function (x) { return !x.loi; });
+  var theoDang = { TN: 0, DS: 0, TL: 0 }, theoMucDo = { NB: 0, TH: 0, VD: 0, VDC: 0 }, boQua = {};
+  ok.forEach(function (x) { theoDang[x.loai]++; if (x.mucDo) theoMucDo[x.mucDo] = (theoMucDo[x.mucDo] || 0) + 1; });
+  b.rows.forEach(function (x) { if (x.loi) boQua[x.loi] = (boQua[x.loi] || 0) + 1; });
+  var tree = {}, order = [];
+  ok.forEach(function (x) {
+    var k = x.lop + '\u0001' + x.chuong + '\u0001' + x.bai;
+    if (!tree[k]) { tree[k] = { lop: x.lop, chuong: x.chuong, bai: x.bai, dem: { TN: 0, DS: 0, TL: 0 } }; order.push(k); }
+    tree[k].dem[x.loai]++;
+  });
+  var src = {}, srcOrder = [];
+  b.rows.forEach(function (x) {
+    if (!src[x.nguon]) { src[x.nguon] = { ma: x.nguon, ten: b.ten[x.nguon] || x.nguon, soCau: 0, coDapAn: 0, dungDuoc: 0 }; srcOrder.push(x.nguon); }
+    src[x.nguon].soCau++;
+    if (x.coDapAn) src[x.nguon].coDapAn++;
+    if (!x.loi) src[x.nguon].dungDuoc++;
+  });
+  var canhBao = [];
+  if (b.rows.length > BANK_WARN_ROWS) canhBao.push('Kho có ' + b.rows.length + ' câu (nhiều hơn ' + BANK_WARN_ROWS + ')' + (b.khongDem ? ': chỉ mục quá lớn để nhớ tạm nên mỗi lần lọc sẽ đọc lại kho (chậm hơn).' : '.'));
+  return {
+    tong: b.rows.length, coDapAn: b.rows.filter(function (x) { return x.coDapAn; }).length, dungDuoc: ok.length,
+    theoDang: theoDang, theoMucDo: theoMucDo, boQua: boQua,
+    lop: Object.keys(ok.reduce(function (m, x) { m[x.lop] = 1; return m; }, {})).sort(sortVi_),
+    cay: order.map(function (k) { return tree[k]; }),
+    nguon: srcOrder.map(function (k) { return src[k]; }),
+    docLuc: b.docLuc, canhBao: canhBao
+  };
+}
+
+function apiAdminBankList_(req) {
+  requireTeacher_(req);
+  var b = bankIndex_();
+  var rows = bankFilter_(b.rows, req.filter);
+  var size = Math.max(1, Math.min(100, Math.floor(num_(req.size)) || 20));
+  var page = Math.max(1, Math.floor(num_(req.page)) || 1);
+  var used = bankUsage_();
+  return {
+    tong: rows.length, page: page, size: size,
+    items: rows.slice((page - 1) * size, page * size).map(function (x) { return bankItem_(x, b, used); })
+  };
+}
+
+function apiAdminBankSource_(req) {
+  requireTeacher_(req);
+  var b = bankIndex_();
+  var key = str_(req.nguon);
+  var all = b.rows.filter(function (x) { return x.nguon === key; });
+  if (!all.length) throw new Error('Không tìm thấy nguồn đề này trong kho.');
+  var used = bankUsage_();
+  var items = all.filter(function (x) { return !x.loi; })
+    .sort(function (a, c) { return (a.phan - c.phan) || (a.cau - c.cau) || (a.hang - c.hang); })
+    .map(function (x) { return bankItem_(x, b, used); });
+  var PART = ['', 'Phần I', 'Phần II', 'Phần III'];
+  var thieu = [];
+  [1, 2, 3].forEach(function (p) {
+    var have = {}, max = 0;
+    all.forEach(function (x) { if (x.phan === p && x.cau) { have[x.cau] = 1; max = Math.max(max, x.cau); } });
+    var miss = [];
+    for (var i = 1; i <= max; i++) if (!have[i]) miss.push(i);
+    if (miss.length) thieu.push({ phan: p, cau: miss, text: PART[p] + ': kho không có câu ' + ranges_(miss) });
+  });
+  var bad = all.filter(function (x) { return x.loi && x.loi !== 'tuLuan'; });
+  return {
+    ma: key, ten: b.ten[key] || key, items: items, thieu: thieu,
+    khongDapAn: bad.length,
+    khongDapAnViTri: bad.slice(0, 60).map(function (x) { return x.viTri + ' (' + (BANK_LOI[x.loi] || x.loi) + ')'; }),
+    tuLuan: all.filter(function (x) { return x.loi === 'tuLuan'; }).length
+  };
+}
+
+/** [1,2,3,5,7,8] → "1–3, 5, 7–8" */
+function ranges_(a) {
+  var out = [], i = 0;
+  while (i < a.length) {
+    var j = i;
+    while (j + 1 < a.length && a[j + 1] === a[j] + 1) j++;
+    out.push(j > i ? a[i] + '–' + a[j] : String(a[i]));
+    i = j + 1;
+  }
+  return out.join(', ');
+}
+
+/** Số ngẫu nhiên có hạt giống (mulberry32) — để ma trận lặp lại được khi truyền seed. */
+function rng_(seed) {
+  if (seed == null || seed === '') return Math.random;
+  var h = 1779033703;
+  String(seed).split('').forEach(function (ch) { h = Math.imul(h ^ ch.charCodeAt(0), 3432918353); h = (h << 13) | (h >>> 19); });
+  var a = h >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) | 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function apiAdminBankMatrix_(req) {
+  requireTeacher_(req);
+  var b = bankIndex_();
+  var so = req.so || {};
+  var want = {};
+  [['TN', 18], ['DS', 4], ['TL', 6]].forEach(function (p) {
+    var v = so[p[0]] === undefined || so[p[0]] === '' ? p[1] : Math.floor(num_(so[p[0]]));
+    want[p[0]] = Math.max(0, Math.min(200, v));
+  });
+  var pool = bankFilter_(b.rows, { lop: req.lop, chuong: req.chuong, bai: req.bai, mucDo: req.mucDo, nguon: req.nguon });
+  var used = bankUsage_();
+  var rnd = rng_(req.seed);
+  var out = [], thieu = { TN: 0, DS: 0, TL: 0 }, coSan = { TN: 0, DS: 0, TL: 0 };
+  ['TN', 'DS', 'TL'].forEach(function (t) {
+    var c = pool.filter(function (x) { return x.loai === t; })
+      .map(function (x) { return { x: x, u: used[x.maKho] || 0, r: rnd() }; })
+      .sort(function (a, z) { return (a.u - z.u) || (a.r - z.r); });
+    coSan[t] = c.length;
+    thieu[t] = Math.max(0, want[t] - c.length);
+    c.slice(0, want[t]).forEach(function (o) { out.push(o.x.maKho); });
+  });
+  return { maKho: out, thieu: thieu, coSan: coSan, so: want };
+}
+
+/**
+ * Câu đầy đủ (đã ánh xạ) cho các mã câu kho, kèm chép hình theo lô.
+ * Mỗi lần gọi chép tối đa BANK_IMG_PER_CALL hình hoặc tới mốc 4,5 phút, rồi trả tiepTuc (gọi lại với cursor = tiepTuc).
+ */
+function apiAdminBankToQuestions_(req) {
+  requireTeacher_(req);
+  var t0 = nowMs_();
+  var codes = arr_(req.maKho).filter(function (k, i, a) { return a.indexOf(k) === i; });
+  if (!codes.length) throw new Error('Chưa chọn câu nào.');
+  if (codes.length > BANK_MAX_PICK) throw new Error('Mỗi lần chỉ lấy tối đa ' + BANK_MAX_PICK + ' câu.');
+  var canhBao = [];
+  var picked = bankPick_(codes, canhBao);
+  // Hình: danh sách tên theo thứ tự câu
+  var names = [];
+  picked.forEach(function (p) { if (p.hinh && names.indexOf(p.hinh) < 0) names.push(p.hinh); });
+  var props = PropertiesService.getScriptProperties();
+  var cursor = Math.max(0, Math.floor(num_(req.cursor)) || 0);
+  var copied = 0, i = cursor, tiepTuc = null;
+  for (; i < names.length; i++) {
+    var name = names[i];
+    if (props.getProperty('IMG_' + name)) continue;
+    if (copied >= BANK_IMG_PER_CALL || nowMs_() - t0 > BANK_TIME_LIMIT_MS - BANK_TIME_MARGIN_MS) { tiepTuc = i; break; }
+    var owner = picked.filter(function (p) { return p.hinh === name; }).map(function (p) { return p.q.maKho; }).join(', ');
+    try {
+      var file = bankImageFile_(name);
+      if (!file) { canhBao.push('Không tìm thấy hình "' + name + '" (câu ' + owner + '). Câu vẫn được thêm, chưa có hình.'); continue; }
+      var copy = file.makeCopy(name, imageFolder_());
+      copy.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      props.setProperty('IMG_' + name, copy.getId());
+      copied++;
+    } catch (e) {
+      canhBao.push('Không chép được hình "' + name + '" (câu ' + owner + '): ' + (e && e.message || e));
+    }
+  }
+  picked.forEach(function (p) {
+    var id = p.hinh ? props.getProperty('IMG_' + p.hinh) : '';
+    if (id) p.q.hinhAnh = 'https://lh3.googleusercontent.com/d/' + id;
+  });
+  var out = { questions: picked.map(function (p) { return p.q; }), canhBao: canhBao, tienDo: { xong: tiepTuc == null ? names.length : tiepTuc, tong: names.length } };
+  if (tiepTuc != null) out.tiepTuc = tiepTuc;
+  return out;
+}
+
+/** Đọc đầy đủ các câu được chọn (chỉ những hàng đó). Ô mã câu không khớp chỉ mục (kho vừa đổi) → đọc lại chỉ mục một lần. */
+function bankPick_(codes, canhBao) {
+  var tryOnce = function (b) {
+    var byCode = {};
+    b.rows.forEach(function (x) { if (!byCode[x.maKho]) byCode[x.maKho] = x; });
+    var rowsWanted = codes.map(function (k) { return byCode[k]; }).filter(function (x) { return x && !x.loi; }).map(function (x) { return x.hang; });
+    var got = bankReadRows_(bankOpen_(), rowsWanted);
+    var res = [], stale = false;
+    codes.forEach(function (k) {
+      var x = byCode[k];
+      if (!x) { res.push({ k: k, miss: 'không có trong kho' }); return; }
+      if (x.loi) { res.push({ k: k, miss: BANK_LOI[x.loi] || x.loi }); return; }
+      var row = got[x.hang];
+      if (!row || str_(row.maKho) !== k) { stale = true; res.push({ k: k, stale: true }); return; }
+      var c = bankToQuestion_(row);
+      if (!c.q) { res.push({ k: k, miss: BANK_LOI[c.loi] || c.loi }); return; }
+      res.push({ k: k, q: c.q, hinh: c.hinh });
+    });
+    return { res: res, stale: stale };
+  };
+  var r = tryOnce(bankIndex_());
+  if (r.stale) { delete MEMO_.__kho; r = tryOnce(bankIndex_({ refresh: true })); }
+  var out = [];
+  r.res.forEach(function (o) {
+    if (o.q) out.push(o);
+    else canhBao.push('Bỏ qua câu ' + o.k + ': ' + (o.stale ? 'kho vừa thay đổi, không tìm thấy câu' : o.miss) + '.');
+  });
+  return out;
+}
+
+/** Tìm file hình gốc theo tên: trong thư mục THU_MUC_HINH_KHO_ID (đệ quy, có đệm) hoặc trên toàn Drive. */
+function bankImageFile_(name) {
+  var folderId = idFromSetting_(getSetting_('THU_MUC_HINH_KHO_ID'));
+  if (folderId) {
+    var id = bankImageMap_(folderId)[name];
+    return id ? DriveApp.getFileById(id) : null;
+  }
+  var it = DriveApp.getFilesByName(name);
+  return it.hasNext() ? it.next() : null;
+}
+
+/** Bản đồ tên file → id, dựng một lần bằng cách duyệt đệ quy thư mục hình của kho; đệm 10 phút. */
+function bankImageMap_(folderId) {
+  MEMO_.__img = MEMO_.__img || {};
+  if (MEMO_.__img[folderId]) return MEMO_.__img[folderId];
+  var cache = scriptCache_();
+  var head = 'bkimg_' + folderId;
+  if (cache) {
+    try { var j = cacheGetChunked_(cache, head); if (j) return (MEMO_.__img[folderId] = JSON.parse(j)); } catch (e) { /* đọc lại */ }
+  }
+  var map = {};
+  var root;
+  try { root = DriveApp.getFolderById(folderId); } catch (e) {
+    throw new Error('Không mở được thư mục hình của kho (THU_MUC_HINH_KHO_ID): ' + (e && e.message || e));
+  }
+  var stack = [root];
+  while (stack.length) {
+    var f = stack.pop();
+    var files = f.getFiles();
+    while (files.hasNext()) { var file = files.next(); var n = file.getName(); if (!(n in map)) map[n] = file.getId(); }
+    var subs = f.getFolders();
+    while (subs.hasNext()) stack.push(subs.next());
+  }
+  if (cache) { try { cachePutChunked_(cache, head, JSON.stringify(map), BANK_CACHE_SECONDS, BANK_INDEX_MAX_BYTES); } catch (e) { /* bỏ qua */ } }
+  MEMO_.__img[folderId] = map;
+  return map;
 }
 
 /* =====================================================================
@@ -1303,25 +1869,44 @@ function bumpAllGens_() { Object.keys(SCHEMA).forEach(bumpGen_); }
 
 function tableKey_(name, gen) { return 'tb_' + name + '_' + gen; }
 
+/**
+ * Đọc một giá trị lớn đã cất thành nhiều mảnh (khóa đầu = "số mảnh:độ dài chuỗi").
+ * Thiếu mảnh hoặc độ dài ghép không khớp (hai lần cất xen nhau) → null (trượt đệm).
+ */
+function cacheGetChunked_(cache, head) {
+  var got = cache.getAll([head, head + '_0']);
+  var meta = String(got[head] || '').split(':');
+  var n = parseInt(meta[0], 10), len = parseInt(meta[1], 10);
+  if (!(n > 0) || !(len >= 0) || got[head + '_0'] == null) return null;
+  var parts = [got[head + '_0']];
+  if (n > 1) {
+    var keys = [];
+    for (var i = 1; i < n; i++) keys.push(head + '_' + i);
+    var more = cache.getAll(keys);
+    for (var j = 0; j < keys.length; j++) {
+      if (more[keys[j]] == null) return null; // thiếu một mảnh → coi như trượt đệm
+      parts.push(more[keys[j]]);
+    }
+  }
+  var json = parts.join('');
+  return json.length === len ? json : null;
+}
+
+/** Cất chuỗi lớn thành các mảnh ≤ CACHE_CHUNK_BYTES; tổng vượt maxTotal byte thì không cất (trả false). */
+function cachePutChunked_(cache, head, json, seconds, maxTotal) {
+  var parts = splitByBytes_(json, CACHE_CHUNK_BYTES, maxTotal);
+  if (!parts) return false;
+  var put = {};
+  parts.forEach(function (p, i) { put[head + '_' + i] = p; });
+  put[head] = parts.length + ':' + json.length;
+  cache.putAll(put, seconds);
+  return true;
+}
+
 function readCachedTable_(cache, name, gen) {
   try {
-    var head = tableKey_(name, gen);
-    var got = cache.getAll([head, head + '_0']);
-    var meta = String(got[head] || '').split(':'); // "số mảnh:độ dài chuỗi"
-    var n = parseInt(meta[0], 10), len = parseInt(meta[1], 10);
-    if (!(n > 0) || !(len >= 0) || got[head + '_0'] == null) return null;
-    var parts = [got[head + '_0']];
-    if (n > 1) {
-      var keys = [];
-      for (var i = 1; i < n; i++) keys.push(head + '_' + i);
-      var more = cache.getAll(keys);
-      for (var j = 0; j < keys.length; j++) {
-        if (more[keys[j]] == null) return null; // thiếu một mảnh → coi như trượt đệm
-        parts.push(more[keys[j]]);
-      }
-    }
-    var json = parts.join('');
-    if (json.length !== len) return null; // mảnh của hai lần cất khác nhau xen nhau → coi như trượt đệm
+    var json = cacheGetChunked_(cache, tableKey_(name, gen));
+    if (json == null) return null;
     var obj = JSON.parse(json);
     var defs = SCHEMA[name];
     if (!obj || !obj.k || obj.k.join(',') !== defs.map(function (d) { return d[0]; }).join(',')) return null;
@@ -1337,14 +1922,7 @@ function writeCachedTable_(cache, name, gen, rows) {
   try {
     var keys = SCHEMA[name].map(function (d) { return d[0]; });
     var json = JSON.stringify({ k: keys, r: rows.map(function (o) { return [o._row].concat(keys.map(function (k) { return o[k]; })); }) });
-    var parts = splitByBytes_(json, CACHE_CHUNK_BYTES, CACHE_MAX_BYTES);
-    if (!parts) return false; // quá lớn: không đệm, vẫn trả dữ liệu đúng
-    var head = tableKey_(name, gen);
-    var put = {};
-    parts.forEach(function (p, i) { put[head + '_' + i] = p; });
-    put[head] = parts.length + ':' + json.length;
-    cache.putAll(put, CACHE_SECONDS);
-    return true;
+    return cachePutChunked_(cache, tableKey_(name, gen), json, CACHE_SECONDS, CACHE_MAX_BYTES); // quá lớn: không đệm, vẫn trả dữ liệu đúng
   } catch (e) { return false; }
 }
 
@@ -1519,7 +2097,8 @@ function normalizeQuestion_(q, i) {
     noiDung: String(q.noiDung == null ? '' : q.noiDung), hinhAnh: str_(q.hinhAnh),
     A: String(q.A == null ? '' : q.A), B: String(q.B == null ? '' : q.B), C: String(q.C == null ? '' : q.C), D: String(q.D == null ? '' : q.D),
     dapAn: str_(q.dapAn), diem: num_(String(q.diem || '').replace(',', '.')) || defaultPoint_(loai), saiSo: str_(q.saiSo),
-    chuDe: str_(q.chuDe), mucDo: normalizeLevel_(q.mucDo), loiGiai: String(q.loiGiai == null ? '' : q.loiGiai)
+    chuDe: str_(q.chuDe), mucDo: normalizeLevel_(q.mucDo), loiGiai: String(q.loiGiai == null ? '' : q.loiGiai),
+    maKho: str_(q.maKho), chuong: str_(q.chuong), bai: str_(q.bai), mucDoY: str_(q.mucDoY), nguon: str_(q.nguon)
   };
   if (loai === 'DS') out.dapAn = normTF_(out.dapAn).replace(/[_\-]/g, '');
   if (loai === 'TN') out.dapAn = out.dapAn.toUpperCase();
@@ -1536,8 +2115,9 @@ function normalizeLevel_(m) {
 }
 
 function validateQuestion_(q, i) {
-  var n = 'Câu ' + (i + 1) + ': ';
+  var n = 'Câu ' + (i + 1) + (str_(q.maKho) ? ' (' + str_(q.maKho) + ')' : '') + ': ';
   var loai = normalizeType_(q.loai);
+  if (num_(q.phan) > 3 || /^(TU|TULUAN)$/.test(plain_(q.loai))) throw new Error(n + 'câu tự luận (Phần IV) chưa hỗ trợ chấm, hãy bỏ câu này khỏi đề.');
   if (!String(q.noiDung || '').trim() && !String(q.hinhAnh || '').trim()) throw new Error(n + 'chưa có nội dung.');
   if (loai === 'TN') {
     if (['A', 'B', 'C', 'D'].indexOf(String(q.dapAn || '').toUpperCase().trim()) < 0) throw new Error(n + 'đáp án phải là A, B, C hoặc D.');
