@@ -31,3 +31,31 @@ Ngày: 18/11/2026.
 | R-9 | Nhẹ | `assets/js/admin.js` dòng 7 và 191 | `cacheDel('*')` sau khi ghi không chặn được lời gọi `cached` đã bắt đầu *trước* lần ghi: nếu lời gọi đó trả về sau, nó cất lại bản cũ, nên lần mở tab sau hiện bản cũ trong chốc lát rồi mới được cập nhật ngầm. | Trễ lớn: mở Đề thi rồi xóa đề ngay khi danh sách đang tải. | Thêm "phiên bản đệm" tăng mỗi lần `cacheDel`; `cached` chỉ ghi khi phiên bản không đổi. |
 
 Ghi chú (không phải lỗi code): TC-1.15a (số gốc trên máy chủ thật 1.0.0) chưa đo. Đặc tả cho phép giáo viên đo; người làm đã ghi vào việc cần làm.
+
+---
+
+## Vòng 2 — soát lại bản sửa (`git diff 8ad5f57..b4dda85`, commit `b4dda85`)
+
+### Kết luận vòng 2: **ĐẠT** (R-1…R-9 đã sửa đúng; không có phát hiện Nặng/Vừa mới)
+
+Test chạy lại tại `b4dda85`: `backend.test.js` 13/13, `cache.test.js` 17/17, `common-cache.test.js` 5/5, `importer.test.js` đạt. (Không chạy e2e; người kiểm thử chạy song song.)
+
+### Đối chiếu từng phát hiện
+| Mã | Kết quả | Ghi chú soát |
+|---|---|---|
+| R-1 | **Đã sửa** | "Thẻ kho" `cacheToken()` = {đối tượng scope, epoch}. Đã rà **mọi** lời gọi `cacheSet` (`grep`): `admin.js:125`, `app.js:236, 242, 502, 503`, `common.js:202` (trong `cached`). Tất cả đều truyền thẻ, không còn đường ghi ngầm nào thiếu thẻ. Đăng xuất gán scope `null`, còn đăng nhập tạo đối tượng scope mới, nên thẻ cũ không bao giờ khớp kho của người mới. Thẻ lấy khi scope đang `null` cũng bị từ chối. Ở `submitExam`, thẻ được lấy **sau** `cacheDel`, nên lời gọi làm mới của chính lần nộp vẫn được cất. `tests/pha1-r1.e2e.js` thực sự giữ lời gọi `myStats`/`bootstrap` lại rồi mới thả, và kiểm kho của B. |
+| R-2 | Đã sửa | Có bản lưu mà lỗi không phải `auth`/`unsupported` thì giữ bản lưu và hiện toast. Lỗi AUTH vẫn ném ra như cũ. |
+| R-3 | Đã sửa | `render` của bản lưu lỗi thì xóa khóa, hiện khung xương, tải lại. Thẻ được lấy sau bước xóa, nên dữ liệu mới vẫn được cất. |
+| R-4 | Đã sửa | Khóa đầu `"số mảnh:độ dài"`; độ dài là số đơn vị UTF-16, đọc và ghi tính giống nhau. Khóa đầu kiểu cũ (chỉ có số mảnh) được coi là trượt đệm, an toàn. Có test. |
+| R-5 | Đã sửa | Test mới thử đúng nhánh tìm lại hàng (sửa và xóa) và khẳng định các hàng khác không đổi. |
+| R-6 | Đã sửa | Kiểm bằng bộ đếm đọc thay vì đo ms. |
+| R-7 | Đã sửa | README ghi rõ `onEdit` chưa được kiểm chứng trên Apps Script thật. |
+| R-8 | Đã sửa | Chỉ báo đếm riêng theo `viewId`. `newView()` ẩn chỉ báo ngay; `finally` giảm đúng bộ đếm của màn đã tăng, không kẹt, không rò (khóa về 0 thì bị xóa). |
+| R-9 | Đã sửa | `cacheDel` tăng epoch, nên lời gọi bắt đầu trước khi xóa đệm không cất lại bản cũ (có test). |
+
+### Phát hiện mới (đều Nhẹ)
+| Mã | Mức | File | Mô tả | Đề xuất |
+|---|---|---|---|---|
+| R2-1 | Nhẹ | `apps-script/Code.gs` | Vòng 2 sửa Code.gs (R-4) nhưng vẫn để `APP_VERSION = '1.2.0'`. Chấp nhận được vì bản 1.2.0 chưa từng triển khai (máy chủ thật vẫn là 1.0.0), và khóa đầu kiểu cũ được coi là trượt đệm. Tuy vậy cần chắc rằng giáo viên dán bản Code.gs **cuối cùng** ở Pha 6. | Ghi rõ trong việc giáo viên cần làm: "dán Code.gs từ commit cuối của nhánh đã gộp". |
+| R2-2 | Nhẹ | `assets/js/common.js` `cached()` (nhánh R-3) | Xóa bản lưu hỏng bằng `cacheDel` làm tăng epoch chung, nên các lời gọi khác đang chạy sẽ bỏ qua bước cất đệm một lần. Chỉ ảnh hưởng hiệu năng, không ảnh hưởng độ đúng. | Có thể xóa trực tiếp khóa đó mà không tăng epoch. Không bắt buộc. |
+| R2-3 | Nhẹ (có từ trước, không phải do vòng 2) | `assets/js/admin.js` `route()` | Đang soạn đề chưa lưu (`editorDirty`) mà gặp lỗi AUTH: `route()` dừng sớm vì hash vẫn là trang soạn, nên không hiện màn đăng nhập; `setTimeout(route,0)` của K-3 cũng không thay đổi điều này. Hành vi này còn có lợi là giữ được bài đang soạn; chỉ có toast báo phiên hết hạn. | Pha sau: báo rõ "Phiên hết hạn — hãy sao lưu đề rồi đăng nhập lại". |
