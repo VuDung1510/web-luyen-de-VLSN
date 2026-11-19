@@ -43,7 +43,9 @@ function verdict(tc, pass, evidence) {
   e.pass = e.pass && !!pass; e.evidence.push((pass ? 'OK  ' : 'FAIL ') + evidence); R.tc[tc] = e;
   console.log(`  ${pass ? '✓' : '✗'} ${tc}: ${evidence}`);
 }
-const shot = (page, name, opts) => page.screenshot(Object.assign({ path: path.join(SHOTS, 'kt-' + name + '.png') }, opts || {}));
+// Bộ phụ (trước / logo ngang / 1.0.0) chỉ chụp vài màn để thư mục ảnh gọn
+const KEEP_EXTRA = /^(truoc-1280-(trang-chu|ket-qua)|logo-ngang-(1280|390)-(trang-chu|qt-tong-quan)|1\.0\.0-1280-(trang-chu|qt-ngan-hang))$/;
+const shot = (page, name, opts) => (/^(truoc|logo-ngang|1\.0\.0)-/.test(name) && !KEEP_EXTRA.test(name)) ? Promise.resolve() : page.screenshot(Object.assign({ path: path.join(SHOTS, 'kt-' + name + '.png') }, opts || {}));
 
 function startServer(port, env, root) {
   return new Promise((resolve, reject) => {

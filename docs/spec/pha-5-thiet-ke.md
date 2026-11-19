@@ -219,3 +219,5 @@ Phần CSS và HTML nhỏ (S). Phần kiểm thử bố cục trước/sau và �
 Viết lại đặc tả ngày 19/11/2026 theo quyết định Cowork 18/11/2026 (giữ bố cục, màu #1D6B3E, logo VLSN).
 
 Sửa đặc tả ngày 19/11/2026 theo soat-pha-5.md S-1…S-12 (S-6: điều phối chép QUYET-DINH khi gộp).
+
+Sửa đặc tả ngày 19/11/2026 (theo kiểm thử Pha 5, N-1): TC-5.8 miễn trừ thêm thẻ Cài đặt của trang quản trị — được cao thêm đúng phần dòng gợi ý dưới ô "Tên giáo viên" (S-8); các khối bên dưới thẻ đó được dời xuống đúng chừng ấy.
