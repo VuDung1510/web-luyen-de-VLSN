@@ -1,4 +1,4 @@
-> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 18/11/2026.
+> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 19/11/2026 (đầu Pha 3).
 
 # WEB LUYỆN ĐỀ VLSN — QUYẾT ĐỊNH ĐÃ CHỐT
 
@@ -13,6 +13,7 @@
 - Trang học sinh: https://vudung1510.github.io/web-luyen-de-VLSN/ · Trang giáo viên: .../admin.html
 - Dữ liệu web: Google Sheet "web luyện đề" (HocSinh, DeThi, CauHoi, KetQua, CaiDat), Apps Script gắn kèm làm máy chủ.
 - Ngân hàng câu hỏi: Google Sheet "KHO CÂU HỎI VẬT LÝ" (Kho câu hỏi, Thống kê, Nhật ký nhập, Danh mục chủ đề), hình ở thư mục "02. HÌNH VẼ".
+- File kho đang dùng (từ 18/11/2026, thay file cũ không còn mở được): "KHO CÂU HỎI VẬT LÝ" id `1sCyl8_5u-LvK8eGtfbNeG76qugPGY-8dHLEM3ecQaD8`; 10 239 câu, 1 014 câu có đáp án dùng được cho web.
 - Mật khẩu quản trị: không ghi vào tài liệu (xem trang tính CaiDat).
 
 ## 2. Kiến trúc
@@ -80,3 +81,6 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - 18/11/2026 — Claude Code: tạo file.
 - 18/11/2026 — Claude Code: giáo viên duyệt đặc tả Pha 0; ghi các quyết định (thứ tự pha, nhớ tạm 60 giây, hoãn nhiều mã đề, KetQuaLuyenTap, loại câu đang thi khỏi luyện tập, Equation, thiết kế theo mục 6, tạm ẩn Đổi PIN và mục tiêu điểm).
 - 18/11/2026 — Cowork: bổ sung quy tắc nhập kho (mục 5), form VLSN cho file Word đề (mục 6); chốt giữ giao diện hiện tại, màu xanh #1D6B3E, logo VLSN từ vatly.ai.
+- 19/11/2026 — Claude Code: ghi file kho câu hỏi mới (mục 1). Pha 1 đã gộp; Pha 2 qua soát code và kiểm thử.
+- 19/11/2026 — Claude Code: gộp Pha 2; từ Pha 3 làm ở phiên mới theo docs/BAN-GIAO.md.
+- 19/11/2026 — Claude Code (phiên mới): bài kiểm thử "Tạo đề" chập chờn của Pha 2 là lỗi của bài test (đọc nhầm mã câu khi gặp câu thiếu hình), không phải lỗi web; đã sửa. Bắt đầu Pha 3.
