@@ -7,6 +7,7 @@ const K = require('./fixtures/kho-gia');
 
 let passed = 0, failed = 0;
 function t(name, fn) {
+  if (process.env.ONLY && !name.includes(process.env.ONLY)) return; // ONLY=TC-4.6 node tests/pha4.test.js
   try { fn(); passed++; console.log('  ✓ ' + name); }
   catch (e) { failed++; console.error('  ✗ ' + name + '\n    ' + (e.stack || e).split('\n').slice(0, 6).join('\n    ')); process.exitCode = 1; }
 }
@@ -250,7 +251,7 @@ t('TC-4.6 CAU_SAI: có X (đề đã cho xem lời giải) và Y (bài luyện);
   const s = ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'TU_TAO', so: { TN: 5 }, phut: 5 }));
   const pq = payload(s.attemptToken).qids;
   const Y = pq.find((q) => q !== X);
-  ok(w.g.call('submitExam', { token: w.sTok, attemptToken: s.attemptToken, answers: w.answersFor(s.attemptToken, (q) => (q === Y ? w.wrong(q) : w.right(q))) }));
+  ok(w.g.call('submitExam', { token: w.sTok, attemptToken: s.attemptToken, answers: w.answersFor(s.attemptToken, (q) => (q === Y || q === X ? w.wrong(q) : w.right(q))) }));
   const meta = ok(w.g.call('practiceMeta', { token: w.sTok }));
   const c = ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'CAU_SAI' }));
   const set = payload(c.attemptToken).qids;
@@ -259,7 +260,8 @@ t('TC-4.6 CAU_SAI: có X (đề đã cho xem lời giải) và Y (bài luyện);
   assert(set.includes(eX + '#2'), 'có câu nhập tay của đề đã công bố lời giải');
   assert(!set.some((q) => q.startsWith(eZ)), 'không có Z');
   assert.strictEqual(meta.soCauSai, set.length);
-  assert.strictEqual(set[0], Y, 'câu sai gần nhất trước');
+  // câu sai gần nhất trước (X cũng có thể vừa sai trong cùng bài luyện → cùng thời điểm)
+  assert(set.indexOf(Y) < (pq.includes(X) ? 2 : 1), 'câu sai gần nhất trước: ' + set.slice(0, 3));
   assert(JSON.stringify(c.questions).indexOf('Câu nhập tay số 9') < 0);
   // làm đúng Y (sai các câu khác) → Y bị rút, X vẫn còn
   ok(w.g.call('submitExam', { token: w.sTok, attemptToken: c.attemptToken, answers: w.answersFor(c.attemptToken, (q) => (q === Y ? w.right(q) : '')) }));

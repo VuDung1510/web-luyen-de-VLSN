@@ -127,3 +127,28 @@ Sửa theo `docs/bao-cao/pha-4-soat.md`, `docs/bao-cao/pha-4-kiem-thu.md` và đ
 ### Rủi ro còn lại (cập nhật)
 - Đề không có giờ đóng thì câu bị chặn khỏi luyện tập cho tới khi giáo viên đóng đề (đúng đặc tả bổ sung). Giáo viên xem nhãn "đang thi" ở tab Pool.
 - Nộp bài luyện vẫn đọc 2 cột của KetQuaLuyenTap (tỉ lệ với số hàng); chưa đo trên Apps Script thật.
+
+---
+
+## Vòng 3 (người làm)
+
+| Mã | Đã sửa |
+|---|---|
+| V2-1 (Vừa) | `rowsWhere_` không còn đọc từng hàng khớp một. Các hàng liền nhau gộp thành khối; quá 10 khối thì gộp hai khối gần nhau nhất cho tới khi còn ≤ 10, đọc cả vùng gộp rồi chỉ giữ hàng cần trong bộ nhớ. Đọc chỉ mục pool và câu theo hàng (TC-4.11) giữ nguyên cách cũ. Dữ liệu trả về giống hệt `readTable_` lọc theo học sinh (script đo của soát: `rowsWhere_ == readTable_ filter: true`). |
+| T-1 / V2-2 | `tests/pha4.test.js` TC-4.6: câu X nếu bị bốc vào bài luyện thì cũng trả lời sai; "câu sai gần nhất trước" cho phép X và Y cùng thời điểm. Chạy riêng TC-4.6 (`ONLY=TC-4.6 node tests/pha4.test.js`) 20 lần liền: 20/20 đạt. |
+| V2-3 | Chấp nhận, không sửa (xem rủi ro). |
+
+**Số đo V2-1** (script `calls.js` của soát; KetQuaLuyenTap 3 002 hàng, học sinh có 102 bài nằm rải rác cứ 30 hàng một bài):
+
+| Lời gọi | Vòng 2: lần đọc / ô | Vòng 3: lần đọc / ô |
+|---|---|---|
+| `practiceMeta` | 102 / 5 041 | 12 / 57 241 |
+| `practiceStart` | 102 / 5 041 | 12 / 57 241 |
+| Nộp bài luyện | 105 / 8 082 | 15 / 60 282 |
+| `myResults loai:"luyen"` | 103 / 5 062 | 12 / 57 842 |
+
+Số lần đọc Sheet giảm từ khoảng 100 xuống tối đa 12–15, đổi lại số ô đọc tăng khi bài của học sinh nằm rải khắp trang. Vẫn không đọc cả trang bằng `getDataRange`.
+
+**Test vòng 3**: `pha4.test.js` 22/22; `pha4-kiem-thu.test.js` 33/33 (không sửa); `pha4.e2e.js`, `pha4-kiem-thu.e2e.js` 22/22 nhóm (máy chủ mới, tắt luyện tập, 1.0.0); test cũ đạt (`backend`, `importer`, `bank`, `pha1/2/3-kiem-thu`, `cache`, `common-cache`, `docx`, `e2e.js` và `bank.e2e.js` hai chế độ).
+
+**Rủi ro thêm**: V2-3 — câu bị ẩn lời giải (đang nằm trong đề chưa kết thúc) vẫn hiện nhãn đúng/sai và điểm của câu, nên với câu Phần I học sinh có thể suy ra đáp án nếu đã chọn đúng. Học sinh đã làm câu đó trước khi câu vào đề. Khi học sinh có rất nhiều bài luyện rải khắp trang, mỗi lần đọc vùng gộp lớn hơn (số ô gần bằng cả trang), nhưng chỉ ≤ 10 lần đọc.

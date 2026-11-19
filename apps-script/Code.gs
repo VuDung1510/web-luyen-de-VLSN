@@ -1932,6 +1932,7 @@ var POOL_MAX = 3000;              // pool tối đa khoảng 3 000 câu
 var PRACTICE_MIN_Q = 5, PRACTICE_MAX_Q = 40;
 var PRACTICE_MIN_MIN = 5, PRACTICE_MAX_MIN = 90;
 var PRACTICE_WRONG_MAX = 20;
+var ROW_RUNS_MAX = 10;          // rowsWhere_: tối đa 10 lần đọc hàng (gộp các khối gần nhau)
 var POOL_INDEX_KEYS = ['maKho', 'lop', 'chuong', 'bai', 'loai', 'mucDo', 'bat'];
 var PRACTICE_KIEU = { TU_TAO: 'Tự tạo đề', CAU_SAI: 'Luyện câu đã sai', NHANH: 'Đề nhanh' };
 var PRACTICE_OFF = 'Giáo viên đang tắt luyện tập.';
@@ -2055,7 +2056,7 @@ function rowsWhere_(name, key, value) {
       var vals = info.sh.getRange(2, info.col[key], info.lastRow - 1, 1).getValues();
       var nums = [];
       vals.forEach(function (r, i) { if (str_(cell_(r[0])) === value) nums.push(i + 2); });
-      var got = readRowRuns_(info, nums);
+      var got = readRowRuns_(info, nums, true);
       rows = nums.map(function (n) {
         var o = got[n] || { _row: n };
         SCHEMA[name].forEach(function (d) { if (!(d[0] in o)) o[d[0]] = ''; });
@@ -2114,25 +2115,43 @@ function poolUnpack_(p) {
 }
 
 /** Đọc đầy đủ các hàng cho trước của trang (info từ poolSheetInfo_), mỗi khối hàng liền nhau 1 lần getRange. */
-function readRowRuns_(info, rowNums) {
+function readRowRuns_(info, rowNums, merge) {
   var nums = rowNums.filter(function (r, i, a) { return r >= 2 && r <= info.lastRow && a.indexOf(r) === i; }).sort(function (a, b) { return a - b; });
   var keys = Object.keys(info.col);
   var out = {};
   if (!keys.length) return out;
   var cols = keys.map(function (k) { return info.col[k]; });
   var c0 = Math.min.apply(null, cols), c1 = Math.max.apply(null, cols);
-  var i = 0;
+  var put = function (row, rowNum) {
+    var o = { _row: rowNum };
+    keys.forEach(function (k) { o[k] = cell_(row[info.col[k] - c0]); });
+    out[rowNum] = o;
+  };
+  // gom các hàng liền nhau thành khối
+  var runs = [], i = 0;
   while (i < nums.length) {
     var j = i;
     while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++;
-    var vals = info.sh.getRange(nums[i], c0, j - i + 1, c1 - c0 + 1).getValues();
-    vals.forEach(function (row, r) {
-      var o = { _row: nums[i] + r };
-      keys.forEach(function (k) { o[k] = cell_(row[info.col[k] - c0]); });
-      out[o._row] = o;
-    });
+    runs.push([nums[i], nums[j]]);
     i = j + 1;
   }
+  if (merge && runs.length > ROW_RUNS_MAX) {
+    // V2-1: quá nhiều khối rời nhau (vd các bài của một học sinh nằm rải rác) → gộp hai khối gần nhau nhất
+    // cho tới khi còn ≤ ROW_RUNS_MAX khối; đọc cả vùng gộp rồi chỉ giữ các hàng cần trong bộ nhớ
+    var want = toSet_(nums.map(String));
+    while (runs.length > ROW_RUNS_MAX) {
+      var best = 0;
+      for (var g = 1; g < runs.length - 1; g++) if (runs[g + 1][0] - runs[g][1] < runs[best + 1][0] - runs[best][1]) best = g;
+      runs.splice(best, 2, [runs[best][0], runs[best + 1][1]]);
+    }
+    runs.forEach(function (rg) {
+      info.sh.getRange(rg[0], c0, rg[1] - rg[0] + 1, c1 - c0 + 1).getValues().forEach(function (row, r) { if (want[rg[0] + r]) put(row, rg[0] + r); });
+    });
+    return out;
+  }
+  runs.forEach(function (rg) {
+    info.sh.getRange(rg[0], c0, rg[1] - rg[0] + 1, c1 - c0 + 1).getValues().forEach(function (row, r) { put(row, rg[0] + r); });
+  });
   return out;
 }
 
