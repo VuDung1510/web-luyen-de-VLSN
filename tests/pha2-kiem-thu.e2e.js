@@ -206,7 +206,8 @@ async function runNew(browser) {
     const ed = await ad.evaluate(() => ({
       n: document.querySelectorAll('.qedit').length,
       note: (document.querySelector('#draftNote') || {}).textContent || '',
-      kho: [...document.querySelectorAll('.qedit')].map((q) => ((q.textContent.match(/Kho: ([A-Z0-9]+(?:-[A-Z0-9]+)+)/) || [])[1]) || ''),
+      // Đọc mã từ chính nhãn "Kho: …" (không lấy cả textContent: nhãn cảnh báo thiếu hình "Kho ghi có hình…" đứng liền sau)
+      kho: [...document.querySelectorAll('.qedit')].map((q) => { const b = [...q.querySelectorAll('.qedit-head .badge')].find((x) => /^Kho: /.test(x.textContent)); return b ? b.textContent.replace(/^Kho: /, '').trim() : ''; }),
       img: [...document.querySelectorAll('.qedit input[data-f="hinhAnh"]')].map((i) => i.value),
       url: location.hash
     }));
@@ -217,7 +218,12 @@ async function runNew(browser) {
     });
     verdict('Tạo đề', ed.n === 28 && /chưa được lưu/.test(ed.note) && ed.kho.every((k) => byMa[k]) && /de-thi\/moi/.test(ed.url),
       `trình soạn ${ed.n} câu, ghi chú "${ed.note.trim().slice(0, 80)}", mọi câu có nhãn Kho: ${ed.kho.every(Boolean)}`);
-    verdict('Tạo đề', imgOk, `câu có hình trong kho → ô hình là URL bản chép lh3…/d/<id> (${ed.img.filter(Boolean).length} câu có hình)`);
+    if (!imgOk || ed.n !== 28 || !ed.kho.every((k) => byMa[k])) {
+      ed.kho.forEach((ma, i) => { const r = byMa[ma]; console.log('    [debug] #' + (i + 1), JSON.stringify(ma), r ? JSON.stringify(r[15]) : 'KHÔNG CÓ TRONG KHO', JSON.stringify(ed.img[i])); });
+      const raw = await ad.evaluate(() => [...document.querySelectorAll('.qedit')].map((q) => (q.textContent.match(/Kho:.{0,60}/) || [''])[0]));
+      raw.forEach((t, i) => console.log('    [debug-nhan] #' + (i + 1), JSON.stringify(t)));
+    }
+    verdict('Tạo đề', imgOk, `câu có hình trong kho → ô hình là URL bản chép lh3…/d/<id> (${ed.img.filter(Boolean).length} câu có hình; có câu thiếu hình L12C2B01-P1-00036: ${ed.kho.includes('L12C2B01-P1-00036')})`);
     // chưa lưu: đề chưa có trên máy chủ
     const before = await api(B, 'adminListExams', { token: tTok });
     await ad.fill('#eTitle', 'Đề từ kho — kiểm thử Pha 2');

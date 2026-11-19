@@ -157,3 +157,9 @@ Nhận xét (không chặn):
 - K-1 đã sửa: `apiAdminBankMatrix_` dùng giới hạn mỗi phần 500 (bằng giới hạn Tạo đề) thay vì 200. `pha2-kiem-thu.test.js` 31/31.
 - Điều phối sửa 2 chỗ trong `pha2-kiem-thu.e2e.js`: (1) đọc mã câu từ nhãn "Kho: …" bằng mẫu mã câu, vì vòng 2 thêm nhãn cảnh báo thiếu hình dính liền sau mã; (2) K-1 coi "Tìm được 250 câu" là đúng (không còn cắt).
 - **Còn chập chờn:** nhóm "Tạo đề" (2 kiểm tra đầu) thỉnh thoảng KHÔNG ĐẠT tùy câu ma trận bốc ngẫu nhiên (khoảng 3/9 lần chạy; 4 lần chạy liền sau đó đều ĐẠT). Chưa xác định là lỗi test hay lỗi chép hình theo lô. Việc đầu tiên của phiên sau: cố định hạt ngẫu nhiên hoặc lặp đến khi bắt được ca hỏng và in câu lỗi.
+
+## Ghi chú đầu phiên mới (19/11/2026): bài "Tạo đề" chập chờn — đã xác định và sửa
+- Thêm in chi tiết khi hỏng rồi chạy lặp; bắt được ca hỏng ở lượt 3/6.
+- **Nguyên nhân: lỗi của bài test, không phải lỗi chép hình.** Khi ma trận bốc trúng câu thiếu hình `L12C2B01-P1-00036`, trình soạn hiện hai nhãn liền nhau: "Kho: L12C2B01-P1-00036" và "Kho ghi có hình — chưa có hình". Test đọc mã câu từ cả `textContent` bằng mẫu `[A-Z0-9]+`, nên lấy thành `L12C2B01-P1-00036K` → không tìm thấy trong kho → 2 kiểm tra đầu nhóm "Tạo đề" KHÔNG ĐẠT. Ô hình của mọi câu đều đúng (27 câu không hình để trống, 1 câu có hình là URL bản chép).
+- Sửa: đọc mã từ chính nhãn `.badge` "Kho: …". Bằng chứng của kiểm tra hình nay ghi thêm "có câu thiếu hình L12C2B01-P1-00036: true/false"; khi hỏng thì in từng câu (mã, ô "Có hình" trong kho, ô hình trong trình soạn).
+- Chạy lại: 8 lượt liền ĐẠT, thêm 1 lượt có bốc trúng câu thiếu hình: ĐẠT.
