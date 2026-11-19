@@ -245,13 +245,11 @@ t('TC-5.7 (tĩnh) chân trang thương hiệu ở hai trang; app.js không ghi t
   assert.strictEqual(def, 'Luyện đề Vật lý');
 });
 
-t('Vòng 2 R-1: CSS Google Fonts tải không chặn (preload + onload, có <noscript>)', () => {
+t('Vòng 2 R-1: CSS Google Fonts tải không chặn (một link, media="print" + onload đổi sang "all")', () => {
   for (const f of ['index.html', 'admin.html']) {
-    const s = read(f), outside = s.replace(/<noscript>[\s\S]*?<\/noscript>/g, '');
-    const links = outside.match(/<link[^>]*fonts\.googleapis\.com\/css2[^>]*>/g) || [];
-    assert.strictEqual(links.length, 1, f + ': cần đúng 1 link phông ngoài <noscript>');
-    assert(/rel="preload"/.test(links[0]) && /as="style"/.test(links[0]) && /onload="this\.onload=null;this\.rel='stylesheet'"/.test(links[0]), f + ': link phông phải là preload + onload');
-    assert(/<noscript><link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com\/css2[^"]*"><\/noscript>/.test(s), f + ': thiếu <noscript>');
+    const links = read(f).match(/<link[^>]*fonts\.googleapis\.com\/css2[^>]*>/g) || [];
+    assert.strictEqual(links.length, 1, f + ': cần đúng 1 link phông');
+    assert(/rel="stylesheet"/.test(links[0]) && /media="print"/.test(links[0]) && /onload="this\.media='all'"/.test(links[0]), f + ': link phông phải tải không chặn');
   }
 });
 
