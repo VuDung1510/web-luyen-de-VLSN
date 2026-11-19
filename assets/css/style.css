@@ -340,3 +340,36 @@ table.q-table th { background: var(--surface-2); font-weight: 700; }
   .bank-layout { grid-template-columns: 1fr; }
   .bank-filter { position: static; max-height: none; }
 }
+
+/* ---------- Tải file đề Word / Excel (Pha 3) ---------- */
+.dropzone { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 16px; border: 2px dashed var(--border); border-radius: 14px; background: var(--surface-2); text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
+.dropzone:hover, .dropzone.drag { border-color: var(--primary); background: var(--primary-soft, var(--surface-2)); }
+.dropzone .dz-icon { font-size: 1.8rem; color: var(--primary); line-height: 1; }
+.imp-prog { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+.imp-prog .progress { flex: 1; height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.imp-prog .progress > div { height: 100%; width: 3%; background: var(--primary); transition: width .25s; }
+.imp-stats { width: 100%; border-collapse: collapse; margin: 6px 0 10px; }
+.imp-stats th, .imp-stats td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.imp-stats th { width: 38%; color: var(--muted); font-weight: 600; }
+.warn-text { color: var(--warn); }
+.imp-list { max-height: 340px; overflow: auto; margin-top: 8px; border: 1px solid var(--border); border-radius: 10px; }
+.imp-q { padding: 10px 12px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.imp-q:last-child { border-bottom: 0; }
+.imp-q-head { color: var(--muted); margin-bottom: 4px; }
+.imp-q .q-img { max-width: min(100%, 320px); max-height: 200px; }
+.imp-todo, .qedit.qedit-todo { background: #fff8db; border-color: #f2c94c; }
+mark.todo-mark { background: #ffe58f; color: #5c4400; border-radius: 4px; padding: 0 3px; }
+textarea.todo { background: #fff3b0; border-color: #e0b100; }
+.badge-todo { background: #ffe58f; color: #5c4400; }
+:root[data-theme="dark"] .imp-todo, :root[data-theme="dark"] .qedit.qedit-todo { background: #3a3110; border-color: #a5841c; }
+:root[data-theme="dark"] textarea.todo { background: #4a3d0c; color: #fff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .imp-todo, :root:not([data-theme="light"]) .qedit.qedit-todo { background: #3a3110; border-color: #a5841c; }
+  :root:not([data-theme="light"]) textarea.todo { background: #4a3d0c; color: #fff; }
+}
+@media (max-width: 640px) {
+  #impTabs { flex-wrap: wrap; }
+  #impTabs button { flex: 1 1 30%; font-size: .85rem; padding: 8px 4px; }
+  .imp-stats th { width: auto; display: block; border-bottom: 0; padding-bottom: 0; }
+  .imp-stats td { display: block; }
+}
