@@ -74,7 +74,7 @@
         if (parts[1] === 'sua') return viewEditor(parts[2]);
         if (parts[1] === 'thong-ke') return viewExamStats(parts[2]);
         return viewExams();
-      case 'ngan-hang': nav('bank'); return viewBank();
+      case 'ngan-hang': nav('bank'); return parts[1] === 'pool' ? viewPool() : viewBank();
       case 'hoc-sinh': nav('students'); return viewStudents();
       case 'ket-qua': nav('results'); return parts[1] === 'xem' ? viewResult(parts[2]) : viewResults();
       case 'bang-diem': nav('gradebook'); return viewGradebook();
@@ -781,7 +781,7 @@
     if (f.lop && m.lop.indexOf(f.lop) < 0) f.lop = '';
     const so = sess.get('ld_bank_so', { TN: 18, DS: 4, TL: 6 });
     const chk = (name, val, label, on) => `<label class="chk"><input type="checkbox" data-f="${name}" value="${esc(val)}" ${on ? 'checked' : ''}> ${label}</label>`;
-    $app.innerHTML = `<div class="card-title"><h1 style="margin:0">Ngân hàng câu hỏi</h1>
+    $app.innerHTML = `${bankTabsHtml('kho')}<div class="card-title"><h1 style="margin:0">Ngân hàng câu hỏi</h1>
         <div class="row"><button class="btn" id="bkReload" title="Đọc lại file kho (sau khi sửa kho)">↻ Đọc lại kho</button></div></div>
       <div class="muted small" id="bkInfo" style="margin-bottom:10px">Kho có <b>${m.tong}</b> câu · có đáp án ${m.coDapAn} · <b>dùng được ${m.dungDuoc}</b>
         (Phần I ${m.theoDang.TN} · Phần II ${m.theoDang.DS} · Phần III ${m.theoDang.TL}) · đọc lúc ${esc(m.docLuc)}.
@@ -876,12 +876,15 @@
       el.innerHTML = `<div class="cart-in"><b>Giỏ câu:</b> <span id="cartCount">P1 ${n[1]} · P2 ${n[2]} · P3 ${n[3]}</span>
         ${over ? `<span class="badge badge-warn" id="cartOver">Quá ${LIMIT} câu — bớt ${c.items.length - LIMIT} câu để tạo đề</span>` : ''}
         <span class="spacer"></span><button class="btn btn-sm" id="cartClear" ${c.items.length ? '' : 'disabled'}>Xóa giỏ</button>
+        ${App.has('practice') ? `<button class="btn btn-sm" id="cartPractice" ${c.items.length ? '' : 'disabled'}>Đưa vào luyện tập</button>` : ''}
         <button class="btn btn-primary btn-sm" id="cartMake" ${c.items.length && !over ? '' : 'disabled'}>Tạo đề (${c.items.length} câu) →</button></div>`;
       document.getElementById('cartClear').onclick = async () => {
         if (!(await confirmBox('Xóa giỏ câu?', 'Bỏ toàn bộ ' + c.items.length + ' câu đã chọn khỏi giỏ.', 'Xóa giỏ', true))) return;
         cartSet({ items: [], tieuDe: '' }); drawCart(); loadList();
       };
       document.getElementById('cartMake').onclick = (e) => withBusy(e.currentTarget, () => makeExamFromCart());
+      const cp = document.getElementById('cartPractice');
+      if (cp) cp.onclick = (e) => withBusy(e.currentTarget, () => practiceFromCart());
     };
 
     document.getElementById('bkLop').onchange = () => { readFilter(); f.chuong = []; f.bai = []; sess.set(BF_KEY, f); drawTree(); refresh(); };
@@ -974,6 +977,131 @@
     drawCart();
     readFilter();
     loadList();
+  }
+
+  /* ---------- Pool luyện tập (Pha 4) ---------- */
+  const bankTabsHtml = (cur) => (App.has('practice') ? `<div class="seg no-print" id="bankTabs" role="tablist" style="margin-bottom:12px">
+      <a class="btn btn-sm ${cur === 'kho' ? 'active' : ''}" href="#/ngan-hang" role="tab">Kho câu hỏi</a>
+      <a class="btn btn-sm ${cur === 'pool' ? 'active' : ''}" href="#/ngan-hang/pool" role="tab" id="tabPool">Pool luyện tập</a></div>` : '');
+
+  /** Chép các câu trong giỏ vào pool (thêm / thay), chép hình theo lô; cảnh báo câu đang nằm trong đề chưa công bố lời giải. */
+  async function practiceFromCart() {
+    const c = cartGet();
+    if (!c.items.length) return;
+    const view = App.currentView();
+    const mode = await modal(`<h2>Đưa ${c.items.length} câu vào luyện tập</h2>
+      <p>Học sinh sẽ luyện được các câu này (đúng khối lớp). Câu đang nằm trong một đề thi <b>chưa đóng</b> (nháp, chưa mở, đang mở) hoặc không công bố lời giải sẽ <b>tạm ẩn</b> với học sinh cho tới khi đề đóng và công bố lời giải.</p>
+      <div class="modal-actions"><button class="btn" data-close="">Hủy</button>
+        <button class="btn" data-close="thay" id="ptReplace" title="Các câu khác trong pool được tắt (không xóa)">Thay pool bằng giỏ</button>
+        <button class="btn btn-primary" data-close="them" id="ptAdd">Thêm vào pool</button></div>`);
+    if (!mode || !App.viewIs(view)) return;
+    let closeProg = null;
+    modal(`<h2>Đang đưa câu vào luyện tập…</h2><p id="ptProg">Đang đọc ${c.items.length} câu…</p><div class="progress" style="margin-top:8px"><i id="ptProgBar" style="width:5%"></i></div>`,
+      { sticky: true, onOpen(m, close) { closeProg = close; } });
+    try {
+      const codes = c.items.map((x) => x.maKho);
+      let cursor, r, canhBao = [];
+      for (let lot = 0; lot < 200; lot++) {
+        r = await api('adminPracticeSync', { maKho: codes, mode, cursor });
+        canhBao = canhBao.concat(r.canhBao || []);
+        const t = r.tienDo || { xong: 0, tong: 0 };
+        const el = document.getElementById('ptProg');
+        if (el) el.textContent = t.tong ? `Đã chép ${t.xong}/${t.tong} hình…` : 'Đang ghi…';
+        const bar = document.getElementById('ptProgBar');
+        if (bar) bar.style.width = (t.tong ? Math.max(5, Math.round(t.xong / t.tong * 100)) : 100) + '%';
+        if (r.tiepTuc == null) break;
+        cursor = r.tiepTuc;
+      }
+      if (closeProg) closeProg();
+      if (!App.viewIs(view)) return;
+      const bq = r.boQua || {};
+      await modal(`<h2>Đã cập nhật pool luyện tập</h2>
+        <p id="ptResult">Thêm mới <b>${r.them}</b> · cập nhật ${r.capNhat} · tắt ${r.tat} câu.</p>
+        ${bq.khongDapAn || bq.tuLuan || bq.khac || bq.khongCo ? `<p class="muted small">Bỏ qua: ${bq.khongDapAn || 0} câu chưa có đáp án hợp lệ, ${bq.tuLuan || 0} câu tự luận${bq.khac ? ', ' + bq.khac + ' câu lỗi định dạng' : ''}${bq.khongCo ? ', ' + bq.khongCo + ' mã không có trong kho' : ''}.</p>` : ''}
+        ${(r.dangThi || []).length ? `<div class="notice warn" id="ptDangThi"><b>${r.dangThi.length} câu đang thi</b> (nằm trong đề chưa đóng hoặc không công bố lời giải): đã thêm nhưng học sinh chưa thấy cho tới khi đề đóng và công bố lời giải.<br><span class="small">${r.dangThi.slice(0, 30).map(esc).join(', ')}${r.dangThi.length > 30 ? ', …' : ''}</span></div>` : ''}
+        ${[...new Set(canhBao)].slice(0, 20).map((x) => `<div class="notice warn small">${esc(x)}</div>`).join('')}
+        <div class="modal-actions"><a class="btn" href="#/ngan-hang/pool" data-close="">Xem pool luyện tập</a><button class="btn btn-primary" data-close="">Đóng</button></div>`, { wide: true });
+    } catch (err) {
+      if (closeProg) closeProg();
+      if (App.viewIs(view)) toast(err.message, 'err');
+    }
+  }
+
+  async function viewPool() {
+    $app.onclick = null;
+    const view = App.currentView();
+    const here = () => App.viewIs(view);
+    if (!App.has('practice')) {
+      const p = store.get('ld_pub', null);
+      $app.innerHTML = `<h1>Pool luyện tập</h1><div class="notice warn" id="poolNeedUpdate">Luyện tập cần máy chủ mới. Máy chủ đang chạy phiên bản ${esc((p && p.version) || 'cũ')}. <b>Cần cập nhật máy chủ (bước phát hành).</b></div>`;
+      return;
+    }
+    const f = Object.assign({ lop: '', chuong: [], bai: [], loai: [], bat: '', q: '' }, sess.get('ld_pool_filter', {}));
+    let page = 1;
+    $app.innerHTML = bankTabsHtml('pool') + '<h1>Pool luyện tập</h1><div id="poolBody">' + loadingHtml() + '</div>';
+    const load = async () => {
+      const box = document.getElementById('poolBody');
+      if (!box) return;
+      let r;
+      try { r = await api('adminPracticeList', { filter: f, page, size: 20 }); } catch (e) {
+        if (!here()) return;
+        box.innerHTML = e.unsupported ? '<div class="notice warn">Cần cập nhật máy chủ (bước phát hành).</div>' : errorBox(e);
+        return;
+      }
+      if (!here() || !document.getElementById('poolBody')) return;
+      const pages = Math.max(1, Math.ceil(r.tong / r.size));
+      const chs = [...new Set(r.cay.map((x) => x.chuong))];
+      box.innerHTML = `${r.choLuyenTap ? '' : '<div class="notice warn" id="poolOff" style="margin-bottom:10px">Mục Luyện tập đang <b>tắt</b> với học sinh. Bật ở <a href="#/cai-dat">Cài đặt</a> → "Mục Luyện tập cho học sinh".</div>'}
+        <div class="muted small" style="margin-bottom:10px">Pool có <b>${r.dem.tong}</b> câu · đang bật ${r.dem.bat} · <span class="badge badge-exam">đang thi</span> ${r.dem.dangThi} (câu trong đề chưa đóng: học sinh chưa thấy cho tới khi đề đóng và công bố lời giải).
+          Thêm câu: tab Kho câu hỏi → chọn câu vào giỏ → "Đưa vào luyện tập".</div>
+        <div class="card"><div class="row pool-filters">
+          <select id="plLop"><option value="">Mọi lớp</option>${r.lop.map((l) => `<option value="${l}" ${String(l) === String(f.lop) ? 'selected' : ''}>Lớp ${l}</option>`).join('')}</select>
+          <select id="plCh"><option value="">Mọi chương</option>${chs.map((c) => `<option ${f.chuong[0] === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
+          <select id="plBat"><option value="">Bật và tắt</option><option value="CO" ${f.bat === 'CO' ? 'selected' : ''}>Đang bật</option><option value="KHONG" ${f.bat === 'KHONG' ? 'selected' : ''}>Đang tắt</option><option value="DANG_THI" ${f.bat === 'DANG_THI' ? 'selected' : ''}>Đang thi</option></select>
+          <input id="plQ" placeholder="Mã câu…" value="${esc(f.q)}" style="max-width:200px">
+          <span class="spacer"></span><label class="chk"><input type="checkbox" id="plAll"> Chọn cả trang</label>
+          <button class="btn btn-sm" id="plOn">Bật</button><button class="btn btn-sm" id="plOff">Tắt</button></div>
+          <div class="muted small" style="margin:8px 0">${r.tong} câu phù hợp</div>
+          <div id="plList">${r.items.length ? r.items.map((x) => `<div class="pool-item ${x.bat ? '' : 'off'}" data-ma="${esc(x.maKho)}">
+            <div class="row"><label class="chk"><input type="checkbox" class="pl-sel" value="${esc(x.maKho)}"></label>
+              <span class="badge badge-primary">${PART_SHORT[x.phan] || ''} · ${App.TYPES[x.loai] || x.loai}</span>${x.mucDo ? `<span class="badge">${App.LEVELS[x.mucDo] || esc(x.mucDo)}</span>` : ''}
+              ${x.dangThi ? '<span class="badge badge-exam" title="Câu nằm trong đề chưa đóng hoặc không công bố lời giải: học sinh chưa thấy">đang thi</span>' : ''}
+              <span class="badge">${x.soLuot} lượt làm</span>${x.coHinh ? '<span class="badge">có hình</span>' : ''}
+              <span class="spacer"></span><button class="btn btn-sm ${x.bat ? '' : 'btn-primary'}" data-toggle="${esc(x.maKho)}" data-to="${x.bat ? 'KHONG' : 'CO'}">${x.bat ? 'Tắt' : 'Bật'}</button></div>
+            <div class="bank-tom">${rich(x.tom)}</div>
+            <div class="muted small">${esc(x.maKho)} · Lớp ${x.lop || '?'} · ${esc(x.bai)}${x.bat ? '' : ' · <b>đang tắt</b>'}</div></div>`).join('') : '<div class="empty">Không có câu.</div>'}</div>
+          ${pages > 1 ? `<div class="row pager" style="justify-content:center;margin:12px 0"><button class="btn btn-sm" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>← Trước</button>
+            <span class="small">Trang ${page}/${pages}</span><button class="btn btn-sm" data-page="${page + 1}" ${page >= pages ? 'disabled' : ''}>Sau →</button></div>` : ''}</div>`;
+      math(box);
+      const refilter = () => {
+        f.lop = document.getElementById('plLop').value;
+        f.chuong = document.getElementById('plCh').value ? [document.getElementById('plCh').value] : [];
+        f.bat = document.getElementById('plBat').value;
+        f.q = document.getElementById('plQ').value.trim();
+        sess.set('ld_pool_filter', f);
+        page = 1; load();
+      };
+      ['plLop', 'plCh', 'plBat'].forEach((id) => { document.getElementById(id).onchange = refilter; });
+      let qt;
+      document.getElementById('plQ').oninput = () => { clearTimeout(qt); qt = setTimeout(refilter, 400); };
+      document.getElementById('plAll').onchange = (e) => box.querySelectorAll('.pl-sel').forEach((x) => { x.checked = e.target.checked; });
+      const bulk = (on) => (e) => withBusy(e.currentTarget, async () => {
+        const codes = [...box.querySelectorAll('.pl-sel:checked')].map((x) => x.value);
+        if (!codes.length) return toast('Chọn câu trước (ô vuông đầu mỗi câu)', 'err');
+        try { const t = await api('adminPracticeToggle', { maKho: codes, bat: on ? 'CO' : 'KHONG' }); toast(`Đã ${on ? 'bật' : 'tắt'} ${t.n} câu`, 'ok'); if (here()) load(); } catch (err) { toast(err.message, 'err'); }
+      });
+      document.getElementById('plOn').onclick = bulk(true);
+      document.getElementById('plOff').onclick = bulk(false);
+    };
+    $app.onclick = async (ev) => {
+      const pg = ev.target.closest('[data-page]');
+      if (pg && !pg.disabled) { page = +pg.dataset.page; load(); window.scrollTo(0, 0); return; }
+      const tg = ev.target.closest('[data-toggle]');
+      if (tg) withBusy(tg, async () => {
+        try { await api('adminPracticeToggle', { maKho: [tg.dataset.toggle], bat: tg.dataset.to }); if (here()) load(); } catch (err) { toast(err.message, 'err'); }
+      });
+    };
+    load();
   }
 
   function bankPreviewHtml(q) {
@@ -1224,7 +1352,9 @@
     CHO_LIEN_KET_GOOGLE: { label: 'Học sinh tự liên kết Google (xác minh bằng PIN)', yesno: ['Cho phép', 'Không'] },
     GOOGLE_CLIENT_ID: { label: 'Google OAuth Client ID', hint: 'Để trống = tắt đăng nhập Google. Cách lấy: xem README, mục "Bật đăng nhập Google".' },
     KHO_CAU_HOI_ID: { label: 'Kho câu hỏi (id hoặc link file "KHO CÂU HỎI VẬT LÝ")', hint: 'Dán link Google Sheet của kho. Web chỉ đọc kho, không sửa.', wide: true, bank: true },
-    THU_MUC_HINH_KHO_ID: { label: 'Thư mục hình của kho (id hoặc link thư mục "02. HÌNH VẼ")', hint: 'Để trống thì tìm hình theo tên file trên toàn Drive (chậm hơn).', wide: true, bank: true }
+    THU_MUC_HINH_KHO_ID: { label: 'Thư mục hình của kho (id hoặc link thư mục "02. HÌNH VẼ")', hint: 'Để trống thì tìm hình theo tên file trên toàn Drive (chậm hơn).', wide: true, bank: true },
+    CHO_LUYEN_TAP: { label: 'Mục Luyện tập cho học sinh', yesno: ['Bật', 'Tắt'], feat: 'practice', hint: 'Học sinh chỉ luyện các câu trong "Pool luyện tập" (tab Ngân hàng).' },
+    LUYEN_NHANH: { label: 'Đề nhanh theo bài (P1, P2, P3, phút)', feat: 'practice', hint: 'Mặc định 7,1,2,10: 7 câu Phần I, 1 câu Phần II, 2 câu Phần III, 10 phút.' }
   };
 
   async function viewSettings() {
@@ -1238,7 +1368,7 @@
       const yes = (v) => ['CO', 'CÓ', 'TRUE', '1'].includes(String(v).toUpperCase());
       $app.innerHTML = `<h1>Cài đặt</h1>
         <div class="card"><h2>Chung</h2><div class="form-grid">
-          ${Object.keys(SETTING_UI).filter((k) => !SETTING_UI[k].bank || k in val || App.has('bank')).map((k) => {
+          ${Object.keys(SETTING_UI).filter((k) => (!SETTING_UI[k].bank || k in val || App.has('bank')) && (!SETTING_UI[k].feat || k in val || App.has(SETTING_UI[k].feat))).map((k) => {
             const u = SETTING_UI[k];
             const input = u.yesno ? `<select data-k="${k}"><option value="CO">${u.yesno[0]}</option><option value="KHONG" ${yes(val[k]) ? '' : 'selected'}>${u.yesno[1]}</option></select>`
               : `<input data-k="${k}" value="${esc(val[k] || '')}">`;

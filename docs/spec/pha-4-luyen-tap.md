@@ -16,7 +16,7 @@ Học sinh tự tạo đề luyện từ một **pool luyện tập** do giáo v
 - Pool tối đa khoảng 3 000 câu. Đệm máy chủ chỉ giữ **chỉ mục** (`maKho, hang, lop, chuong, bai, loai, mucDo, bat`); câu đầy đủ đọc theo hàng (`getRange`) khi bắt đầu, nộp hoặc xem lại.
 
 ### Chặn câu đang thi — `blockedBankIds_()` (có đệm, đổi `gen` khi DeThi/CauHoi đổi)
-Tập `maKho` có trong CauHoi của mọi đề có `trangThai = NHAP`, hoặc đề mà `canReveal_(e)` = false. `practiceMeta`, `practiceStart` (mọi kiểu) và tập CAU_SAI đều loại các câu này. Khi đề đóng (lời giải được công bố), câu xuất hiện lại. Giáo viên "Đưa vào luyện tập" một câu đang bị chặn thì trang quản trị cảnh báo (vẫn cho thêm; câu tự mở khi đề công bố lời giải).
+Tập `maKho` có trong CauHoi của mọi đề có `trangThai = NHAP`, hoặc đề mà `canReveal_(e)` = false. **Bổ sung 19/11/2026 (theo soát code Pha 4, R-1):** đề **đang mở hoặc chưa tới giờ mở** cũng bị chặn, với **mọi** chế độ hiện lời giải (kể cả "Ngay sau khi nộp"): lời giải hiện cho từng học sinh sau khi nộp không phải là "công bố". Tóm lại câu chỉ được vào luyện tập khi đề **đã đóng** (hết hạn hoặc giáo viên đóng) **và** `canReveal_(e)` = true. Đề không có hạn và còn mở thì câu bị chặn cho tới khi giáo viên đóng đề. Xem lại bài luyện cũ (`getResult`/`buildPracticeView_`) và kết quả nộp của bài luyện cũng ẩn đáp án + lời giải của câu đang bị chặn tại thời điểm xem (R-2). `practiceMeta`, `practiceStart` (mọi kiểu) và tập CAU_SAI đều loại các câu này. Khi đề đóng (lời giải được công bố), câu xuất hiện lại. Giáo viên "Đưa vào luyện tập" một câu đang bị chặn thì trang quản trị cảnh báo (vẫn cho thêm; câu tự mở khi đề công bố lời giải).
 
 ### Khớp lớp
 Học sinh: cụm số đầu của lớp `/^\s*(\d+)/` ("12A1"→12, "10A1"→10). Pool: số trong cột `lop` ("Lớp 12"→12). Không tách được số (vd "CLB") thì học sinh thấy toàn pool đang bật.
@@ -59,7 +59,7 @@ Học sinh: cụm số đầu của lớp `/^\s*(\d+)/` ("12A1"→12, "10A1"→1
 - **TC-4.10** `CHO_LUYEN_TAP=KHONG`: gọi **trực tiếp** `practiceMeta`, `practiceStart`, `submitExam` token `p` đều báo lỗi; giao diện không có mục Luyện tập. `SERVER_COMPAT=1.0.0`: không có mục, các trang khác bình thường.
 - **TC-4.11** Pool giả 3 000 câu (shim có `SHEET_READ_MS`): `practiceStart` chỉ đọc chỉ mục + các hàng được chọn (đếm số ô đọc); số ms để tham khảo.
 - **TC-4.12** Sheet cũ không có `LuyenTap`/`KetQuaLuyenTap`: `practiceMeta` trả rỗng, không lỗi; lần ghi đầu tự tạo trang tính có tiêu đề.
-- **TC-4.13** Câu X nằm trong pool và trong đề `SAU_HAN` đang mở (hoặc đề `NHAP`): 50 lần `practiceStart` (mọi kiểu) không lần nào có X, `practiceMeta` không đếm X; đóng đề xong thì X xuất hiện lại.
+- **TC-4.13** Câu X nằm trong pool và trong đề đang mở (mọi chế độ hiện lời giải, gồm `NGAY`/mặc định và `SAU_HAN`), đề chưa tới giờ mở, hoặc đề `NHAP`: 50 lần `practiceStart` (mọi kiểu) không lần nào có X, `practiceMeta` không đếm X; đóng đề xong thì X xuất hiện lại.
 - **TC-4.14** Sửa đề sau khi học sinh làm (chèn câu lên đầu, đánh số lại): câu nhập tay bị lệch thì bỏ khỏi tập CAU_SAI; câu có `maKho` vẫn đúng.
 
 ## Kế hoạch kiểm thử
@@ -77,3 +77,5 @@ Chạy `setup` (tạo 2 trang tính); chọn câu vào pool; đặt `CHO_LUYEN_T
 ## Ước lượng: **L**
 
 Sửa đặc tả ngày 18/11/2026: theo `soat-pha-0.md` S-2, S-6, S-7, S-12, S-16, S-17, S-23, S-30.
+
+Sửa đặc tả ngày 19/11/2026: chặn cả đề đang mở ở mọi chế độ hiện lời giải; ẩn lời giải câu đang bị chặn khi xem lại bài luyện (theo `docs/bao-cao/pha-4-soat.md` R-1, R-2).

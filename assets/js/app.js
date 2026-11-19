@@ -35,11 +35,23 @@
   function applyPub(p) {
     const featuresChanged = JSON.stringify((pub && pub.features) || null) !== JSON.stringify(p.features || null);
     pub = p;
-    if (featuresChanged && user) renderUserBox();
+    if (featuresChanged && user) {
+      renderUserBox();
+      // N-2: cấu hình máy chủ về sau lần vẽ đầu → vẽ lại Lịch sử để có bộ lọc "Đề thi / Luyện tập"
+      if (/^#\/lich-su/.test(location.hash) && !document.getElementById('histSeg') && App.has('practice')) { App.newView(); viewHistory(); }
+    }
     document.getElementById('appName').textContent = p.appName;
     document.title = p.appName;
     document.getElementById('navBoard').classList.toggle('hidden', !p.showLeaderboard);
+    // Luyện tập: máy chủ có tính năng "practice" VÀ giáo viên bật CHO_LUYEN_TAP (máy chủ 1.0.0: không có mục này)
+    const np = document.getElementById('navPractice');
+    if (np) np.classList.toggle('hidden', !practiceAllowed(p));
     document.getElementById('footer').textContent = (p.teacherName ? 'Giáo viên: ' + p.teacherName + ' · ' : '') + p.appName;
+  }
+
+  function practiceAllowed(p) {
+    p = p || pub;
+    return App.has('practice') && !!(p && p.practice);
   }
 
   function renderUserBox() {
@@ -112,6 +124,7 @@
     switch (page) {
       case 'lam-bai': return viewExamIntro(decodeURIComponent(arg || ''));
       case 'ket-qua': setNav(''); return viewResult(decodeURIComponent(arg || ''));
+      case 'luyen-tap': setNav('practice'); return viewPractice(arg || '');
       case 'lich-su': setNav('history'); return viewHistory();
       case 'thong-ke': setNav('stats'); return viewStats();
       case 'bang-xep-hang': setNav('board'); return viewBoard(decodeURIComponent(arg || ''));
@@ -261,14 +274,18 @@
     const other = exams.filter((e) => !e.open);
     let h = `<h1>Xin chào, ${esc(user.hoTen.split(' ').slice(-1)[0])} 👋</h1>`;
     if (pending && pending.endAt > Date.now() && pending.studentId === user.id) {
-      h += `<div class="notice warn" style="margin-bottom:16px"><b>Bạn đang làm dở đề "${esc(pending.exam.tieuDe)}".</b>
-        Còn khoảng ${fmtClock((pending.endAt - Date.now()) / 1000)}. <a href="#/lam-bai/${encodeURIComponent(pending.exam.id)}">Tiếp tục làm bài →</a></div>`;
+      h += `<div class="notice warn" style="margin-bottom:16px"><b>Bạn đang làm dở ${pending.practice ? 'bài luyện' : 'đề'} "${esc(pending.exam.tieuDe)}".</b>
+        Còn khoảng ${fmtClock((pending.endAt - Date.now()) / 1000)}. <a href="${resumeHref(pending)}">Tiếp tục làm bài →</a></div>`;
     }
     h += `<div class="stats">
       <div class="stat"><b>${results.length}</b><span>Bài đã làm</span></div>
       <div class="stat"><b>${avg == null ? '—' : fmtNum(avg)}</b><span>Điểm trung bình</span></div>
       <div class="stat"><b>${scores.length ? fmtNum(Math.max(...scores)) : '—'}</b><span>Điểm cao nhất</span></div>
       <div class="stat"><b>${open.length}</b><span>Đề đang mở</span></div></div>`;
+    if (practiceAllowed()) {
+      h += `<a class="card practice-teaser" id="homePractice" href="#/luyen-tap"><b>🎯 Luyện tập</b>
+        <span class="muted small">Tự tạo đề theo bài, luyện lại câu đã sai, đề nhanh 10 phút — có lời giải ngay, không tính xếp hạng.</span><span class="spacer"></span><span>Vào luyện →</span></a>`;
+    }
     h += '<h2>Đề đang mở</h2>';
     h += open.length ? `<div class="grid grid-3">${open.map(examCard).join('')}</div>` : '<div class="card empty">Hiện chưa có đề nào đang mở.</div>';
     if (other.length) h += `<h2 class="section-gap">Đề khác</h2><div class="grid grid-3">${other.map(examCard).join('')}</div>`;
@@ -277,6 +294,8 @@
     }
     $app.innerHTML = h;
   }
+
+  const resumeHref = (p) => (p.practice ? '#/luyen-tap/lam' : '#/lam-bai/' + encodeURIComponent(p.exam.id));
 
   function examCard(e) {
     const left = e.soLanLam ? Math.max(0, e.soLanLam - e.daLam) : null;
@@ -334,6 +353,8 @@
       const b = document.getElementById('btnStart');
       if (b) b.onclick = () => withBusy(b, async () => {
         // Ô mục tiêu chỉ có khi máy chủ hỗ trợ (cờ "goal"); máy chủ cũ thì bắt đầu luôn, không gửi mục tiêu
+        const pend = store.get(ATTEMPT_KEY, null);
+        if (pend && pend.practice && pend.studentId === user.id && pend.endAt > Date.now()) { toast('Bạn đang làm dở một bài luyện — hãy nộp bài đó trước.', 'err'); return; }
         const body = { examId };
         if (goalIn) {
           const g = parseFloat(String(goalIn.value).replace(',', '.'));
@@ -378,6 +399,9 @@
         <div class="timer" id="timer" aria-live="off">--:--</div>
         <button class="btn btn-primary" id="btnSubmit">Nộp bài</button></div></div>
       <div class="exam-wrap" id="examWrap">`;
+    if (att.thongBao && att.thongBao.length) {
+      html += `<div class="notice warn" id="examNotes" style="margin-top:12px">${att.thongBao.map(esc).join('<br>')}</div>`;
+    }
     let lastPart = null;
     qs.forEach((q, i) => {
       if (q.phan !== lastPart) { lastPart = q.phan; html += `<h2 class="part-title">${App.PARTS[q.phan] || 'Phần ' + q.phan}</h2>`; }
@@ -495,7 +519,7 @@
           clearInterval(timerId);
           store.del(ATTEMPT_KEY);
           // Dữ liệu cũ của trang chủ / lịch sử / thống kê không còn đúng: xóa rồi làm mới ngầm
-          App.cacheDel('home', 'history', 'stats');
+          App.cacheDel('home', 'history', 'stats', 'practice', 'history_luyen');
           homeInflight = null;
           // thẻ kho lấy SAU khi xóa: nếu đăng xuất / đổi tài khoản trước khi dữ liệu về thì không cất (R-1)
           const tok = App.cacheToken();
@@ -505,7 +529,7 @@
           location.hash = '#/ket-qua/' + encodeURIComponent(r.id);
           return;
         } catch (e) {
-          if (/không hợp lệ|quá hạn|không còn/.test(e.message)) { store.del(ATTEMPT_KEY); toast(e.message, 'err'); location.hash = '#/'; return; }
+          if (/không hợp lệ|quá hạn|không còn|tắt luyện tập/.test(e.message)) { store.del(ATTEMPT_KEY); toast(e.message, 'err'); location.hash = att.practice ? '#/luyen-tap' : '#/'; return; }
           if (i === 3) {
             submitting = false;
             btns.forEach((b) => { b.disabled = false; b.textContent = 'Nộp lại'; });
@@ -540,6 +564,15 @@
       try { v = await api('getResult', { resultId: id }); } catch (e) { $app.innerHTML = errorBox(e); return; }
     }
     store.del('ld_lastResult');
+    if (v.luyenTap) {
+      const acts = `<div class="row no-print" style="margin-top:12px"><a class="btn" href="#/luyen-tap">← Luyện tập</a>
+        <a class="btn btn-primary" href="#/luyen-tap" id="btnMorePractice">Luyện tiếp</a>
+        <button class="btn" onclick="window.print()">In / Lưu PDF</button></div>`;
+      setNav('practice');
+      $app.innerHTML = App.resultHtml(v, { actions: acts });
+      math($app);
+      return;
+    }
     const actions = `<div class="row no-print" style="margin-top:12px"><a class="btn" href="#/">← Trang chủ</a>
       <a class="btn" href="#/lam-bai/${encodeURIComponent(v.examId)}">Làm lại đề này</a>
       ${pub.showLeaderboard ? `<a class="btn" href="#/bang-xep-hang/${encodeURIComponent(v.examId)}">Bảng xếp hạng</a>` : ''}
@@ -550,9 +583,194 @@
 
   /* ---------- lịch sử ---------- */
   function viewHistory() {
-    return cached('history', () => api('myResults'), (rs) => {
-      $app.innerHTML = '<h1>Lịch sử làm bài</h1>' + (rs.length ? resultsTable(rs) : '<div class="card empty">Bạn chưa làm bài nào.</div>');
-    }, { skeleton: () => { $app.innerHTML = App.skeletonHtml('table'); } }).catch((e) => { $app.innerHTML = errorBox(e); });
+    // Bộ lọc "Đề thi / Luyện tập" chỉ khi máy chủ có tính năng practice (máy chủ cũ bỏ qua tham số loai)
+    const filter = App.has('practice');
+    const mode = filter && store.get('ld_hist_mode', 'thi') === 'luyen' ? 'luyen' : 'thi';
+    const seg = filter ? `<div class="seg" id="histSeg" role="group" aria-label="Lọc lịch sử" style="margin-bottom:12px">
+      <button data-h="thi" class="${mode === 'thi' ? 'active' : ''}">Đề thi</button><button data-h="luyen" class="${mode === 'luyen' ? 'active' : ''}">Luyện tập</button></div>` : '';
+    const key = mode === 'luyen' ? 'history_luyen' : 'history';
+    const load = () => (mode === 'luyen' ? api('myResults', { loai: 'luyen' }) : api('myResults'));
+    return cached(key, load, (rs) => {
+      $app.innerHTML = '<h1>Lịch sử làm bài</h1>' + seg + (rs.length ? resultsTable(rs)
+        : `<div class="card empty">${mode === 'luyen' ? 'Bạn chưa làm bài luyện tập nào.' : 'Bạn chưa làm bài nào.'}</div>`);
+      const sg = document.getElementById('histSeg');
+      if (sg) sg.onclick = (e) => {
+        const b = e.target.closest('[data-h]');
+        if (!b || b.dataset.h === mode) return;
+        store.set('ld_hist_mode', b.dataset.h);
+        App.newView();
+        viewHistory();
+      };
+    }, { skeleton: () => { $app.innerHTML = '<h1>Lịch sử làm bài</h1>' + seg + App.skeletonHtml('table'); } }).catch((e) => { $app.innerHTML = errorBox(e); });
+  }
+
+  /* ---------- luyện tập (Pha 4) ---------- */
+  function practiceOffHtml() {
+    return `<h1>Luyện tập</h1><div class="card empty" id="practiceOff">Mục Luyện tập hiện chưa mở. Khi giáo viên bật, em sẽ tự tạo được đề luyện ở đây.
+      <div style="margin-top:10px"><a class="btn" href="#/">← Trang chủ</a></div></div>`;
+  }
+
+  function viewPractice(arg) {
+    const pending = store.get(ATTEMPT_KEY, null);
+    if (arg === 'lam') {
+      if (pending && pending.practice && pending.studentId === user.id && pending.endAt + 5 * 3600000 > Date.now()) return runExam(pending);
+      location.hash = '#/luyen-tap';
+      return;
+    }
+    if (!App.has('practice')) { $app.innerHTML = practiceOffHtml(); return; }
+    return cached('practice', () => api('practiceMeta'), renderPractice, { skeleton: () => { $app.innerHTML = App.skeletonHtml('cards'); } })
+      .catch((e) => {
+        if (e.unsupported || /tắt luyện tập/.test(e.message)) {
+          App.cacheDel('practice');
+          $app.innerHTML = practiceOffHtml();
+          refreshPub();
+          return;
+        }
+        $app.innerHTML = errorBox(e);
+      });
+  }
+
+  function renderPractice(m) {
+    const pending = store.get(ATTEMPT_KEY, null);
+    const busy = pending && pending.studentId === user.id && pending.endAt > Date.now();
+    const sum = (d) => d.TN + d.DS + d.TL;
+    const byCh = {};
+    const chOrder = [];
+    m.cay.forEach((x) => { if (!byCh[x.chuong]) { byCh[x.chuong] = []; chOrder.push(x.chuong); } byCh[x.chuong].push(x); });
+    const sel = new Set(store.get('ld_pt_bai', []));
+    const so = Object.assign({ TN: 10, DS: 2, TL: 3, phut: 30 }, store.get('ld_pt_so', {}));
+    const n = m.nhanh;
+    const total = m.cay.reduce((s, x) => s + sum(x.dem), 0);
+    let h = `<h1>Luyện tập</h1><p class="muted" style="margin-top:-6px">Bài luyện không tính vào bảng xếp hạng. Nộp bài xong có đáp án và lời giải ngay.</p>`;
+    if (busy) h += `<div class="notice warn" style="margin-bottom:16px"><b>Bạn đang làm dở "${esc(pending.exam.tieuDe)}".</b> <a href="${resumeHref(pending)}">Tiếp tục làm bài →</a></div>`;
+    h += `<div class="stats"><div class="stat"><b>${m.soBai}</b><span>Bài luyện đã làm</span></div>
+      <div class="stat"><b>${m.diemTB == null ? '—' : fmtNum(m.diemTB)}</b><span>Điểm luyện trung bình</span></div>
+      <div class="stat"><b>${total}</b><span>Câu có thể luyện</span></div></div>`;
+    if (!total && !m.soCauSai) {
+      $app.innerHTML = h + '<div class="card empty" id="ptEmpty">Giáo viên chưa đưa câu nào vào luyện tập cho khối lớp của em.</div>';
+      return;
+    }
+    const opt = (x) => `<option value="${esc(x.bai)}">${esc(x.bai)} (${sum(x.dem)} câu)</option>`;
+    h += `<div class="grid grid-3 practice-cards">
+      <div class="card"><h3>✍️ Tự tạo đề</h3><p class="muted small">Chọn chương, bài và số câu mỗi phần (5–40 câu, 5–90 phút).</p>
+        <a class="btn" href="#ptBuilder" id="ptGoBuild">Chọn bài ↓</a></div>
+      <div class="card"><h3>🔁 Luyện câu đã sai (${m.soCauSai})</h3><p class="muted small">Làm lại những câu em chưa được trọn điểm (tối đa 20 câu, câu sai gần nhất trước).</p>
+        <button class="btn btn-primary" id="ptWrong" ${m.soCauSai && !busy ? '' : 'disabled'}>${m.soCauSai ? 'Luyện ' + m.soCauSai + ' câu' : 'Chưa có câu sai'}</button></div>
+      <div class="card"><h3>⚡ Đề nhanh ${n.phut} phút</h3><p class="muted small">Một bài: ${n.TN} câu Phần I, ${n.DS} câu Phần II, ${n.TL} câu Phần III.</p>
+        <select id="ptQuickBai" aria-label="Chọn bài cho đề nhanh">${chOrder.map((c) => `<optgroup label="${esc(c)}">${byCh[c].map(opt).join('')}</optgroup>`).join('')}</select>
+        <button class="btn btn-primary" id="ptQuick" style="margin-top:8px" ${total && !busy ? '' : 'disabled'}>Làm đề nhanh</button></div></div>`;
+    const chk = (cls, val, label, on, extra) => `<label class="chk"><input type="checkbox" class="${cls}" value="${esc(val)}" ${extra || ''} ${on ? 'checked' : ''}> ${label}</label>`;
+    h += `<div class="card section-gap" id="ptBuilder"><h2>Tự tạo đề</h2>
+      <div class="bank-tree practice-tree" id="ptTree">${chOrder.map((c, ci) => {
+        const bais = byCh[c];
+        const all = bais.every((x) => sel.has(x.bai));
+        return `<details ${bais.some((x) => sel.has(x.bai)) || ci === 0 ? 'open' : ''}><summary>${chk('pt-ch', c, `<b>${esc(c)}</b> <span class="muted">(${bais.reduce((s, x) => s + sum(x.dem), 0)})</span>`, all, `data-ci="${ci}"`)}</summary>
+          ${bais.map((x) => `<div class="bai">${chk('pt-bai', x.bai, `${esc(x.bai)} <span class="muted" title="Phần I · Phần II · Phần III">(${x.dem.TN}·${x.dem.DS}·${x.dem.TL})</span>`, sel.has(x.bai), `data-ci="${ci}"`)}</div>`).join('')}</details>`;
+      }).join('')}</div>
+      <div class="row practice-so" style="margin-top:12px">
+        <label class="small">Phần I <input class="so" type="number" min="0" max="40" id="ptTN" value="${so.TN}"></label>
+        <label class="small">Phần II <input class="so" type="number" min="0" max="40" id="ptDS" value="${so.DS}"></label>
+        <label class="small">Phần III <input class="so" type="number" min="0" max="40" id="ptTL" value="${so.TL}"></label>
+        <label class="small">Thời gian <input class="so" type="number" min="5" max="90" id="ptPhut" value="${so.phut}"> phút</label></div>
+      <div class="muted small" id="ptSum" style="margin:8px 0"></div>
+      <button class="btn btn-primary" id="ptStart" ${busy ? 'disabled' : ''}>Tạo đề và bắt đầu</button></div>`;
+    $app.innerHTML = h;
+
+    const chosen = () => [...document.querySelectorAll('.pt-bai:checked')].map((x) => x.value);
+    const readSo = () => ({ TN: +document.getElementById('ptTN').value || 0, DS: +document.getElementById('ptDS').value || 0, TL: +document.getElementById('ptTL').value || 0, phut: +document.getElementById('ptPhut').value || 0 });
+    const drawSum = () => {
+      const bs = new Set(chosen());
+      const have = { TN: 0, DS: 0, TL: 0 };
+      m.cay.forEach((x) => { if (bs.has(x.bai)) ['TN', 'DS', 'TL'].forEach((k) => { have[k] += x.dem[k]; }); });
+      const s = readSo();
+      store.set('ld_pt_bai', [...bs]); store.set('ld_pt_so', s);
+      document.getElementById('ptSum').innerHTML = bs.size
+        ? `Đã chọn ${bs.size} bài · có sẵn Phần I ${have.TN} · Phần II ${have.DS} · Phần III ${have.TL} câu. Đề: <b>${s.TN + s.DS + s.TL}</b> câu, ${s.phut} phút.`
+        : 'Chưa chọn bài nào — đánh dấu một hoặc nhiều bài ở trên.';
+    };
+    const tree = document.getElementById('ptTree');
+    tree.addEventListener('change', (e) => {
+      const t = e.target;
+      if (t.classList.contains('pt-ch')) tree.querySelectorAll(`.pt-bai[data-ci="${t.dataset.ci}"]`).forEach((b) => { b.checked = t.checked; });
+      else if (t.classList.contains('pt-bai')) {
+        const ch = tree.querySelector(`.pt-ch[data-ci="${t.dataset.ci}"]`);
+        if (ch) ch.checked = [...tree.querySelectorAll(`.pt-bai[data-ci="${t.dataset.ci}"]`)].every((b) => b.checked);
+      }
+      drawSum();
+    });
+    // bấm vào ô chọn chương không đóng/mở cây
+    tree.querySelectorAll('summary .chk').forEach((l) => l.addEventListener('click', (e) => e.stopPropagation()));
+    document.querySelectorAll('.practice-so input').forEach((i) => { i.oninput = drawSum; });
+    drawSum();
+    document.getElementById('ptGoBuild').onclick = (e) => { e.preventDefault(); document.getElementById('ptBuilder').scrollIntoView({ behavior: 'smooth' }); };
+    document.getElementById('ptStart').onclick = (e) => {
+      const bai = chosen();
+      const s = readSo();
+      const t = s.TN + s.DS + s.TL;
+      if (!bai.length) return toast('Hãy chọn ít nhất một bài', 'err');
+      if (t < 5 || t > 40) return toast('Tổng số câu phải từ 5 đến 40', 'err');
+      if (s.phut < 5 || s.phut > 90) return toast('Thời gian từ 5 đến 90 phút', 'err');
+      startPractice(e.currentTarget, { kieu: 'TU_TAO', bai, so: { TN: s.TN, DS: s.DS, TL: s.TL }, phut: s.phut });
+    };
+    const w = document.getElementById('ptWrong');
+    w.onclick = () => startPractice(w, { kieu: 'CAU_SAI' });
+    const q = document.getElementById('ptQuick');
+    q.onclick = () => startPractice(q, { kieu: 'NHANH', bai: [document.getElementById('ptQuickBai').value] });
+  }
+
+  /** Hỏi mục tiêu điểm (có "Bỏ qua") rồi gọi practiceStart và vào làm bài. */
+  async function startPractice(btn, body) {
+    const pending = store.get(ATTEMPT_KEY, null);
+    if (pending && pending.studentId === user.id && pending.endAt > Date.now()) {
+      toast('Bạn đang làm dở một bài — hãy nộp bài đó trước.', 'err');
+      return;
+    }
+    if (App.has('goal')) {
+      const g = await goalDialog();
+      if (g === null) return; // Hủy
+      if (g !== 'skip') body.mucTieu = g;
+    }
+    return withBusy(btn, async () => {
+      try {
+        const s = await api('practiceStart', body);
+        const offset = s.serverNow - Date.now();
+        const att = {
+          attemptToken: s.attemptToken, exam: s.exam, questions: s.questions, studentId: user.id, mucTieu: s.mucTieu, practice: true, kieu: s.kieu,
+          thongBao: s.thongBao || [], endAt: s.startedAt + s.durationSec * 1000 - offset, durationSec: s.durationSec, answers: {}, flags: {}
+        };
+        store.set(ATTEMPT_KEY, att);
+        if (location.hash !== '#/luyen-tap/lam') history.replaceState(null, '', '#/luyen-tap/lam');
+        runExam(att);
+      } catch (err) {
+        if (err.unsupported || /tắt luyện tập/.test(err.message)) { App.cacheDel('practice'); refreshPub(); }
+        toast(err.message, 'err');
+      }
+    });
+  }
+
+  function goalDialog() {
+    return modal(`<h2>🎯 Mục tiêu điểm lần này</h2>
+      <p class="muted small">Đặt mục tiêu giúp em biết mình tiến bộ đến đâu. Có thể bỏ qua.</p>
+      <div class="row"><input id="ptGoal" class="goal-input" inputmode="decimal" autocomplete="off" placeholder="VD: 8"><span class="muted">/ 10 điểm</span></div>
+      <div class="chips" style="margin-top:8px">${['5', '6,5', '8', '9', '10'].map((v) => `<button type="button" class="chip goal-chip" data-goal="${v}">${v}</button>`).join('')}</div>
+      <div class="modal-actions"><button class="btn" data-close="">Hủy</button><button class="btn" data-close="skip" id="ptGoalSkip">Bỏ qua</button>
+        <button class="btn btn-primary" id="ptGoalOk">Bắt đầu</button></div>`, {
+      onOpen(mm, close) {
+        const inp = mm.querySelector('#ptGoal');
+        const mark = () => mm.querySelectorAll('[data-goal]').forEach((c) => c.classList.toggle('sel', c.dataset.goal === inp.value));
+        inp.oninput = () => { inp.value = inp.value.replace(/[^0-9,.]/g, ''); mark(); };
+        mm.querySelectorAll('[data-goal]').forEach((c) => { c.onclick = () => { inp.value = c.dataset.goal; mark(); }; });
+        inp.focus();
+        const go = () => {
+          if (!inp.value.trim()) return close('skip');
+          const g = parseFloat(inp.value.replace(',', '.'));
+          if (isNaN(g) || g <= 0 || g > 10) { toast('Mục tiêu là số từ 0 đến 10, ví dụ 7 hoặc 8,5', 'err'); inp.focus(); return; }
+          close(g);
+        };
+        mm.querySelector('#ptGoalOk').onclick = go;
+        inp.onkeydown = (e) => { if (e.key === 'Enter') go(); };
+      }
+    }).then((v) => (v === '' || v == null ? null : v));
   }
 
   /* ---------- thống kê ---------- */
