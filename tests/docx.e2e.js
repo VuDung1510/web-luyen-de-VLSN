@@ -51,7 +51,7 @@ function check(cond, msg) { if (!cond) throw new Error('KHÔNG ĐẠT: ' + msg);
 /** Đề mẫu tự soạn theo mẫu VLSN: 18–4–6, có công thức, 3 hình (câu 2, 5, 5), 1 hình EMF (câu 6), bảng (câu 7), ma trận (câu 4) */
 async function sampleDocx() {
   const media = { rId1: { name: 'image1.png', data: M.png(240, 160, [220, 40, 40]) }, rId2: { name: 'image2.png', data: M.png(240, 160, [40, 160, 60]) },
-    rId3: { name: 'image3.png', data: M.png(200, 120, [40, 60, 200]) }, rId4: { name: 'image4.emf', data: Buffer.from('EMF giả') } };
+    rId3: { name: 'image3.bmp', data: bmp(200, 120) }, rId4: { name: 'image4.emf', data: Buffer.from('EMF giả') } };
   const opt = 'A. 1\tB. 2\tC. 3\tD. 4';
   const B = [
     M.tbl([[['TRUNG TÂM MẪU', 'Mã đề: 001'], ['ĐỀ KIỂM TRA MẪU (tự soạn)', 'Thời gian: 50 phút']]]),
@@ -97,6 +97,14 @@ async function sampleDocx() {
   return M.docx(B, { media, header: 'Đầu trang mẫu' });
 }
 const { rad } = M;
+/** BMP 24 bit (R-11: định dạng máy chủ không nhận → phải đổi sang PNG trước khi tải lên) */
+function bmp(w, h) {
+  const row = Math.ceil(w * 3 / 4) * 4, size = 54 + row * h, b = Buffer.alloc(size);
+  b.write('BM', 0); b.writeUInt32LE(size, 2); b.writeUInt32LE(54, 10); b.writeUInt32LE(40, 14); b.writeInt32LE(w, 18); b.writeInt32LE(h, 22);
+  b.writeUInt16LE(1, 26); b.writeUInt16LE(24, 28); b.writeUInt32LE(row * h, 34);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const o = 54 + y * row + x * 3; b[o] = 200; b[o + 1] = x & 255; b[o + 2] = 40; }
+  return b;
+}
 
 (async () => {
   const browser = await chromium.launch();
@@ -107,7 +115,7 @@ const { rad } = M;
   ad.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
   await routeCdn(ad);
   const uploads = [];
-  await ad.route('**/exec', (r) => { const pd = r.request().postData() || ''; if (/"action":"adminUploadImage"/.test(pd)) uploads.push(Date.now()); r.continue(); });
+  await ad.route('**/exec', (r) => { const pd = r.request().postData() || ''; if (/"action":"adminUploadImage"/.test(pd)) uploads.push((pd.match(/"mime":"([^"]+)"/) || [])[1]); r.continue(); });
   ad.on('dialog', (dl) => dl.accept());
 
   await ad.goto(BASE + '/admin.html');
@@ -165,6 +173,7 @@ const { rad } = M;
   await ad.click('#impAdd');
   await ad.waitForSelector('#impTabs', { state: 'detached', timeout: 20000 });
   check(uploads.length === 3, 'TC-3.5 bấm thêm: adminUploadImage đúng 3 lần (' + uploads.length + ')');
+  check(uploads.every((m) => /^image\/(png|jpeg)$/.test(m)) && uploads[2] === 'image/jpeg', 'R-11 hình BMP được vẽ lại (JPEG) trước khi tải lên (' + uploads.join(', ') + ')');
   const nq = await ad.$$eval('.qedit', (x) => x.length);
   check(nq === 28, 'trình soạn có 28 câu');
   const hinh = await ad.$$eval('.qedit input[data-f="hinhAnh"]', (x) => x.map((e) => e.value));
@@ -238,6 +247,31 @@ const { rad } = M;
   await mp.screenshot({ path: path.join(SHOTS, '07-ket-qua-dien-thoai' + TAG + '.png') });
   await mctx.close();
 
+  // ---- R-7: tải hình lỗi → câu có nhãn "hình cần chụp lại" ----
+  {
+    const fctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const fp = await fctx.newPage();
+    await routeCdn(fp);
+    await fp.route('**/exec', (r) => (/"action":"adminUploadImage"/.test(r.request().postData() || '')
+      ? r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Lỗi thử tải hình' }) }) : r.continue()));
+    fp.on('dialog', (dl) => dl.accept());
+    await fp.goto(BASE + '/admin.html');
+    await fp.fill('#pw', process.env.ADMIN_PW);
+    await fp.click('#btnLogin');
+    await fp.waitForSelector('#nav:not(.hidden)');
+    await fp.goto(BASE + '/admin.html#/de-thi/moi');
+    await fp.waitForSelector('#btnImport');
+    await fp.click('#btnImport');
+    await fp.click('#impTabFile');
+    await fp.setInputFiles('#impFileInput', { name: 'de-mau.docx', mimeType: 'application/octet-stream', buffer: buf });
+    await fp.waitForSelector('#impStats');
+    await fp.click('#impAdd');
+    await fp.waitForSelector('#impTabs', { state: 'detached', timeout: 20000 });
+    const lab = await fp.$$eval('.qedit [data-hinhloi]', (x) => x.map((e) => e.closest('.qedit').dataset.q).join(','));
+    check(lab === '1,4,5', 'R-7 tải hình lỗi: câu 2, 5 (và 6 EMF) có nhãn "hình cần chụp lại" (' + lab + ')');
+    await fctx.close();
+  }
+
   // ---- thư viện không tải được ----
   const bctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const bp = await bctx.newPage();
@@ -290,10 +324,10 @@ const { rad } = M;
   // ---- R-13 (còn từ Pha 2): đăng xuất xóa giỏ câu / bộ lọc Ngân hàng ----
   await ad.goto(BASE + '/admin.html#/');
   await ad.waitForSelector('#btnOut');
-  await ad.evaluate(() => { sessionStorage.setItem('ld_bank_cart', JSON.stringify({ items: [{ maKho: 'X' }], tieuDe: '' })); sessionStorage.setItem('ld_bank_filter', '{}'); });
+  await ad.evaluate(() => { sessionStorage.setItem('ld_bank_cart', JSON.stringify({ items: [{ maKho: 'X' }], tieuDe: '' })); sessionStorage.setItem('ld_bank_filter', '{}'); sessionStorage.setItem('ld_bank_so', '{}'); });
   await ad.click('#btnOut');
   await ad.waitForSelector('#pw');
-  check(await ad.evaluate(() => sessionStorage.getItem('ld_bank_cart') === null && sessionStorage.getItem('ld_bank_filter') === null), 'R-13 đăng xuất: xóa giỏ câu và bộ lọc Ngân hàng');
+  check(await ad.evaluate(() => sessionStorage.getItem('ld_bank_cart') === null && sessionStorage.getItem('ld_bank_filter') === null && sessionStorage.getItem('ld_bank_so') === null), 'R-13/R-10 đăng xuất: xóa giỏ câu, bộ lọc và số câu ma trận');
 
   check(!errors.length, 'không có lỗi JS: ' + errors.join(' | '));
   await browser.close();

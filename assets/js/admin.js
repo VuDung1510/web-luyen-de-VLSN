@@ -39,7 +39,7 @@
     studentsCache = null;
     // R-13 (Pha 2): thống kê kho, giỏ câu và bộ lọc Ngân hàng thuộc phiên đăng nhập cũ
     bankMeta = null; draftFromBank = null;
-    try { sessionStorage.removeItem(CART_KEY); sessionStorage.removeItem(BF_KEY); } catch (e) { /* bỏ qua */ }
+    try { sessionStorage.removeItem(CART_KEY); sessionStorage.removeItem(BF_KEY); sessionStorage.removeItem('ld_bank_so'); } catch (e) { /* bỏ qua */ }
     me = null;
     if (!silent) toast('Đã đăng xuất');
     route();
@@ -436,7 +436,8 @@
     $app.appendChild(tl);
   }
 
-  function shrinkImage(file) {
+  /** force: luôn vẽ lại qua canvas (vd hình BMP từ file Word: máy chủ chỉ nhận png/jpeg/gif/webp) */
+  function shrinkImage(file, force) {
     return new Promise((resolve, reject) => {
       if (file.size > 15 * 1024 * 1024) return reject(new Error('Ảnh quá lớn.'));
       const reader = new FileReader();
@@ -448,7 +449,7 @@
         img.onload = () => {
           const max = 1400;
           const scale = Math.min(1, max / Math.max(img.width, img.height));
-          if (scale === 1 && file.size < 900 * 1024) return resolve({ base64: url, mime: file.type });
+          if (scale === 1 && file.size < 900 * 1024 && !force) return resolve({ base64: url, mime: file.type });
           const c = document.createElement('canvas');
           c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
           const ctx = c.getContext('2d');
@@ -487,6 +488,7 @@
     XLSX: ['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js']
   };
   const libLoading = {};
+  const FILE_EXTS = ['.docx', '.xlsx', '.xls', '.csv', '.txt'];
   function loadLib(name) {
     if (window[name]) return Promise.resolve(window[name]);
     if (libLoading[name]) return libLoading[name];
@@ -562,7 +564,7 @@
           const st = p.stats;
           h += `<table class="imp-stats" id="impStats"><tbody>
             <tr><th>Số câu theo phần</th><td>Phần I: <b>${byPart[1] || 0}</b> · Phần II: <b>${byPart[2] || 0}</b> · Phần III: <b>${byPart[3] || 0}</b></td></tr>
-            <tr><th>Công thức</th><td>Đã đổi: <b data-k="mathOk">${st.mathOk}</b> · Chưa đổi được: <b data-k="mathFail" class="${st.mathFail ? 'warn-text' : ''}">${st.mathFail}</b>${st.ole ? ` · MathType (OLE): <b class="warn-text">${st.ole}</b>` : ''}</td></tr>
+            <tr><th>Công thức trong câu hỏi</th><td>Đã đổi: <b data-k="mathOk">${st.mathOkInQ}</b> · Chưa đổi được: <b data-k="mathFail" class="${st.mathFailInQ ? 'warn-text' : ''}">${st.mathFailInQ}</b>${st.oleInQ ? ` · MathType (OLE): <b class="warn-text">${st.oleInQ}</b>` : ''}</td></tr>
             <tr><th>Hình</th><td>Sẽ tải lên: <b data-k="imgs">${p.images.length}</b>${st.imagesBad ? ` · Cần chụp lại: <b class="warn-text">${st.imagesBad}</b>` : ''}${st.tables ? ` · Bảng: <b>${st.tables}</b>` : ''}</td></tr>
           </tbody></table>`;
         }
@@ -621,7 +623,13 @@
       const drop = $('#impDrop');
       ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('drag'); }));
       ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('drag'); }));
-      drop.addEventListener('drop', (e) => { const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) handleFile(f); });
+      drop.addEventListener('drop', (e) => {
+        const f = e.dataTransfer && e.dataTransfer.files[0];
+        if (!f) return;
+        // lọc đuôi như ô chọn file (K-1)
+        if (FILE_EXTS.indexOf('.' + String(f.name).toLowerCase().split('.').pop()) < 0) { fileRun++; parsed = null; showError('Chỉ nhận file Word (.docx), Excel (.xlsx), .csv hoặc văn bản .txt.'); return; }
+        handleFile(f);
+      });
 
       const finish = async (replace) => {
         if (!parsed || busy) return;
@@ -641,13 +649,14 @@
             prog(`Tải ${paths.length} hình… (${k}/${paths.length})`, (k - 1) / paths.length * 100);
             try {
               const blob = new Blob([im.data], { type: im.mime });
-              const { base64, mime } = await shrinkImage(blob);
+              const { base64, mime } = await shrinkImage(blob, !/^image\/(png|jpeg|gif|webp)$/.test(im.mime));
               const r = await api('adminUploadImage', { base64, mime, name: im.name });
               urls[im.n] = byPath[im.path] = r.url;
             } catch (e) { urls[im.n] = byPath[im.path] = null; errs.push(e.message); }
           }
           prog('Đã tải hình', 100);
           const bad = DocxReader.attachImages(qs, urls);
+          bad.forEach((n) => { qs[n - 1].hinhLoi = (qs[n - 1].hinhLoi || 0) + 1; }); // R-7: nhãn "hình cần chụp lại" trong trình soạn
           busy = false; mopts.sticky = false;
           if (bad.length) toast('Không tải được hình ở câu ' + [...new Set(bad)].join(', ') + (errs[0] ? ': ' + errs[0] : '') + '. Có thể bấm "Tải ảnh" trong từng câu.', 'err');
         }
@@ -664,10 +673,10 @@
       <div id="impHelp" class="notice small"></div>
       <div class="field" style="margin-top:10px" id="impTextWrap"><textarea id="impText" rows="12" placeholder="Dán nội dung vào đây…"></textarea></div>
       <div id="impFile" class="hidden" style="margin-top:10px">
-        <label class="dropzone" id="impDrop"><input type="file" id="impFileInput" accept=".docx,.xlsx,.xls,.csv" class="hidden">
+        <label class="dropzone" id="impDrop"><input type="file" id="impFileInput" accept="${FILE_EXTS.join(',')}" class="hidden">
           <span class="dz-icon" aria-hidden="true">⇪</span>
           <span><b>Kéo thả file vào đây</b> hoặc <span class="btn btn-sm">Chọn file</span></span>
-          <span class="small muted">Word (.docx), Excel (.xlsx) hoặc .csv · tối đa 10 MB</span></label>
+          <span class="small muted">Word (.docx), Excel (.xlsx), .csv hoặc .txt · tối đa 10 MB</span></label>
       </div>
       <div id="impProg" class="imp-prog hidden" aria-live="polite"><div class="progress"><div id="impProgBar"></div></div><span id="impProgText" class="small"></span></div>
       <div id="impResult" class="small"></div>

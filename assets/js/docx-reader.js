@@ -13,6 +13,8 @@
   'use strict';
 
   const MAX_BYTES = 10 * 1024 * 1024;
+  const MAX_UNZIP = 60 * 1024 * 1024; // tổng sau giải nén
+  const MAX_XML = 30 * 1024 * 1024; // riêng word/document.xml
   const IMG_MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', webp: 'image/webp', svg: 'image/svg+xml', tif: 'image/tiff', tiff: 'image/tiff' };
   const BROWSER_OK = { png: 1, jpg: 1, jpeg: 1, gif: 1, bmp: 1, webp: 1 };
   const MARK_FAIL = 'công thức chưa đổi được';
@@ -47,7 +49,7 @@
     const top = { n: '#doc', a: {}, c: [] };
     const stack = [top];
     let prefixMap = null; // tiền tố trong file → tiền tố chuẩn
-    const re = /<(\/?)([^\s>\/!?]+)((?:\s+[^\s=>\/]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*(\/?)>|<!--[\s\S]*?-->|<\?[\s\S]*?\?>|<!\[CDATA\[([\s\S]*?)\]\]>|<![^>]*>|([^<]+)/g;
+    const re = /<(\/?)([^\s>\/!?<]+)((?:\s+[^\s=>\/<]+\s*=\s*(?:"[^"<]*"|'[^'<]*'))*)\s*(\/?)>|(<!--|<!\[CDATA\[)|<\?[^<]*?\?>|<![^<>]*>|([^<]+)|</g;
     const attrRe = /([^\s=]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
     const norm = (name) => {
       if (!prefixMap) return name;
@@ -63,7 +65,17 @@
         if (KEEP_SPACE[cur.n] || /\S/.test(m[6])) cur.c.push({ t: decodeEnt(m[6]) });
         continue;
       }
-      if (m[5] != null) { stack[stack.length - 1].c.push({ t: m[5] }); continue; }
+      if (m[5] != null) {
+        // chú thích / CDATA: tìm điểm kết thúc bằng indexOf (không quét lại → thời gian tuyến tính kể cả khi file hỏng)
+        const cdata = m[5] !== '<!--';
+        const endTok = cdata ? ']]>' : '-->';
+        const end = s.indexOf(endTok, re.lastIndex);
+        if (end < 0) break; // không đóng: bỏ phần còn lại
+        if (cdata) stack[stack.length - 1].c.push({ t: s.slice(re.lastIndex, end) });
+        re.lastIndex = end + 3;
+        continue;
+      }
+      if (m[0] === '<') continue; // dấu "<" lẻ (XML hỏng): bỏ qua
       if (!m[2]) continue; // chú thích, khai báo
       if (m[1]) { // thẻ đóng
         if (stack.length > 1) stack.pop();
@@ -137,7 +149,7 @@
     '∞': ['\\infty', 'ord'], '∂': ['\\partial', 'ord'], '∇': ['\\nabla', 'ord'], '∘': ['\\circ', 'ord'], '′': ["'", 'ord'], '″': ["''", 'ord'],
     '…': ['\\ldots', 'ord'], '⋯': ['\\cdots', 'ord'], '∠': ['\\angle', 'ord'], 'ℏ': ['\\hbar', 'ord'], 'ℓ': ['\\ell', 'ord'], '∀': ['\\forall', 'ord'],
     '∃': ['\\exists', 'ord'], '∅': ['\\emptyset', 'ord'], '%': ['\\%', 'ord'], '{': ['\\{', 'ord'], '}': ['\\}', 'ord'], '#': ['\\#', 'ord'],
-    '_': ['\\_', 'ord'], '$': ['\\$', 'ord'], '\\': ['\\backslash', 'ord'], '^': ['\\wedge', 'ord'], '‖': ['\\|', 'ord'], '⟨': ['\\langle', 'ord'],
+    '_': ['\\_', 'ord'], '$': ['\\char36', 'ord'], '\\': ['\\backslash', 'ord'], '^': ['\\wedge', 'ord'], '‖': ['\\|', 'ord'], '⟨': ['\\langle', 'ord'],
     '⟩': ['\\rangle', 'ord'], '&': ['', 'ord'], '​': ['', 'ord'], '⁡': ['', 'ord'], '⁢': ['', 'ord'], '⁣': ['', 'ord'],
     ' ': ['\\,', 'ord'], ' ': ['\\ ', 'ord'], ' ': ['\\quad', 'ord'], ' ': ['\\ ', 'ord'], ' ': ['\\ ', 'ord'], ' ': ['\\ ', 'ord'], ' ': ['\\,', 'ord'],
     '−': ['-', 'minus'], '-': ['-', 'minus'], '–': ['-', 'minus']
@@ -162,7 +174,7 @@
   }
   const isLetter = (ch) => /\p{L}/u.test(ch);
   const isAscii = (ch) => ch.charCodeAt(0) < 128;
-  const escText = (s) => s.replace(/[\\{}$%#&_^~]/g, (c) => ({ '\\': '\\backslash ', '~': '\\sim ' }[c] || '\\' + c));
+  const escText = (s) => s.replace(/[\\{}$%#&_^~]/g, (c) => ({ '\\': '\\textbackslash ', '~': '\\textasciitilde ', '$': '\\textdollar ', '^': '\\textasciicircum ' }[c] || '\\' + c));
 
   /** Bộ ghép LaTeX: tự chèn khoảng trắng quanh dấu quan hệ / phép toán, phân biệt dấu trừ một ngôi */
   function Out(inScript) { this.s = ''; this.inScript = inScript; }
@@ -182,7 +194,8 @@
   };
   Out.prototype.minus = function () {
     const t = this.s.replace(/(\\ |\s)+$/, '');
-    if (!t || /[([{,;^_]$/.test(t) || REL_CMD.test(t) || /[+\-]$/.test(t)) { this.s = t + (t && /[=<>]$|\\[a-zA-Z]+$/.test(t) ? ' ' : '') + '-'; return; }
+    if (/[+\-]$/.test(t)) { this.s = t + ' -'; return; } // "x − −y" → "x - -y" (không thành "--")
+    if (!t || /[([{,;^_]$/.test(t) || REL_CMD.test(t)) { this.s = t + (t && /[=<>]$|\\[a-zA-Z]+$/.test(t) ? ' ' : '') + '-'; return; }
     this.op('-');
   };
   Out.prototype.degree = function () {
@@ -492,6 +505,12 @@
     prog('Đọc file…');
     let zip;
     try { zip = await JSZip.loadAsync(bytes); } catch (e) { throw new Error('File Word bị hỏng, không mở được (' + (e && e.message ? e.message : 'lỗi giải nén') + ').'); }
+    // R-4: chặn "bom nén" — kích thước sau giải nén (JSZip ghi trong mục lục zip) phải hợp lý
+    const usize = (f) => (f && f._data && f._data.uncompressedSize) || 0;
+    const total = Object.keys(zip.files).reduce((a, k) => a + usize(zip.files[k]), 0);
+    if (usize(zip.file('word/document.xml')) > MAX_XML || total > MAX_UNZIP) {
+      throw new Error('File Word bất thường: khi giải nén quá lớn (' + Math.round(total / 1048576) + ' MB). Hãy mở bằng Word, nén ảnh rồi lưu lại.');
+    }
     const get = async (p) => { const f = zip.file(p); return f ? f.async('string') : null; };
     const docXml = await get('word/document.xml');
     if (!docXml) throw new Error('File không có nội dung Word (thiếu word/document.xml). Hãy lưu lại bằng Word dạng .docx.');
@@ -798,6 +817,9 @@
         qwarn.push(label + ': ' + (nb > 1 ? nb + ' hình' : 'hình') + ' cần chụp lại hoặc lưu lại dạng PNG (' + Object.keys(bad).map((k) => KIND_MSG[k] || k).join('; ') + ').');
       }
     });
+    // N-1: công thức nằm trong các câu được nhận (không tính đầu đề, Phần IV, phần ngoài câu)
+    stats.mathOkInQ = 0;
+    parsed.questions.forEach((q) => FIELDS.forEach((f) => { stats.mathOkInQ += (String(q[f] || '').match(/\$[^$\n]+?\$/g) || []).length; }));
     stats.imagesUsed = Object.keys(used).length;
     stats.paths = {};
     Object.keys(used).forEach((n) => { stats.paths[used[n].path] = 1; });
@@ -867,13 +889,23 @@
     if (size > MAX_BYTES) throw new Error('File lớn hơn 10 MB (' + (size / 1048576).toFixed(1).replace('.', ',') + ' MB). Hãy nén ảnh trong Word hoặc tách đề thành nhiều file.');
     if (ext === 'docx' || ext === 'docm') return 'docx';
     if (ext === 'xlsx' || ext === 'xlsm' || ext === 'xls') return 'xlsx';
-    if (ext === 'csv' || ext === 'tsv' || ext === 'txt') return 'csv';
+    if (ext === 'csv' || ext === 'tsv') return 'csv';
+    if (ext === 'txt') return 'txt'; // văn bản đề (như tab "Dán văn bản")
     if (ext === 'doc') throw new Error('File .doc (Word 97–2003) chưa đọc được. Hãy mở bằng Word, chọn Lưu thành → "Word Document (.docx)" rồi tải lại.');
     if (ext === 'pdf') throw new Error('Chưa đọc được file PDF. Hãy dùng file Word (.docx) gốc của đề.');
-    throw new Error('Chỉ nhận file Word (.docx), Excel (.xlsx) hoặc .csv.');
+    throw new Error('Chỉ nhận file Word (.docx), Excel (.xlsx), .csv hoặc văn bản .txt.');
   }
 
   async function readFile(name, data, libs) {
+    try { return await readFile0(name, data, libs); } catch (e) {
+      // cấu trúc lồng quá sâu / hết bộ nhớ → thông báo tiếng Việt thay cho lỗi kỹ thuật
+      if (e instanceof RangeError || /call stack|allocation|out of memory|Invalid string length/i.test(String(e && e.message))) {
+        throw new Error('File bất thường (cấu trúc lồng quá sâu hoặc quá lớn), không đọc được. Hãy mở bằng Word/Excel và lưu lại.');
+      }
+      throw e;
+    }
+  }
+  async function readFile0(name, data, libs) {
     libs = libs || {};
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
     const kind = kindOf(name, bytes.length);
@@ -891,6 +923,7 @@
       return { kind: 'xlsx', questions: r.questions, warnings: sh.warnings.concat(r.warnings), stats: { sheet: sh.sheet, rows: sh.rows.length }, images: [] };
     }
     const d = decodeText(bytes);
+    if (kind === 'txt') { const r = I.fromText(d.text); return { kind: 'txt', questions: r.questions, warnings: (d.warn ? [d.warn.replace('File CSV', 'File văn bản')] : []).concat(r.warnings), stats: {}, images: [] }; }
     if (/\.tsv$/i.test(name)) { const r = I.fromTsv(d.text); return { kind: 'csv', questions: r.questions, warnings: (d.warn ? [d.warn] : []).concat(r.warnings), stats: {}, images: [] }; }
     const r = I.fromCsv(d.text);
     return { kind: 'csv', questions: r.questions, warnings: (d.warn ? [d.warn] : []).concat(r.warnings), stats: {}, images: [] };

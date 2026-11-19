@@ -295,7 +295,7 @@ const strip = (q) => { const o = Object.assign({}, q); delete o.hinhAnh; return 
   await test('TC-3.10 file > 10 MB, không phải docx/xlsx, .doc, docx hỏng → thông báo tiếng Việt', async () => {
     const rej = async (name, data, re) => { await assert.rejects(R.readFile(name, data, libs), (e) => { assert.ok(re.test(e.message), e.message); return true; }); };
     await rej('to.docx', Buffer.alloc(10 * 1024 * 1024 + 1), /lớn hơn 10 MB/);
-    await rej('anh.png', M.png(2, 2), /Chỉ nhận file Word \(\.docx\), Excel \(\.xlsx\) hoặc \.csv/);
+    await rej('anh.png', M.png(2, 2), /Chỉ nhận file Word \(\.docx\), Excel \(\.xlsx\), \.csv hoặc văn bản \.txt/);
     await rej('de.pdf', Buffer.from('%PDF-1.4'), /PDF/);
     await rej('de.doc', Buffer.from([0xd0, 0xcf, 0x11, 0xe0]), /Word 97–2003/);
     await rej('hong.docx', Buffer.from('PK\u0003\u0004 không phải zip thật'), /bị hỏng/);
@@ -326,6 +326,69 @@ const strip = (q) => { const o = Object.assign({}, q); delete o.hinhAnh; return 
       '<ns0:p><ns0:r><ns0:t>Đáp số: 3 &amp; 4</ns0:t></ns0:r></ns0:p></ns0:body></ns0:document>');
     const r = await R.readFile('x.docx', await z.generateAsync({ type: 'nodebuffer' }), libs);
     assert.strictEqual(r.questions[0].noiDung, 'Tính $x$');
+  });
+
+  // ---------- Vòng 2 (soát code / kiểm thử) ----------
+  await test('R-1 "Chọn câu đúng." / "Chọn cách…" là câu dẫn (giữ trong nội dung); "Chọn B." mới là đáp án', async () => {
+    const r = I.fromText('PHẦN I\nCâu 1. Cho các phát biểu sau:\nChọn câu đúng.\nA. x\nB. y\nC. z\nD. t\nCâu 2. Hỏi?\nChọn cách làm đúng:\nA. x\tB. y\tC. z\tD. t\nCâu 3. Hỏi?\nA. x\tB. y\tC. z\tD. t\nChọn B.\nCâu 4. Hỏi?\nA. x\tB. y\tC. z\tD. t\nChọn: D. Lời giải: vì t');
+    assert.deepStrictEqual(r.questions.map((q) => q.dapAn), ['', '', 'B', 'D']);
+    assert.strictEqual(r.questions[0].noiDung, 'Cho các phát biểu sau:\nChọn câu đúng.');
+    assert.strictEqual(r.questions[1].noiDung, 'Hỏi?\nChọn cách làm đúng:');
+    assert.strictEqual(r.questions[3].loiGiai, 'vì t');
+  });
+  await test('R-2 lời giải sau HẾT đánh số lại, không có PHẦN → ghép theo thứ tự; đáp án lệch loại câu → bỏ + cảnh báo', async () => {
+    const de = 'PHẦN 1\nCâu 1. a?\nA. 1\tB. 2\tC. 3\tD. 4\nCâu 2. b?\nA. 1\tB. 2\tC. 3\tD. 4\nPHẦN 3\nCâu 1. Tính x?\n---------- HẾT ----------\nHƯỚNG DẪN GIẢI\n';
+    const r = I.fromText(de + 'Câu 1.\nĐáp án: B\nVì 1\nCâu 2.\nĐáp án: C\nCâu 1.\nĐáp số: 2,5\nVì 3');
+    assert.deepStrictEqual(r.questions.map((q) => [q.phan, q.dapAn, q.loiGiai]), [[1, 'B', 'Đáp án: B\nVì 1'], [1, 'C', 'Đáp án: C'], [3, '2,5', 'Đáp số: 2,5\nVì 3']]);
+    const r2 = I.fromText(de + 'PHẦN 3\nCâu 1.\nĐáp án: B');
+    assert.strictEqual(r2.questions[2].dapAn, '');
+    assert.ok(r2.warnings.some((w) => /^Câu 3 .*"B" không khớp loại câu/.test(w)), r2.warnings.join('|'));
+  });
+  await test('R-3 XML hỏng (thuộc tính chứa "<", chú thích không đóng): đọc tuyến tính, file hỏng < 1 s', async () => {
+    let t0 = Date.now();
+    R.parseXml('<a' + ' x="<"'.repeat(50000));
+    R.parseXml('<!--'.repeat(50000));
+    R.parseXml('<![CDATA['.repeat(50000) + '<a x="1">');
+    assert.ok(Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');
+    const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+    const z = new JSZip(); z.file('word/document.xml', `<w:document ${W}><w:body><w:p><w:r><w:t>PHẦN III</w:t></w:r></w:p><w:p><w:r><w:t>Câu 1. x</w:t></w:r></w:p>` + '<a' + ' x="<"'.repeat(30000) + '</w:body></w:document>');
+    const buf = await z.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    t0 = Date.now();
+    await R.readFile('hong.docx', buf, libs);
+    assert.ok(Date.now() - t0 < 1000, 'docx hỏng: ' + (Date.now() - t0) + ' ms');
+  });
+  await test('R-4 bom nén (giải nén quá lớn) và lồng quá sâu → thông báo tiếng Việt', async () => {
+    const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+    const z = new JSZip(); z.file('word/document.xml', `<w:document ${W}><w:body><w:p><w:r><w:t>` + 'a'.repeat(70e6) + '</w:t></w:r></w:p></w:body></w:document>');
+    const bomb = await z.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 9 } });
+    assert.ok(bomb.length < 10 * 1024 * 1024);
+    await assert.rejects(R.readFile('bom.docx', bomb, libs), /khi giải nén quá lớn/);
+    const z2 = new JSZip(); z2.file('word/document.xml', `<w:document ${W}>` + '<x>'.repeat(200000) + '<w:body></w:body></w:document>');
+    await assert.rejects(R.readFile('sau.docx', await z2.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }), libs), /File bất thường \(cấu trúc lồng quá sâu/);
+  });
+  await test('R-5 đáp án Phần III không phải số → cảnh báo có số câu', async () => {
+    const r = I.fromText('PHẦN III\nCâu 1. Tính q.\nĐáp số: $1,6.10^{-19}$ C\nCâu 2. Tính g.\nĐáp số: 9,8');
+    assert.ok(r.warnings.some((w) => /^Câu 1 .*không phải số/.test(w)), r.warnings.join('|'));
+    assert.ok(!r.warnings.some((w) => /^Câu 2/.test(w)));
+  });
+  await test('R-8 "$" trong công thức không phá $…$; hai dấu trừ liền nhau tách ra', async () => {
+    const conv = (xml) => R.omml2latex(R._find(R.parseXml('<m:oMath>' + xml + '</m:oMath>'), 'm:oMath')).latex;
+    const a = conv(mr('x') + mr('=', 1) + mr('5$'));
+    assert.ok(a.indexOf('$') < 0, a); katexOk(a);
+    const b = conv(mr('x') + mr('−', 1) + mr('−', 1) + mr('y'));
+    assert.strictEqual(b, 'x - -y'); katexOk(b);
+    const c = conv(mr('a$b', 'nor'));
+    assert.ok(c.indexOf('$') < 0, c); katexOk(c);
+  });
+  await test('K-1 .txt đọc như "Dán văn bản"; .csv sai mẫu cột → cảnh báo câu không có nội dung', async () => {
+    const t = await R.readFile('de.txt', Buffer.from('Câu 1. Một câu hỏi\nCâu 2. Câu khác'), libs);
+    assert.deepStrictEqual(t.questions.map((q) => q.noiDung), ['Một câu hỏi', 'Câu khác']);
+    const c = await R.readFile('mot-cot.csv', Buffer.from('Câu 1. Một câu hỏi\nCâu 2. Câu khác'), libs);
+    assert.ok(c.warnings.length === 2 && /^Câu 1: không có nội dung — kiểm tra thứ tự cột/.test(c.warnings[0]), c.warnings.join('|'));
+  });
+  await test('N-1 thống kê "công thức trong câu hỏi" không tính công thức ở đầu đề', async () => {
+    const r = await readDocx([M.p(['Cho biết: ', M.math(mr('g') + mr('=', 1) + mr('10'))]), M.p('PHẦN III'), M.p(['Câu 1. Tính ', M.math(mr('x'))]), M.p('Đáp số: 1')]);
+    assert.deepStrictEqual([r.stats.mathOk, r.stats.mathOkInQ], [2, 1]);
   });
 
   await test('TC-3.13 importer cũ: dán văn bản / TSV không đổi kết quả (xem tests/importer.test.js)', async () => {

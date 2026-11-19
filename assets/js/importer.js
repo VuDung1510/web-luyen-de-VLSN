@@ -62,7 +62,10 @@
       q.loai = normType(q.loai, q);
       return q;
     });
-    return { questions, warnings: [] };
+    // K-1: hàng không có nội dung (sai thứ tự cột / sai mẫu) → cảnh báo, không âm thầm ra câu trống
+    const warnings = [];
+    questions.forEach((q, i) => { if (!String(q.noiDung || '').trim() && !String(q.hinhAnh || '').trim()) warnings.push('Câu ' + (i + 1) + ': không có nội dung — kiểm tra thứ tự cột (Loại | Nội dung | A | B | C | D | Đáp án …).'); });
+    return { questions, warnings };
   }
 
   function normType(t, q) {
@@ -99,6 +102,7 @@
     const qs = [];
     const warnings = [];
     let part = 0, cur = null, mode = 'body', inKey = false, keyPart = 0, ended = false, sawP4 = false;
+    let solPart = 0, solIdx = -1; // phần lời giải sau HẾT: PHẦN ghi rõ (nếu có) và vị trí câu vừa ghép
     const keyMap = {};
     const partOf = (s) => {
       const m = s.match(/^\s*PH[ẦÀAẦ]N\s+(IV|III|II|I|4|3|2|1)\b/i);
@@ -117,14 +121,14 @@
       // dòng để học sinh tự ghi đáp án (Phần III của mẫu VLSN) — không phải đáp án
       if (/^Đ[áa]p\s*[áa]n\s+c[ủu]a\s+em\b/i.test(t)) continue;
       // "---------- HẾT ----------": hết phần đề
-      if (/^[-–—_=.*\s]*H[ẾE]T[-–—_=.*\s]*$/i.test(t) && /[-–—_=.*]/.test(t)) { push(); ended = true; mode = 'body'; continue; }
+      if (/^[-–—_=.*\s]*H[ẾE]T[-–—_=.*\s]*$/i.test(t) && /[-–—_=.*]/.test(t)) { push(); ended = true; solPart = 0; solIdx = -1; mode = 'body'; continue; }
       // "HƯỚNG DẪN GIẢI" / "LỜI GIẢI CHI TIẾT" (dòng riêng, sau phần đề): các "Câu n" tiếp theo là lời giải
       if (qs.length + (cur ? 1 : 0) > 0 && /^(H[ƯU][ỚO]NG\s+D[ẪA]N(\s+GI[ẢA]I)?|L[ỜO]I\s+GI[ẢA]I(\s+CHI\s+TI[ẾE]T)?|Đ[ÁA]P\s+[ÁA]N\s+V[ÀA]\s+H[ƯU][ỚO]NG\s+D[ẪA]N(\s+GI[ẢA]I)?)\s*:?\s*$/i.test(t) && t === t.toUpperCase()) {
-        push(); inKey = false; ended = true; mode = 'body'; continue;
+        push(); inKey = false; ended = true; solPart = 0; solIdx = -1; mode = 'body'; continue;
       }
       if (/^(B[ẢA]NG\s+)?Đ[ÁA]P\s+[ÁA]N\s*:?\s*$/i.test(t) || /^B[ẢA]NG\s+Đ[ÁA]P\s+[ÁA]N/i.test(t)) { push(); inKey = true; keyPart = part; }
       const p = partOf(t);
-      if (p) { if (inKey) keyPart = p; else { push(); part = p; if (p === 4) sawP4 = true; } continue; }
+      if (p) { if (inKey) keyPart = p; else if (ended) { push(); solPart = p; solIdx = -1; } else { push(); part = p; if (p === 4) sawP4 = true; } continue; }
       if (inKey) {
         const re = /(?:C[âa]u\s*)?(\d+)\s*[.:)\-]\s*([ĐDSABCđds]{1,4}(?=\s|$|[,;|])|[-+]?\d+(?:[.,]\d+)?)/g;
         let m;
@@ -137,8 +141,14 @@
         push();
         if (ended) {
           // sau "HẾT": phần hướng dẫn giải, "Câu n" là lời giải của câu n đã đọc
-          const old = qs.find((q) => q.num === +qm[1] && q.phan === (part || 0)) || qs.find((q) => q.num === +qm[1] && !part);
+          // có "PHẦN …" trong phần lời giải: khớp (phần, số câu). Không có: ghép theo thứ tự — câu đầu tiên có số n
+          // nằm SAU câu vừa ghép (đề đánh số lại từ 1 ở mỗi phần thì lần lặp sau thuộc phần sau)
+          const n0 = +qm[1];
+          let idx = solPart ? qs.findIndex((q) => q.num === n0 && q.phan === solPart) : qs.findIndex((q, j) => j > solIdx && q.num === n0);
+          if (idx < 0 && !solPart) idx = qs.findIndex((q) => q.num === n0);
+          const old = idx >= 0 ? qs[idx] : null;
           if (old) {
+            solIdx = idx;
             cur = old; cur._old = true; mode = 'sol';
             const rest = (qm[2] || '').replace(LEVEL_RE, '').trim();
             if (rest) cur.loiGiai = (cur.loiGiai ? cur.loiGiai + '\n' : '') + rest;
@@ -155,7 +165,7 @@
       if (!cur) continue;
       if (cur._old && mode === 'sol') {
         const am2 = t.match(/^(Đ[áa]p\s*[áa]n|ĐA|Đ[áa]p\s*s[ốo])\s*[:.]?\s*(.+)$/i);
-        if (am2 && !cur.dapAn) cur.dapAn = am2[2].trim().replace(/[.。]$/, '');
+        if (am2 && !cur.dapAn) { cur.dapAn = am2[2].trim().replace(/[.。]$/, ''); cur._solKey = true; }
         const lm2 = t.match(/^(L[ờo]i\s*gi[ảa]i|H[ưu][ớo]ng\s*d[ẫa]n(\s*gi[ảa]i)?|HDG|HD|Gi[ảa]i)\s*[:.]\s*(.*)$/i);
         const line = lm2 ? lm2[3] : t;
         if (line) cur.loiGiai += (cur.loiGiai && !cur.loiGiai.endsWith('\n') ? '\n' : '') + line;
@@ -163,7 +173,12 @@
       }
 
       // "Chọn" chỉ là đáp án khi theo sau là đúng một chữ A–D (tránh nhầm câu dẫn "Chọn phát biểu đúng…")
-      const am = t.match(/^(Đ[áa]p\s*[áa]n|ĐA|Đ[áa]p\s*s[ốo])\s*[:.]?\s*(.+)$/i) || t.match(/^(Ch[ọo]n)\s*[:.]?\s*([A-D]\b.*)$/i);
+      // "Chọn B" / "Chọn: B." (có thể kèm "Lời giải: …" phía sau); "Chọn câu đúng." là câu dẫn, giữ trong nội dung
+      let am = t.match(/^(Đ[áa]p\s*[áa]n|ĐA|Đ[áa]p\s*s[ốo])\s*[:.]?\s*(.+)$/i);
+      if (!am) {
+        const cm0 = t.match(/^([Cc]h[ọo]n)\s*[:.]?\s*([A-D])(?![\p{L}\d])\s*[.,;)]?\s*(.*)$/u);
+        if (cm0 && (!cm0[3] || /^(L[ờo]i\s*gi[ảa]i|HD|Gi[ảa]i)\b/i.test(cm0[3]))) am = [t, cm0[1], cm0[2] + (cm0[3] ? ' ' + cm0[3] : '')];
+      }
       if (am && mode !== 'sol') {
         cur.dapAn = am[2].trim().replace(/[.。]$/, '');
         const sm = cur.dapAn.match(/^(\S+)\s*[.;]?\s*(L[ờo]i\s*gi[ảa]i|HD|Gi[ảa]i)\s*[:.]?\s*(.*)$/i);
@@ -204,6 +219,12 @@
     if (sawP4 || p4) warnings.push('Bỏ qua Phần IV (tự luận)' + (p4 ? ': ' + p4 + ' câu' : '') + '. Web chưa chấm tự luận.');
     const out = qs.filter((q) => q.phan !== 4).map((q, i) => {
       let loai = q._ds ? 'DS' : q._tn ? 'TN' : q.phan === 2 ? 'DS' : q.phan === 1 ? 'TN' : 'TL';
+      if (q._solKey && q.dapAn) {
+        // đáp án lấy từ phần lời giải sau "HẾT": phải hợp loại câu, không thì bỏ và cảnh báo (tránh ghép lệch phần)
+        const v = String(q.dapAn).trim();
+        const fit = loai === 'TN' ? /^[A-D]\.?$/i.test(v) : loai === 'DS' ? /^[ĐDS]{4}$/i.test(v.replace(/[\s,;.-]/g, '')) : /\d/.test(v) && !/^[A-D]\.?$/i.test(v);
+        if (!fit) { warnings.push('Câu ' + (i + 1) + ' (số ' + q.num + ' trong văn bản): đáp án trong lời giải "' + v + '" không khớp loại câu — đã bỏ, hãy kiểm tra lời giải có gắn đúng câu không.'); q.dapAn = ''; }
+      }
       if (!q.dapAn) {
         // bảng đáp án có chia PHẦN thì khớp theo (phần, số câu); không chia phần thì khớp theo số câu
         const k = keyMap[(q.phan || 0) + ':' + q.num] || keyMap['0:' + q.num];
@@ -232,6 +253,9 @@
           if (nm) {
             q.dapAn = nm[1].replace('−', '-');
             warnings.push('Câu ' + (i + 1) + ' (số ' + q.num + ' trong văn bản): đáp số "' + raw + '" — đã lấy số ' + q.dapAn + ', hãy kiểm tra lại.');
+          }
+          else if (!/^[-+]?\d+(?:[.,]\d+)?(\s*\|\s*[-+]?\d+(?:[.,]\d+)?)*$/.test(String(q.dapAn))) {
+            warnings.push('Câu ' + (i + 1) + ' (số ' + q.num + ' trong văn bản): đáp án Phần III "' + raw + '" không phải số — máy không chấm được, hãy sửa (vd 1,6e-19 hoặc 0,5).');
           }
         } else q.dapAn = plain;
       }

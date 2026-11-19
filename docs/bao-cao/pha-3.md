@@ -1,7 +1,7 @@
 # Báo cáo Pha 3 — Tải đề Word / Excel lên
 
 ## Tóm tắt cho giáo viên (bản của người làm)
-- Trong trình soạn đề, nút **Nhập nhanh từ Word / Excel** có thêm tab **Tải file lên**. Thầy kéo thả hoặc chọn file Word (.docx), Excel (.xlsx) hoặc .csv, tối đa 10 MB.
+- Trong trình soạn đề, nút **Nhập nhanh từ Word / Excel** có thêm tab **Tải file lên**. Thầy kéo thả hoặc chọn file Word (.docx), Excel (.xlsx), .csv hoặc văn bản .txt, tối đa 10 MB.
 - Web đọc file **ngay trên máy**: tự tách câu theo mẫu VLSN (PHẦN 1/2/3, Câu 1., A–D cách tab, a) b) c) d)), đổi công thức Equation sang dạng hiển thị trên web, lấy hình và bảng.
 - Trước khi thêm, thầy thấy bảng kết quả (số câu từng phần, số công thức đã đổi / chưa đổi, số hình) và xem trước từng câu. Câu có công thức chưa đổi được được **tô vàng** để thầy gõ lại.
 - Hình chỉ được tải lên Drive khi thầy bấm **Thêm vào đề**. Hình dạng WMF/EMF hay hình vẽ bằng công cụ Word thì web báo "cần chụp lại", nêu đúng số câu.
@@ -14,12 +14,12 @@
 ### Điều kiện vào pha (TC-3.0): thống kê file Word thật
 Tải bằng công cụ Google Drive (chỉ đọc) về thư mục nháp của phiên; **không** đưa file hay nội dung đề vào repo. Đếm trực tiếp trong `word/document.xml` (header/footer đếm riêng).
 
-| File (trên Drive) | Dung lượng | Công thức Equation (`m:oMath`) | MathType/OLE (`w:object`, `o:OLEObject`) | Hình theo đuôi | Hình nổi `wp:anchor` | VML (`v:imagedata`/`v:shape`) | Đánh số tự động `w:numPr` | Bảng | Header/footer |
+| File | Dung lượng | Công thức Equation (`m:oMath`) | MathType/OLE (`w:object`, `o:OLEObject`) | Hình theo đuôi | Hình nổi `wp:anchor` | VML (`v:imagedata`/`v:shape`) | Đánh số tự động `w:numPr` | Bảng | Header/footer |
 |---|---|---|---|---|---|---|---|---|---|
-| `01. De_thi_thu_GK1_VL12.docx` (mẫu VLSN) | 395 KB | **46** | 0 | png 5 (wmf/emf/jpg 0) | 0 | 0 | 0 | 2 (khung đầu đề + 1 bảng số liệu) | 1 + 1 |
-| `De_KS_Doi_tuyen_VL12_Lan1.docx` (nguồn mẫu chuẩn) | 2,2 MB | **153** | 0 | png 19 (18 trong thân, 1 ở đầu trang) | 0 | 0 | 0 | 2 | 3 + 2 |
-| `VL11_ĐỀ CHÍNH THỨC_…_GK1.docx` (thư mục "01. ĐỀ GỐC ĐÃ NHẬP") | 1,0 MB | **72** | 0 | png 5 | 0 | 0 | 0 | 1 (khung đầu đề) | 3 + 3 |
-| `VL11_ĐỀ CHÍNH THỨC_…_GK1_LỜI GIẢI.docx` (cùng thư mục) | 1,3 MB | **254** | 0 | png 10 | 0 | 0 | 0 | 1 (khung đầu đề) | 3 + 3 |
+| File 1: đề thi thử lớp 12 theo mẫu VLSN | 395 KB | **46** | 0 | png 5 (wmf/emf/jpg 0) | 0 | 0 | 0 | 2 (khung đầu đề + 1 bảng số liệu) | 1 + 1 |
+| File 2: đề khảo sát lớp 12 (nguồn của mẫu chuẩn) | 2,2 MB | **153** | 0 | png 19 (18 trong thân, 1 ở đầu trang) | 0 | 0 | 0 | 2 | 3 + 2 |
+| File 3: đề chính thức lớp 11 (trong thư mục đề gốc đã nhập) | 1,0 MB | **72** | 0 | png 5 | 0 | 0 | 0 | 1 (khung đầu đề) | 3 + 3 |
+| File 4: bản có lời giải của File 3 | 1,3 MB | **254** | 0 | png 10 | 0 | 0 | 0 | 1 (khung đầu đề) | 3 + 3 |
 
 Kết luận: **100 % công thức là Equation (OMML), không có MathType** → làm đủ phạm vi, có `omml2latex`. Không file nào dùng đánh số tự động cho "Câu"/phương án (vẫn hỗ trợ, TC-3.4). Phần tử OMML gặp trong file thật: `f`, `sSup`, `sSub`, `sSubSup`, `sPre` (hạt nhân), `rad`, `d` (có `begChr/endChr`), `acc` (vector), `nor`/`sty p` (đơn vị), `scr`.
 
@@ -28,10 +28,10 @@ Chạy chính `assets/js/docx-reader.js` + `importer.js` (Node và Chromium), c�
 
 | File | Câu nhận được (P I · P II · P III) | Công thức đổi được / chưa | Hình sẽ tải lên | Cảnh báo | Thời gian (Chromium) |
 |---|---|---|---|---|---|
-| 01. Đề thi thử GK1 VL12 | 28 (18 · 4 · 6) — đúng đề | 46 / 0 | 5 | "Chưa có đáp án ở 28 câu" (file đề không kèm đáp án) | 30 ms |
-| Đề KS đội tuyển lần 1 | 44 (30 · 8 · 6) — đúng đề | 153 / 0 | 17 (logo ở khung đầu đề bị bỏ đúng) | "Chưa có đáp án ở 44 câu" | 50 ms |
-| VL11 GK1 (đề) | 22 (14 · 2 · 6) — đúng đề; Phần IV tự luận bỏ qua | 72 / 0 | 2 (hình của Phần IV không lấy) | "Bỏ qua Phần IV (tự luận)"; "Chưa có đáp án ở 22 câu" | 16 ms |
-| VL11 GK1 (lời giải) | 28 (18 · 4 · 6) — đúng đề | 254 / 0 | 8 | 27/28 câu tự có đáp án (từ "Lời giải: Chọn B.", lời giải Đúng/Sai từng ý, "Đáp số: …"); 21 câu có mức độ từ nhãn [B]/[H]/[VD]/[VDC]; 5 cảnh báo "đáp số có đơn vị — đã lấy số, hãy kiểm tra"; 1 câu chưa có đáp án (đúng: file ghi chú câu đó không có câu hỏi riêng) | 44 ms |
+| File 1 | 28 (18 · 4 · 6) — đúng đề | 46 / 0 | 5 | "Chưa có đáp án ở 28 câu" (file đề không kèm đáp án) | 30 ms |
+| File 2 | 44 (30 · 8 · 6) — đúng đề | 153 / 0 | 17 (logo ở khung đầu đề bị bỏ đúng) | "Chưa có đáp án ở 44 câu" | 50 ms |
+| File 3 | 22 (14 · 2 · 6) — đúng đề; Phần IV tự luận bỏ qua | 72 / 0 | 2 (hình của Phần IV không lấy) | "Bỏ qua Phần IV (tự luận)"; "Chưa có đáp án ở 22 câu" | 16 ms |
+| File 4 | 28 (18 · 4 · 6) — đúng đề | 254 / 0 | 8 | 27/28 câu tự có đáp án (từ "Lời giải: Chọn B.", lời giải Đúng/Sai từng ý, "Đáp số: …"); 21 câu có mức độ từ nhãn [B]/[H]/[VD]/[VDC]; 5 cảnh báo "đáp số có đơn vị — đã lấy số, hãy kiểm tra"; 1 câu chưa có đáp án (đúng: file ghi chú câu đó không có câu hỏi riêng) | 44 ms |
 
 Đầu trang, chân trang, khung đầu đề (bảng 2 ô), dòng "Họ và tên", "Đáp án của em", "---------- HẾT ----------" và dòng sau HẾT **không** lẫn vào câu nào. Bảng số liệu trong câu thành khối `[BẢNG]`.
 
@@ -119,3 +119,27 @@ Test cũ (đã chạy lại): `backend` 13/13, `importer` đạt, `bank` 30/30, 
 - Chữ trong **khung văn bản (Text Box)** chưa được đọc (có cảnh báo). File thật hiện không có.
 - File cũ gõ bằng **MathType** chỉ được cảnh báo (đúng phạm vi); các file thật đã thử đều dùng Equation.
 - Đáp án đánh dấu bằng gạch chân/chữ đỏ vẫn hoãn (theo đặc tả).
+
+## Vòng 2 (người làm) — sửa theo `pha-3-soat.md` và `pha-3-kiem-thu.md`
+
+| Mã | Đã sửa thế nào | Test |
+|---|---|---|
+| R-1 (Vừa) | "Chọn …" chỉ là đáp án khi sau đó là **đúng một chữ A–D đứng riêng** (cho phép dấu chấm/phẩy, hoặc "Lời giải: …" phía sau). Regex dùng cờ `u` và `(?![\p{L}\d])`. "Chọn câu đúng.", "Chọn cách làm đúng:" giữ nguyên trong nội dung câu. | `docx.test.js` "R-1" |
+| R-2 (Vừa) | Sau "HẾT"/"HƯỚNG DẪN GIẢI": nếu có "PHẦN …" trong phần lời giải thì khớp (phần, số câu); nếu không thì **ghép theo thứ tự**: "Câu n" gắn vào câu đầu tiên có số n nằm sau câu vừa ghép (số lặp lại chuyển dần sang phần sau). Đáp án lấy từ lời giải phải hợp loại câu (A–D cho trắc nghiệm, 4 ý Đ/S cho đúng/sai, số cho trả lời ngắn); không hợp thì bỏ và cảnh báo "Câu n: đáp án trong lời giải … không khớp loại câu". Bảng đáp án cuối đề không đổi cách khớp. | `docx.test.js` "R-2" |
+| R-3 (Vừa) | Bộ đọc XML: tên và giá trị thuộc tính không được chứa `<`; dấu `<` lẻ bị bỏ qua; chú thích/CDATA tìm điểm kết thúc bằng `indexOf`, không đóng thì dừng. Thời gian tuyến tính: file hỏng 757 B của người soát từ 12,5 s → 26 ms; chuỗi 50 000 thuộc tính hỏng < 10 ms. | `docx.test.js` "R-3" (< 1 s); script `soat/xml.js`, `soat/bomb.js quad` |
+| R-4 | Trước khi giải nén: đọc kích thước sau giải nén trong mục lục zip; `document.xml` > 30 MB hoặc tổng > 60 MB → "File Word bất thường: khi giải nén quá lớn…". Lồng quá sâu / hết bộ nhớ (RangeError) → "File bất thường (cấu trúc lồng quá sâu hoặc quá lớn)…". Với .xlsx chỉ có phần bắt RangeError (SheetJS tự giải nén). | `docx.test.js` "R-4"; `soat/bomb.js bomb`, `deepbody` |
+| R-5 | Đáp án Phần III không phải số và không lấy được số → cảnh báo "Câu n: đáp án Phần III … không phải số — máy không chấm được, hãy sửa". | `docx.test.js` "R-5" |
+| R-6 | Giữ SheetJS 0.18.5 theo đặc tả. **Không** thêm `integrity`: không chắc file trên cdnjs giống hệt bản npm (môi trường chặn CDN, không so được). Ghi rủi ro dưới. | — |
+| R-7 | Hình tải lên lỗi: câu đó được gắn `hinhLoi` → nhãn "File Word có hình cần chụp lại" trong trình soạn (ngoài thông báo). | `docx.e2e.js` "R-7" (giả lập `adminUploadImage` lỗi) |
+| R-8 | `$` trong công thức → `\char36` (chữ đứng: `\textdollar`); `\`, `~`, `^` trong `\text{}` dùng lệnh chữ. Hai dấu trừ liền nhau → `x - -y`. | `docx.test.js` "R-8" (KaTeX `throwOnError`) |
+| R-9 | Bảng file thật đổi thành "File 1–4" + mô tả chung, bỏ tên file/thư mục. | — |
+| R-10 | `logout()` xóa thêm `ld_bank_so`. | `docx.e2e.js` "R-13/R-10" |
+| R-11 | Hình không phải png/jpeg/gif/webp (vd BMP) được vẽ lại qua canvas trước khi tải lên (`shrinkImage(file, force)`). | `docx.e2e.js` "R-11" (hình BMP → gửi `image/jpeg`) |
+| K-1 | Chọn cách: **.txt đọc như tab "Dán văn bản"** (`fromText`); .tsv vẫn như bảng. `fromRows`/`fromTsv`/`fromCsv` cảnh báo "Câu n: không có nội dung — kiểm tra thứ tự cột". Kéo thả lọc đuôi giống ô chọn file (`.docx .xlsx .xls .csv .txt`), sai đuôi → "Chỉ nhận…". | `pha3-kiem-thu.test.js` nhóm K-1 nay ĐẠT; `docx.test.js` "K-1" |
+| N-1 | Bảng kết quả ghi "**Công thức trong câu hỏi**": chỉ đếm công thức nằm trong các câu được nhận (không tính đầu đề, "Cho biết…", Phần IV). | `docx.test.js` "N-1" |
+
+Kết quả chạy lại (vòng 2): `docx.test.js` 27/27; `pha3-kiem-thu.test.js` 13/13 nhóm (K-1 đạt); `pha3-kiem-thu.e2e.js all` 17/17 nhóm; `docx.e2e.js` và `e2e.js` đạt ở cả máy chủ mới và `SERVER_COMPAT=1.0.0`; `backend` 13, `importer` đạt, `bank` 30, `pha2-kiem-thu` 31/31, `cache` 17, `common-cache` 5, `pha1-kiem-thu` 29/29. Chạy lại trên 4 file thật: kết quả không đổi (28/44/22/28 câu, 525/525 công thức). Ảnh `docs/bao-cao/anh/pha-3/` chụp lại (nhãn "Công thức trong câu hỏi"; hình thứ 3 của đề mẫu nay là BMP).
+
+Rủi ro bổ sung:
+- **SheetJS 0.18.5** có hai lỗi đã công bố khi đọc file .xlsx độc (CVE-2023-30533, CVE-2024-22363). Bản sửa chỉ có ở cdn.sheetjs.com (ngoài danh sách CDN cho phép). Trang quản trị chỉ giáo viên dùng và chỉ mở file của chính mình, nên rủi ro thấp; không mở file .xlsx lạ. Thẻ tải thư viện chưa có `integrity` (xem R-6).
+- Giới hạn giải nén cho .xlsx do SheetJS tự lo (chưa chặn trước như .docx).
