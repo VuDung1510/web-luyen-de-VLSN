@@ -287,6 +287,14 @@ const { rad } = M;
   await st.waitForSelector('.score-ring', { timeout: 15000 });
   check(true, 'TC-3.11 học sinh nộp bài, có kết quả');
 
+  // ---- R-13 (còn từ Pha 2): đăng xuất xóa giỏ câu / bộ lọc Ngân hàng ----
+  await ad.goto(BASE + '/admin.html#/');
+  await ad.waitForSelector('#btnOut');
+  await ad.evaluate(() => { sessionStorage.setItem('ld_bank_cart', JSON.stringify({ items: [{ maKho: 'X' }], tieuDe: '' })); sessionStorage.setItem('ld_bank_filter', '{}'); });
+  await ad.click('#btnOut');
+  await ad.waitForSelector('#pw');
+  check(await ad.evaluate(() => sessionStorage.getItem('ld_bank_cart') === null && sessionStorage.getItem('ld_bank_filter') === null), 'R-13 đăng xuất: xóa giỏ câu và bộ lọc Ngân hàng');
+
   check(!errors.length, 'không có lỗi JS: ' + errors.join(' | '));
   await browser.close();
   console.log('docx.e2e' + (COMPAT ? ' (máy chủ 1.0.0)' : ' (máy chủ mới)') + ': ĐẠT');
