@@ -146,3 +146,28 @@ Chưa trả lời thì web chạy theo mặc định.
 | Montserrat chưa được đo thật (mạng chặn) | Phông chỉ áp cho `h1–h3` và dòng chân trang; `.brand`, nav giữ phông cũ nên đầu trang không xô. Kiểm thử viên nên xem lại trên mạng thật |
 | `--primary` và `--good` gần độ sáng (tỉ lệ 1,16) — người mù màu đỏ–lục khó phân biệt | Trang xem lại bài có chữ `✓ Đúng`, `✗ Sai`, `◐ Đúng một phần` đi kèm |
 | Pha 6 gộp thêm CSS mới dùng màu viết cứng | `tests/pha5.test.js` TC-5.1 bắt mã màu ngoài danh sách cho phép |
+
+---
+
+## Vòng 2 (người làm)
+
+### Đã sửa
+| Mã | Việc | Cách sửa |
+|---|---|---|
+| K-1 (kiểm thử) | Tab Ngân hàng, khổ 390, có Montserrat: nút "↻ Đọc lại kho" rơi xuống dòng | `style.css`, trong `@media (max-width: 640px)`: `.card-title h1 { font-size: 1.2rem; }` (cũ 1.35rem). Áp chung cho mọi tiêu đề trang có nút bên phải. Montserrat 800 ở 1.2rem rộng khoảng bằng Be Vietnam Pro 700 ở 1.35rem, nên nút ở lại cùng hàng như trên `main`. Chỉ đổi ở khổ hẹp |
+| K-1 Pha 1 (**lỗi có sẵn trên `main`**, từ Pha 4) | Viên "Đang cập nhật…" ở góc dưới trái che nút "Làm lại" ở khổ 390 | Viên chỉ báo nay gắn vào thanh đầu trang (`common.js`) và treo ngay dưới nó, giữa trang (`.topbar > .sync-pill`, cao 18 px, nằm gọn trong khoảng đệm 20 px trên của `main`). Không che nút đầu trang, không che nút cuối màn hình. Trang không có thanh đầu trang thì giữ vị trí cũ. Không đổi bố cục |
+| R-1 (soát) | CSS Google Fonts chặn hiển thị khi request bị treo | Hai trang: một link `rel="stylesheet" media="print" onload="this.media='all'"` (áp cho cả Be Vietnam Pro). Trình duyệt không chờ CSS in ấn, nên trang hiện ngay bằng phông dự phòng; tải xong thì phông áp vào. Không thêm `<noscript>`: trang cần JavaScript mới chạy, và giữ đúng một link phông (test của kiểm thử kiểm "một link gộp") |
+| R-2 (soát) | Trường `phong` sai trong `bo-cuc-truoc.json` | Sửa tay thành `daTai: []` kèm ghi chú. Số đo bố cục không đổi |
+| R-3, R-4 | — | Không sửa. R-3 vào danh sách kiểm trên điện thoại thật ở Pha 6 |
+
+### Kiểm lại
+- `node tests/pha5.test.js`: 11/11 (thêm 2 mục vòng 2: link phông không chặn; `.card-title h1` ở khổ hẹp).
+- `tests/pha5.e2e.js all`: đạt hết, cả máy chủ mới và 1.0.0. Mục mới R-1: treo request phông 3 s, trang học sinh hiện sau ~0,1–0,15 s, trang quản trị ~0,09 s. Đối chứng với `index.html` của `main`: 3,36 s.
+- `tests/pha5-kiem-thu.test.js` (của kiểm thử, không sửa): 27/27.
+- `tests/pha5-kiem-thu.e2e.js all` (của kiểm thử, không sửa; có `MAIN_DIR`, `WIDE_DIR`, `FONTS_DIR` @fontsource): 14/16 nhóm. **K-1 đã hết:** với phông cục bộ, tab Ngân hàng 390 không còn lệch, và Montserrat 800 tải được thật. Hai nhóm còn báo (TC-5.8, TC-5.5 logo ngang) **chỉ vì thẻ Cài đặt +24 px** — đây là N-1, đặc tả đã thêm miễn trừ, nhưng file test của kiểm thử chưa cập nhật miễn trừ này.
+- `tests/pha1-kiem-thu.e2e.js all`: **đạt hết** (57 ✓, 0 ✗; K-1 "che: không phần tử nào").
+- Test cũ: Node (backend, importer, bank, pha1–4-kiem-thu, pha4, cache, common-cache, docx) đạt; `e2e.js`, `bank.e2e.js`, `docx.e2e.js`, `pha1-r1.e2e.js` đạt cả hai máy chủ; `pha4.e2e.js`, `pha2/3/4-kiem-thu.e2e.js` đạt.
+- Ảnh `anh/pha-5/01–20` chụp lại sau khi sửa.
+
+### Lệch so với gợi ý của điều phối
+- R-1 dùng `media="print"` + `onload` thay cho `preload` + `<noscript>` (điều phối nêu là "ví dụ"). Lý do: giữ đúng một link phông; kết quả không chặn như nhau.
