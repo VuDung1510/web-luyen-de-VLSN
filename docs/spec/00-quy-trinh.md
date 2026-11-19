@@ -5,7 +5,7 @@
 - **Pha 2 – Nối ngân hàng câu hỏi:** thầy lọc và chọn câu từ "KHO CÂU HỎI VẬT LÝ", lấy nguyên đề gốc, hoặc bấm một lần ra đề 18–4–6. Hình vẽ tự gắn vào. Kho không bị sửa.
 - **Pha 3 – Tải đề Word/Excel:** thầy chọn file, web tự tách câu, công thức và hình, cho xem trước rồi thêm vào đề. Cần thầy gửi trước 2–3 file đề thật để biết công thức gõ bằng gì.
 - **Pha 4 – Luyện tập:** học sinh tự tạo đề luyện từ những câu thầy cho phép, luyện lại câu đã sai, làm đề nhanh 10 phút. Có lời giải ngay; không tính vào bảng xếp hạng; câu đang nằm trong đề thi chưa công bố lời giải sẽ không xuất hiện.
-- **Pha 5 – Giao diện VLSN:** logo, màu bảng đen, phông Montserrat, chế độ tối. Phần làm bài nền sáng.
+- **Pha 5 – Giao diện VLSN:** giữ nguyên bố cục hiện tại; đổi màu chủ đạo sang xanh #1D6B3E, thay chữ "Φ" bằng logo Vật Lý Siêu Nhẩm, thêm chân trang thương hiệu (hotline, slogan), bỏ tên giáo viên ở chân trang. (Sửa 19/11/2026 theo quyết định Cowork 18/11/2026.)
 - **Pha 6 – Phát hành:** thầy dán lại Code.gs **một lần duy nhất** cho Pha 1, 2, 4. Sau đó làm cùng thầy một buổi kiểm tra trên trang thật.
 - Pha 3 và Pha 5 không cần dán lại Code.gs; xong pha nào học sinh thấy ngay pha đó. Pha 1, 2, 4 chỉ chạy đủ sau Pha 6, trước đó trang web vẫn chạy bình thường với máy chủ cũ.
 - Mỗi pha kết thúc bằng một báo cáo ngắn kèm ảnh chụp để thầy duyệt. Dữ liệu trong Google Sheet của thầy chỉ được thêm, không bị xóa hay đổi tên.

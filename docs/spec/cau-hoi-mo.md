@@ -32,7 +32,7 @@ Thầy chưa trả lời thì người làm theo đề xuất. **Ngoại lệ:**
 - **Đề xuất:** thầy gửi 2–3 file đề thật trước Pha 3. Nếu đa số là MathType thì Pha 3 thu nhỏ còn: Excel/CSV + Word chữ thường và hình; công thức MathType sẽ được báo "cần gõ lại" (hoặc thầy chuyển sang Equation trong Word trước khi tải lên).
 
 ### 8. Bản thiết kế "form VLSN" bên Cowork
-- (a) Có bản riêng (ảnh, màu, bố cục): thầy gửi trước Pha 5, Pha 5 làm theo bản đó. (b) Không có: làm theo nhận diện bảng đen và phương án B như đặc tả Pha 5.
+- (a) Có bản riêng (ảnh, màu, bố cục): thầy gửi trước Pha 5, Pha 5 làm theo bản đó. (b) Không có: ~~làm theo nhận diện bảng đen và phương án B như đặc tả Pha 5~~ → làm theo đặc tả Pha 5 (giữ bố cục, màu #1D6B3E, logo VLSN). *(Ghi chú 19/11/2026: đã có quyết định Cowork 18/11/2026, xem QUYET-DINH mục 6.)*
 - **Đề xuất:** thầy xác nhận trước Pha 5; không ảnh hưởng Pha 1–4.
 
 Sửa đặc tả ngày 18/11/2026: gộp lại theo `soat-pha-0.md` (bỏ câu đã có quyết định; thêm câu 2, 3, 6, 7).
