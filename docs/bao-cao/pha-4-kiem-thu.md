@@ -133,3 +133,80 @@ Nhánh `pha-4-luyen-tap`, code tính năng ở commit `e2ae46a` (Code.gs 1.4.0).
 - **TC-4.13 KHÔNG ĐẠT** do K-1 (Nặng) và K-2 (Vừa). Cả hai đều thuộc phần đặc tả bổ sung ngày 19/11.
 - **13 TC còn lại ĐẠT**; test cũ vẫn đạt.
 - **Sau khi người làm sửa:** chạy lại `node tests/pha4-kiem-thu.test.js` (2 mục đang đỏ phải xanh, TC-4.9 phải vẫn xanh) và `tests/pha4-kiem-thu.e2e.js all`.
+
+---
+
+## Vòng 2 (kiểm lại trên `f228081`, 19/11/2026)
+
+### Tóm tắt cho giáo viên
+- **K-1 và K-2 đã sửa.**
+  - Câu nằm trong đề **chưa đóng** không còn hiện trong Luyện tập. Điều này đúng với mọi chế độ hiện lời giải, kể cả "Ngay sau khi nộp".
+  - Xem lại bài luyện cũ có câu đang thi thì học sinh thấy dòng "Câu này đang nằm trong một đề thi chưa kết thúc. Đáp án và lời giải sẽ hiện khi đề thi đó kết thúc." Điểm vẫn đúng.
+  - Giáo viên vẫn thấy lời giải. Đóng đề xong thì lời giải hiện lại cho học sinh.
+- **14/14 TC ĐẠT** ở máy chủ mới, khi tắt luyện tập và ở máy chủ cũ 1.0.0. Test cũ vẫn đạt.
+- **Ghi chú:** 1 bài kiểm thử của người làm (`pha4.test.js`, TC-4.6) thỉnh thoảng báo đỏ (1/6 lần). Đây là lỗi của bài kiểm thử, không phải lỗi web (xem T-1).
+
+### Thay đổi trong test của người kiểm thử
+Không sửa test vòng 1, trừ một chỗ ở TC-4.3: dòng ghi nhận N-1 đổi thành "đếm câu ngoài bài". Thêm vào cuối hai file:
+- **Node:** 7 mục "V2".
+- **E2E:**
+  - Máy chủ mới: mở lại bài luyện đầu tiên khi một câu của bài đang nằm trong đề NGAY đang mở; sau đó đóng đề rồi mở lại.
+  - Chế độ tắt luyện tập: tạo sẵn 1 bài luyện khi còn bật, giáo viên tắt, rồi mở bài đó từ Lịch sử.
+
+### Kết quả
+- `node tests/pha4-kiem-thu.test.js`: **33/33** (26 mục vòng 1 + 7 mục V2).
+  - Các mục vòng 1 trước đây đỏ nay đã xanh:
+    - "TC-4.13 X trong đề NGAY đang mở": X 0/50 lần, meta không đếm X, có nhãn "đang thi", đóng đề thì X trở lại.
+    - "TC-4.13 / R-2": cả 7 trường hợp chặn đều ẩn lời giải khi xem lại; kết quả nộp cũng ẩn.
+- `tests/pha4-kiem-thu.e2e.js all`: **22/22 nhóm** ở 3 chế độ (mới, `PRACTICE=0`, `SERVER_COMPAT=1.0.0`). 0 lỗi JS.
+
+| TC | Vòng 2 |
+|---|---|
+| TC-4.1 → TC-4.12, TC-4.14 | **ĐẠT** (chạy lại toàn bộ; số liệu như vòng 1) |
+| TC-4.13 | **ĐẠT** (7/7 trường hợp chặn, gồm đề NGAY đang mở; R-2 ẩn đúng) |
+
+| Kiểm thêm theo vòng 2 | Kết quả | Bằng chứng |
+|---|---|---|
+| Xem lại bài luyện có câu đang bị chặn | **ĐẠT** | Node: học sinh thấy câu X còn đề bài và câu trả lời của mình, không có `dapAn`/`loiGiai`, có dòng "…sẽ hiện khi đề thi đó kết thúc"; điểm và số câu đúng giữ nguyên; các câu khác vẫn có lời giải. Giáo viên (`getResult`) thấy đủ. Đóng đề → học sinh thấy lại lời giải, hết dòng báo. E2E: điểm "6,25" như lúc nộp, 9/10 lời giải + dòng báo (ảnh `kt-18`); đóng đề → 10/10 |
+| "Luyện câu đã sai" chỉ lấy câu của đề đã đóng | **ĐẠT** | Câu sai ở đề NGAY đang mở và đề SAU_HAN còn hạn → không vào tập ("Bạn chưa có câu sai nào…"). Đóng đề NGAY và cho đề kia hết hạn (`ketThuc` đã qua) → cả 2 vào tập |
+| Chọn cả chương và bài → lấy giao | **ĐẠT** | Chương I + Bài 1 → 15/15 câu thuộc Bài 1. Chương II + bài của chương I → "Chưa có câu nào phù hợp…" |
+| Tắt luyện tập vẫn xem bài luyện cũ | **ĐẠT** | Node: `myResults loai:"luyen"` và `getResult LT…` vẫn trả bài, có lời giải; `practiceMeta` báo tắt. E2E `PRACTICE=0`: Lịch sử có bộ lọc "Đề thi / Luyện tập" → mở bài cũ → 5/5 lời giải (ảnh `kt-19`); mục Luyện tập vẫn ẩn |
+| Pool vượt 3 000 câu đang bật | **ĐẠT** | Kho 3 010 câu, "Thêm" tất cả → "Mỗi lần đưa tối đa 3000 câu…", 0 lần ghi `LuyenTap`. Có 2 990 câu, thêm 20 → "Pool luyện tập tối đa 3000 câu đang bật; sau lần này sẽ có 3010 câu… Chưa ghi gì.", 0 lần ghi. Tắt 30 câu rồi thêm 20 → được (`them=20`, 2 980 đang bật). "Thay" bằng đúng 3 000 câu → được. TC-4.11 (đúng 3 000 câu) vẫn đạt |
+| Nộp lại cùng token | **ĐẠT** | Nộp lại 3 lần → cùng mã bài, KetQuaLuyenTap không thêm hàng. Học sinh khác nộp token → bị từ chối. Mã bài mới 26 ký tự (`LT…` + 12 ký tự) |
+| Mã bài cũ (6 ký tự) | **ĐẠT** | Đổi mã một bài luyện trong sheet về dạng cũ `LT2611191406244C9BC4` → `getResult` mở được, 5 câu có lời giải; `myResults luyen` có bài đó. Bài thi do **Code.gs 1.0.0 thật** ghi (`KQ…`, KetQua thiếu cột "Mục tiêu"), chép sang máy chủ mới → `getResult` mở được, đúng điểm, có trong `myResults` |
+| Đưa vào luyện tập / tab Pool | **ĐẠT** | Hộp thoại đổi chữ thành "…đề thi chưa đóng (nháp, chưa mở, đang mở) hoặc không công bố lời giải…". Sau khi thêm vẫn báo "1 câu đang thi" kèm mã. Lọc "Đang thi" ra đúng câu đó (ảnh `kt-10`, `kt-10b`, `kt-11` chụp lại) |
+
+### Test cũ (vòng 2)
+
+| Test | Kết quả |
+|---|---|
+| `backend.test.js` | 13 đạt |
+| `importer.test.js` | đạt |
+| `bank.test.js` | 30 đạt |
+| `pha2-kiem-thu.test.js` | 31/31 |
+| `pha3-kiem-thu.test.js` (LIBS_DIR) | 17/17 nhóm |
+| `pha4.test.js` (người làm) | 22/22 ở 5/6 lần chạy; 1 lần đỏ TC-4.6 (xem T-1) |
+| `e2e.js` máy chủ mới (dev-server mới, cổng 8793) | đạt |
+| `e2e.js` `SERVER_COMPAT=1.0.0` (dev-server mới, cổng 8794) | đạt |
+
+### T-1 (lỗi bài kiểm thử của người làm, Nhẹ) — `tests/pha4.test.js` TC-4.6 chập chờn
+- **Hiện tượng:** khoảng 1/6 lần chạy báo "có X: …" (thiếu X trong tập câu sai).
+- **Chẩn đoán:**
+  - Bài luyện tạo Y (`practiceStart` TU_TAO 5 câu ngẫu nhiên) có thể chọn trúng X.
+  - Test trả lời **đúng** mọi câu khác Y (`tests/pha4.test.js:253`), nên X được làm đúng và rút khỏi tập. Máy chủ làm đúng đặc tả ("làm đúng ở lần luyện sau thì rút").
+  - Lỗi này giống hệt lỗi tôi đã gặp và sửa trong test của mình.
+- **Đề xuất:** ở dòng 253, trả lời **sai** khi `q === X` (hoặc loại X khỏi pool của bài luyện đó).
+
+### Ảnh vòng 2
+- **Ảnh mới:**
+  - `kt-18-xem-lai-cau-dang-thi`: câu đang thi trong bài luyện cũ, có dòng báo, không có đáp án; câu bên dưới vẫn có lời giải.
+  - `kt-19-tat-luyen-tap-lich-su`: tắt luyện tập, Lịch sử vẫn lọc được "Luyện tập".
+- **Ảnh chụp lại:** `kt-08` đến `kt-11`, `kt-15`, `kt-17`. Lý do: chữ hộp thoại và tab Pool đổi, câu X đổi.
+- Các ảnh còn lại giữ nguyên nội dung.
+
+### Kết luận vòng 2
+**ĐẠT.**
+- **TC:** 14/14 TC đạt, kể cả hai điểm bổ sung 19/11 (R-1, R-2).
+- **Kiểm thêm theo vòng 2:** 8/8 mục đạt.
+- **Test cũ:** vẫn đạt.
+- **Còn lại:** T-1 là lỗi của bài kiểm thử phía người làm, không chặn pha. Nên sửa để CI không đỏ ngẫu nhiên.
