@@ -143,3 +143,8 @@ Kết quả chạy lại (vòng 2): `docx.test.js` 27/27; `pha3-kiem-thu.test.js
 Rủi ro bổ sung:
 - **SheetJS 0.18.5** có hai lỗi đã công bố khi đọc file .xlsx độc (CVE-2023-30533, CVE-2024-22363). Bản sửa chỉ có ở cdn.sheetjs.com (ngoài danh sách CDN cho phép). Trang quản trị chỉ giáo viên dùng và chỉ mở file của chính mình, nên rủi ro thấp; không mở file .xlsx lạ. Thẻ tải thư viện chưa có `integrity` (xem R-6).
 - Giới hạn giải nén cho .xlsx do SheetJS tự lo (chưa chặn trước như .docx).
+
+## Ghi chú của điều phối khi gộp (19/11/2026)
+- Soát code vòng 2: **ĐẠT**. Kiểm thử vòng 2: **ĐẠT** (14/14 TC, cả hai chế độ máy chủ). Code.gs không đổi.
+- Còn 2 lỗi Nhẹ chuyển sang Pha 6 (không chặn gộp): **N-2** file .docx khai sai kích thước giải nén vẫn bị giải nén hết rồi báo lỗi tiếng Anh; **N-3** sau "HẾT", dòng "Câu 1. Lời giải: Chọn B." chưa lấy được đáp án (có cảnh báo "chưa tìm thấy đáp án", không sai âm thầm).
+- Cần kiểm trên trang thật ở Pha 6: thư viện JSZip/SheetJS tải được từ cdnjs; tải hình lên Apps Script thật.

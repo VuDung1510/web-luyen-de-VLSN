@@ -142,3 +142,77 @@ Nhánh `pha-3-tai-de`. Bắt đầu kiểm ở commit `8cfe62e`, chạy lại l�
 
 ## Kết luận
 **ĐẠT.** 14/14 TC đạt ở cả hai chế độ máy chủ; test cũ vẫn đạt. Có 1 lỗi nhẹ (K-1) và 1 ghi chú (N-1), không chặn gộp; nên sửa K-1 trong vòng sau hoặc pha sau.
+
+---
+
+## Vòng 2 (kiểm lại trên `b5a4757`, 19/11/2026)
+
+### Tóm tắt cho giáo viên
+- Chạy lại toàn bộ: **14/14 TC vẫn ĐẠT** ở cả hai máy chủ. Lỗi K-1 đã sửa. 4 file Word thật cho kết quả không đổi.
+- File .txt nay được đọc như khi dán văn bản. File Excel/CSV sai cột có cảnh báo "Câu n: không có nội dung". Kéo thả file sai loại bị từ chối.
+- Hình tải lên lỗi: câu vẫn được thêm, có nhãn "File Word có hình cần chụp lại". File hỏng hoặc bom nén báo tiếng Việt ngay, trang không treo.
+
+### Cách kiểm
+Không sửa code tính năng, không sửa hạ tầng test, không commit. Chỉ thêm kiểm vào test của người kiểm thử.
+- `tests/pha3-kiem-thu.test.js`: thêm nhóm `v2`. Kết quả **17/17 nhóm đạt**, có cả K-1.
+- `tests/pha3-kiem-thu.e2e.js`: thêm khối "Vòng 2". Kết quả **23/23 nhóm đạt** ở cả máy chủ mới (cổng 8792) và `SERVER_COMPAT=1.0.0` (cổng 8793).
+
+### Kết quả
+
+| Mục | Kết quả | Bằng chứng |
+|---|---|---|
+| TC-3.0 → TC-3.13 (chạy lại toàn bộ) | **ĐẠT** | Mọi nhóm vòng 1 đạt lại, ở Node và e2e cả hai chế độ. Số liệu như vòng 1: TC-3.9 Chromium 374–405 ms; TC-3.2 đúng nguyên chuỗi 16/20, KaTeX trùng 20/20 |
+| K-1 | **ĐÃ SỬA** | .txt → 2 câu có nội dung (đọc qua `fromText`). .csv một cột vẫn ra câu trống, nhưng có cảnh báo "Câu 1/2: không có nội dung — kiểm tra thứ tự cột". Lưu vẫn bị máy chủ chặn như cũ |
+| .txt như "Dán văn bản" | **ĐẠT** | Node: `readFile('de.txt')` đề 28 câu (CRLF) `deepStrictEqual` với `fromText`. E2E: "Tìm thấy 28 câu", trình soạn giống hệt tab Dán văn bản |
+| Cảnh báo câu thiếu nội dung | **ĐẠT** | csv một cột: cảnh báo đủ câu 1, 2. xlsx có câu 1 trống: chỉ cảnh báo câu 1. E2E hiện trong khung "Cần kiểm tra" |
+| Kéo thả lọc đuôi | **ĐẠT** | Giả lập `DragEvent` thật trên vùng thả. Thả .pdf và .png → "Chỉ nhận file Word (.docx), Excel (.xlsx), .csv hoặc văn bản .txt." Thả .docx → "Tìm thấy 28 câu" |
+| Nhãn khi tải hình lỗi | **ĐẠT** | `adminUploadImage` bị chặn, trả lỗi. Kết quả: 6/6 câu vẫn vào trình soạn; nhãn "File Word có hình cần chụp lại" ở câu 2 và "File Word có 2 hình cần chụp lại" ở câu 5; thông báo "Không tải được hình ở câu 2, 5 … bấm Tải ảnh" (ảnh `kt-10-nhan-hinh-loi`) |
+| Dòng "Công thức trong câu hỏi" | **ĐẠT** | File mẫu có 2 công thức ở dòng "Cho biết" trước PHẦN và 1 công thức trong câu → "Đã đổi: 1". File thật: 43 / 153 / 65 / 254, khớp số công thức đếm tay trong câu (N-1 đã sửa) |
+| Câu dẫn "Chọn …" không thành đáp án | **ĐẠT** | "Chọn câu đúng.", "Chọn phát biểu đúng:", "Chọn đáp án đúng nhất." (có "Lời giải: Chọn B."), "Chọn C là sai vì" (có "Đáp án: D") → đáp án `-, -, B, D`; câu dẫn giữ trong nội dung |
+| File hỏng / bom nén | **ĐẠT** | Xem bảng con ngay dưới |
+
+**Thử file hỏng / bom nén:**
+
+| File thử | Kết quả |
+|---|---|
+| `document.xml` 80 MB (nén còn 80 KB) | "File Word bất thường: khi giải nén quá lớn (80 MB)…", 0–43 ms (Node và giao diện) |
+| 10 phần, mỗi phần 8 MB | Cùng thông báo trên |
+| 200 000 tầng lồng | Đọc xong, không lỗi, 121 ms |
+| 50 000 thuộc tính hỏng | Đọc xong, không lỗi, 21 ms (giao diện 46–55 ms) |
+| 100 000 dấu `<` lẻ | Đọc xong, không lỗi, 9 ms |
+| Chú thích không đóng | Đọc xong, không lỗi, 5 ms |
+
+Mọi trường hợp < 5 s. Trang vẫn phản hồi.
+
+**File thật (chạy lại):**
+- Số câu: 28 (18-4-6), 44 (30-8-6), 22 (14-2-6), 28 (18-4-6), khớp đếm tay.
+- Công thức và số hình theo từng câu: **0 lệch**. KaTeX 0 lỗi, 0 mốc ⟦…⟧.
+- Hình sẽ tải lên: 5 / 17 / 2 / 8.
+- File lời giải: 27 câu có đáp án; Phần I khớp 18/18 với đáp án tôi tự dò.
+- Chromium 162–440 ms; 0 `pageerror`.
+
+**Test cũ:**
+
+| Test | Kết quả |
+|---|---|
+| `backend` | 13 |
+| `importer` | đạt |
+| `bank` | 30 |
+| `pha2-kiem-thu` | 31/31 |
+| `docx` | 27/27 |
+| `cache` | 17 |
+| `common-cache` | 5 |
+| `pha1-kiem-thu` | 29/29 |
+| `e2e.js` máy chủ mới (cổng 8794) | đạt |
+| `e2e.js` `SERVER_COMPAT=1.0.0` (cổng 8790) | đạt |
+
+**Ảnh:**
+- Chụp lại `kt-01` → `kt-09` vì bảng kết quả đổi nhãn sang "Công thức trong câu hỏi".
+- Thêm `kt-10-nhan-hinh-loi`: trình soạn, câu 5 có nhãn "File Word có 2 hình cần chụp lại".
+
+**Ghi chú (không phải lỗi):**
+- File docx có XML hỏng nhưng không chứa câu nào → "Tìm thấy 0 câu". Không có câu chữ riêng kiểu "file không có câu hỏi nào", nhưng không sai dữ liệu.
+- Quan sát ngoài phạm vi ở vòng 1 (hộp "Nhập nhanh" còn che trang sau khi đổi hash) vẫn như `main`.
+
+### Kết luận vòng 2
+**ĐẠT.** 14/14 TC đạt ở cả hai chế độ máy chủ. K-1 và N-1 đã sửa đúng; các thay đổi giao diện vòng 2 hoạt động như mô tả. Test cũ vẫn đạt. Không còn lỗi K mở.

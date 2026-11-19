@@ -453,7 +453,7 @@ async function runMode(browser, compat) {
     const hl2 = await ad.evaluate(() => ({ n: document.querySelectorAll('.qedit').length, modal: !!document.querySelector('.modal #impResult'), lab: [...document.querySelectorAll('.qedit')].map((q, i) => (q.querySelector('[data-hinhloi]') ? (i + 1) + ':' + q.querySelector('[data-hinhloi]').textContent.trim() : null)).filter(Boolean), msg: [...document.querySelectorAll('.toast, .modal')].map((e) => e.innerText).join(' | ').slice(0, 200) }));
     await ad.unroute(/\/exec$/);
     if (hl2.modal) { await ad.click('.modal [data-close]').catch(() => {}); }
-    if (!compat) { const el = (await ad.$$('.qedit'))[4]; if (el) { await el.scrollIntoViewIfNeeded(); await shot(ad, '10-nhan-hinh-loi'); } }
+    if (!compat) { const el = (await ad.$$('.qedit'))[4]; if (el) { await el.evaluate((e) => { e.scrollIntoView({ block: 'start' }); window.scrollBy(0, -80); }); await shot(ad, '10-nhan-hinh-loi'); } }
     verdict('V2 nhãn "hình cần chụp lại" khi tải hình lỗi', hl2.n === 6 && hl2.lab.length === 2 && /^2:/.test(hl2.lab[0]) && /^5:.*2 hình/.test(hl2.lab[1]),
       `adminUploadImage trả lỗi → ${hl2.n} câu vẫn vào trình soạn, nhãn: ${JSON.stringify(hl2.lab)}; thông báo: "${hl2.msg.replace(/\n/g, ' ').slice(0, 120)}"`);
     // Bom nén / XML độc trong giao diện → báo tiếng Việt, trang không treo
