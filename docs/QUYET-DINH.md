@@ -1,4 +1,4 @@
-> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 19/11/2026 (đầu Pha 3).
+> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 19/11/2026 (đầu Pha 4).
 
 # WEB LUYỆN ĐỀ VLSN — QUYẾT ĐỊNH ĐÃ CHỐT
 
@@ -75,6 +75,7 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 
 ## 9. Câu hỏi mở / việc đang chờ
 - Code.gs 1.1.0 chưa dán vào Apps Script — dán một lần ở Pha 6.
+- Logo VLSN chuẩn từ vatly.ai: chưa có file (mạng bị chặn). Logo trong file Word mẫu là logo mê cung chữ Q — giáo viên xác nhận dùng logo này hay gửi file logo vatly.ai (19/11/2026). Pha 5 tạm dùng logo mê cung, thay sau bằng một file.
 - 12 đề xuất tham khảo giao diện từ vatly.ai, Azota, OnLuyen, SHub, Moon: chưa chốt, xem lại sau.
 
 ## 10. Nhật ký thay đổi
@@ -84,3 +85,5 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - 19/11/2026 — Claude Code: ghi file kho câu hỏi mới (mục 1). Pha 1 đã gộp; Pha 2 qua soát code và kiểm thử.
 - 19/11/2026 — Claude Code: gộp Pha 2; từ Pha 3 làm ở phiên mới theo docs/BAN-GIAO.md.
 - 19/11/2026 — Claude Code (phiên mới): bài kiểm thử "Tạo đề" chập chờn của Pha 2 là lỗi của bài test (đọc nhầm mã câu khi gặp câu thiếu hình), không phải lỗi web; đã sửa. Bắt đầu Pha 3.
+- 19/11/2026 — Claude Code: Pha 5 viết lại đặc tả theo mục 6. Chưa chốt: file logo chuẩn (tạm dùng logo mê cung, web chỉ trỏ tới một file assets/img/logo-vlsn.png); tiêu đề có in hoa toàn bộ không; slogan ở đầu trang hay chân trang (mặc định: chân trang).
+- 19/11/2026 — Claude Code: gộp Pha 3 (Tải đề Word/Excel); soát code và kiểm thử vòng 2 ĐẠT; 4 file Word thật: đúng số câu, 525/525 công thức đổi được. Không đổi Code.gs. Repo không ghi id file thật trên Drive. Bắt đầu Pha 4.
