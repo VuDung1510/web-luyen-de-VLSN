@@ -1344,7 +1344,7 @@
   /* ================= CÀI ĐẶT ================= */
   const SETTING_UI = {
     TEN_UNG_DUNG: { label: 'Tên trang web' },
-    TEN_GIAO_VIEN: { label: 'Tên giáo viên' },
+    TEN_GIAO_VIEN: { label: 'Tên giáo viên', hint: 'Không hiển thị trên trang học sinh (chỉ dùng nội bộ)' },
     HIEN_BANG_XEP_HANG: { label: 'Bảng xếp hạng cho học sinh', yesno: ['Hiện', 'Ẩn'] },
     BXH_AN_TEN: { label: 'Tên trên bảng xếp hạng', yesno: ['Viết tắt (Nguyễn V. An)', 'Đầy đủ'] },
     GUI_EMAIL_KHI_NOP: { label: 'Gửi email cho giáo viên mỗi khi có bài nộp', yesno: ['Có', 'Không'] },
