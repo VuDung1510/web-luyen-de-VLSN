@@ -57,4 +57,6 @@ Mọi commit kết thúc bằng 2 dòng `Co-Authored-By` / `Claude-Session` theo
 
 ## 6. Kết quả Pha 2 lúc bàn giao
 
-Được điền khi gộp Pha 2 (xem dòng cuối nhật ký `docs/bao-cao/pha-2*.md`).
+Gộp vào `main` ngày 19/11/2026. Soát code vòng 2 ĐẠT; kiểm thử vòng 2 ĐẠT sau khi sửa K-1 (giới hạn ma trận). Kho thật: 1 014/10 239 câu dùng được, đối chiếu 61/61 đúng.
+
+**Việc đầu tiên của phiên mới:** nhóm "Tạo đề" trong `tests/pha2-kiem-thu.e2e.js` chập chờn (khoảng 3/9 lần không đạt, tùy câu bốc ngẫu nhiên). Bắt ca hỏng (in mã câu, ô hình, nhãn) để xác định là lỗi test hay lỗi chép hình theo lô; sửa rồi mới bắt đầu Pha 3. Xem ghi chú cuối `docs/bao-cao/pha-2-kiem-thu.md`.

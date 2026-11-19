@@ -1674,7 +1674,7 @@ function apiAdminBankMatrix_(req) {
   var want = {};
   [['TN', 18], ['DS', 4], ['TL', 6]].forEach(function (p) {
     var v = so[p[0]] === undefined || so[p[0]] === '' ? p[1] : Math.floor(num_(so[p[0]]));
-    want[p[0]] = Math.max(0, Math.min(200, v));
+    want[p[0]] = Math.max(0, Math.min(500, v));
   });
   if (want.TN + want.DS + want.TL > BANK_MAX_PICK) throw new Error('Ma trận tối đa ' + BANK_MAX_PICK + ' câu (cùng giới hạn với Tạo đề).');
   var pool = bankFilter_(b.rows, { lop: req.lop, chuong: req.chuong, bai: req.bai, mucDo: req.mucDo, nguon: req.nguon });

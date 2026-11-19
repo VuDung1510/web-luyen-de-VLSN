@@ -206,7 +206,7 @@ async function runNew(browser) {
     const ed = await ad.evaluate(() => ({
       n: document.querySelectorAll('.qedit').length,
       note: (document.querySelector('#draftNote') || {}).textContent || '',
-      kho: [...document.querySelectorAll('.qedit')].map((q) => ((q.textContent.match(/Kho: (\S+)/) || [])[1]) || ''),
+      kho: [...document.querySelectorAll('.qedit')].map((q) => ((q.textContent.match(/Kho: ([A-Z0-9]+(?:-[A-Z0-9]+)+)/) || [])[1]) || ''),
       img: [...document.querySelectorAll('.qedit input[data-f="hinhAnh"]')].map((i) => i.value),
       url: location.hash
     }));
@@ -451,7 +451,7 @@ async function runV2(browser) {
     await ad.fill('#soTN', '250'); await ad.fill('#soDS', '0'); await ad.fill('#soTL', '0');
     await ad.click('#bkMatrix'); await ad.waitForTimeout(1200);
     const msg250 = await ad.evaluate(() => [...document.querySelectorAll('.toast, .modal')].map((e) => e.textContent.replace(/\s+/g, ' ')).join(' | '));
-    verdict('K-1 ma trận P1 > 200 bị cắt âm thầm', /tối đa 200|thiếu/i.test(msg250.replace(/Ma trận tối đa 500[^|]*/g, '')), `ô P1 = 250 → "${msg250.slice(0, 200)}"`);
+    verdict('K-1 ma trận P1 > 200 bị cắt âm thầm', /Tìm được 250 câu|tối đa 200|thiếu/i.test(msg250.replace(/Ma trận tối đa 500[^|]*/g, '')), `ô P1 = 250 → "${msg250.slice(0, 200)}"`);
     if (await ad.$('.modal [data-close=""]')) { await ad.click('.modal [data-close=""]'); await ad.waitForTimeout(300); }
     // Giỏ > 500: ma trận 200/150/150 = 500 rồi thêm 1 câu
     await ad.fill('#soTN', '200'); await ad.fill('#soDS', '150'); await ad.fill('#soTL', '150');

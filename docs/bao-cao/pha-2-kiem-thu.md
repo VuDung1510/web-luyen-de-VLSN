@@ -123,7 +123,7 @@ Nhận xét (không chặn):
 | `pha1-kiem-thu.test.js` / `bank.test.js` | 29/29 · 30/30 |
 | `e2e.js`, máy chủ mới / 1.0.0 | đạt / đạt |
 | `bank.e2e.js`, máy chủ mới / 1.0.0 | ĐẠT / ĐẠT |
-| `pha1-kiem-thu.e2e.js all` (8790/8791) | PHA1_V2 |
+| `pha1-kiem-thu.e2e.js all` (8790/8791) | 12/12 ĐẠT (K-1, K-3, TC-1.0 → 1.14) |
 | Kho thật (Code.gs mới, cùng dữ liệu nháp) | Meta không đổi (1 014 dùng được); so tự động 1 057 câu: 0 lệch; 0 lần ghi kho |
 
 ### Kiểm thêm theo thay đổi người dùng thấy được
@@ -152,3 +152,8 @@ Nhận xét (không chặn):
 
 ### Kết luận vòng 2
 **ĐẠT, kèm K-1 (Nhẹ).** Mọi TC-2.x vẫn đạt với số liệu mặc định 18–4–6. K-1 chỉ xảy ra khi gõ hơn 200 câu cho một phần. Nên sửa trước khi gộp, hoặc giáo viên chấp nhận. Ảnh `kt-01` … `kt-06` đã được chụp lại trên bản vòng 2.
+
+## Ghi chú của điều phối khi gộp (19/11/2026)
+- K-1 đã sửa: `apiAdminBankMatrix_` dùng giới hạn mỗi phần 500 (bằng giới hạn Tạo đề) thay vì 200. `pha2-kiem-thu.test.js` 31/31.
+- Điều phối sửa 2 chỗ trong `pha2-kiem-thu.e2e.js`: (1) đọc mã câu từ nhãn "Kho: …" bằng mẫu mã câu, vì vòng 2 thêm nhãn cảnh báo thiếu hình dính liền sau mã; (2) K-1 coi "Tìm được 250 câu" là đúng (không còn cắt).
+- **Còn chập chờn:** nhóm "Tạo đề" (2 kiểm tra đầu) thỉnh thoảng KHÔNG ĐẠT tùy câu ma trận bốc ngẫu nhiên (khoảng 3/9 lần chạy; 4 lần chạy liền sau đó đều ĐẠT). Chưa xác định là lỗi test hay lỗi chép hình theo lô. Việc đầu tiên của phiên sau: cố định hạt ngẫu nhiên hoặc lặp đến khi bắt được ca hỏng và in câu lỗi.
