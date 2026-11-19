@@ -94,7 +94,7 @@ Nhận xét (không chặn):
 | `node tests/bank.test.js` | 23/23 đạt |
 | dev-server + `tests/e2e.js`, máy chủ mới / `SERVER_COMPAT=1.0.0` | đạt / đạt |
 | `tests/bank.e2e.js`, máy chủ mới / 1.0.0 | ĐẠT / ĐẠT |
-| `tests/pha1-kiem-thu.e2e.js all` (cổng 8790/8791, ảnh ra thư mục nháp) | PHA1_RESULT |
+| `tests/pha1-kiem-thu.e2e.js all` (cổng 8790/8791, ảnh ra thư mục nháp) | đạt: K-1, K-3, TC-1.0, 1.1, 1.2, 1.3, 1.4, 1.9, 1.9b, 1.10, 1.11, 1.14 đều ĐẠT, không mục nào KHÔNG ĐẠT |
 
 ## Ảnh (`docs/bao-cao/anh/pha-2/`, 1280×800, kho giả tự soạn)
 `kt-01-ngan-hang`, `kt-02-bang` ([BẢNG] 5×2), `kt-03-de-goc-thieu`, `kt-04-trinh-soan` (câu từ kho có hình bản chép), `kt-05-hoc-sinh-lam-bai`, `kt-06-may-chu-cu` (máy chủ 1.0.0).
