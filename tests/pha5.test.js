@@ -245,6 +245,21 @@ t('TC-5.7 (tĩnh) chân trang thương hiệu ở hai trang; app.js không ghi t
   assert.strictEqual(def, 'Luyện đề Vật lý');
 });
 
+t('Vòng 2 R-1: CSS Google Fonts tải không chặn (preload + onload, có <noscript>)', () => {
+  for (const f of ['index.html', 'admin.html']) {
+    const s = read(f), outside = s.replace(/<noscript>[\s\S]*?<\/noscript>/g, '');
+    const links = outside.match(/<link[^>]*fonts\.googleapis\.com\/css2[^>]*>/g) || [];
+    assert.strictEqual(links.length, 1, f + ': cần đúng 1 link phông ngoài <noscript>');
+    assert(/rel="preload"/.test(links[0]) && /as="style"/.test(links[0]) && /onload="this\.onload=null;this\.rel='stylesheet'"/.test(links[0]), f + ': link phông phải là preload + onload');
+    assert(/<noscript><link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com\/css2[^"]*"><\/noscript>/.test(s), f + ': thiếu <noscript>');
+  }
+});
+
+t('Vòng 2 K-1: tiêu đề h1 trong .card-title nhỏ lại ở khổ hẹp', () => {
+  const m = CSS.match(/@media \(max-width: 640px\) \{\n  h1 \{ font-size: 1\.35rem; \}[\s\S]*?\.card-title h1 \{ font-size: 1\.2rem; \}/);
+  assert(m, 'thiếu .card-title h1 { font-size: 1.2rem } trong @media (max-width: 640px)');
+});
+
 t('TC-5.14 máy chủ không đổi: git diff origin/main -- apps-script/ rỗng', () => {
   let out;
   try { out = execSync('git diff origin/main -- apps-script/', { cwd: ROOT, encoding: 'utf8' }); }

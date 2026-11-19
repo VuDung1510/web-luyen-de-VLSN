@@ -181,7 +181,8 @@
       el.className = 'sync-pill hidden';
       el.setAttribute('role', 'status');
       el.innerHTML = '<span class="spinner"></span><span>Đang cập nhật…</span>';
-      document.body.appendChild(el);
+      // Gắn vào thanh đầu trang (treo ngay dưới nó); không có thanh đầu trang thì gắn vào body (góc dưới trái)
+      (document.querySelector('.topbar') || document.body).appendChild(el);
     }
     el.classList.toggle('hidden', !syncing[viewId]);
   }

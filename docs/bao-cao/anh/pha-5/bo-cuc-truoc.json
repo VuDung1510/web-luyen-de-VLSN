@@ -1,9 +1,9 @@
 {
  "ghiChu": "getBoundingClientRect (px, toạ độ trang), chế độ sáng; khoá = màn@khổ",
  "phong": {
-  "montserrat": true,
-  "beVietnam": true,
-  "loaded": []
+  "soPhongWeb": null,
+  "daTai": [],
+  "ghiChu": "Sửa tay ở vòng 2 (R-2): bản main, Google Fonts bị chặn khi đo, không phông web nào tải được (Be Vietnam Pro rơi về phông hệ thống; main chưa có Montserrat). Số đo layout không đổi."
  },
  "layout": {
   "dang-nhap@390": {

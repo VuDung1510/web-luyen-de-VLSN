@@ -338,6 +338,19 @@ async function run(mode) {
       for (const [k, v] of Object.entries(r.layout)) layout[`${k}@${vp.w}`] = v;
     }
     if (!truoc) await pass(browser, srv, { vp: VPS[0], dark: true, save, compat });
+    // Vòng 2 R-1: request CSS phông bị treo 3 s → trang vẫn hiện ngay (phông dự phòng)
+    for (const pg of ['/', '/admin.html']) {
+      const c = await browser.newContext({ viewport: { width: 390, height: 844 } }); const p = await c.newPage();
+      await routeCdn(p);
+      await p.route(/fonts\.googleapis\.com/, (r) => setTimeout(() => r.fulfill({ status: 200, contentType: 'text/css', body: '' }).catch(() => {}), 3000));
+      const t0 = Date.now();
+      await p.goto(srv.base + pg, { waitUntil: 'commit' });
+      await p.waitForSelector(pg === '/' ? '#selClass option[value="12A1"]' : '#pw', { state: pg === '/' ? 'attached' : 'visible' });
+      await p.waitForFunction(() => { const i = document.querySelector('img.brand-logo'); return i && i.complete && i.getBoundingClientRect().width > 0; });
+      const ms = Date.now() - t0;
+      check(`R-1 phông treo 3 s: trang ${pg} hiện sau ${ms} ms (< 1500)`, ms < 1500);
+      await c.close();
+    }
     const fontInfo = await (async () => {
       const c = await browser.newContext(); const p = await c.newPage(); await routeCdn(p);
       await p.goto(srv.base + '/');
