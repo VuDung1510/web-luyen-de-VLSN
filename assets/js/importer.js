@@ -118,6 +118,10 @@
       if (/^Đ[áa]p\s*[áa]n\s+c[ủu]a\s+em\b/i.test(t)) continue;
       // "---------- HẾT ----------": hết phần đề
       if (/^[-–—_=.*\s]*H[ẾE]T[-–—_=.*\s]*$/i.test(t) && /[-–—_=.*]/.test(t)) { push(); ended = true; mode = 'body'; continue; }
+      // "HƯỚNG DẪN GIẢI" / "LỜI GIẢI CHI TIẾT" (dòng riêng, sau phần đề): các "Câu n" tiếp theo là lời giải
+      if (qs.length + (cur ? 1 : 0) > 0 && /^(H[ƯU][ỚO]NG\s+D[ẪA]N(\s+GI[ẢA]I)?|L[ỜO]I\s+GI[ẢA]I(\s+CHI\s+TI[ẾE]T)?|Đ[ÁA]P\s+[ÁA]N\s+V[ÀA]\s+H[ƯU][ỚO]NG\s+D[ẪA]N(\s+GI[ẢA]I)?)\s*:?\s*$/i.test(t) && t === t.toUpperCase()) {
+        push(); inKey = false; ended = true; mode = 'body'; continue;
+      }
       if (/^(B[ẢA]NG\s+)?Đ[ÁA]P\s+[ÁA]N\s*:?\s*$/i.test(t) || /^B[ẢA]NG\s+Đ[ÁA]P\s+[ÁA]N/i.test(t)) { push(); inKey = true; keyPart = part; }
       const p = partOf(t);
       if (p) { if (inKey) keyPart = p; else { push(); part = p; if (p === 4) sawP4 = true; } continue; }
