@@ -13,7 +13,7 @@
 - Trang học sinh: https://vudung1510.github.io/web-luyen-de-VLSN/ · Trang giáo viên: .../admin.html
 - Dữ liệu web: Google Sheet "web luyện đề" (HocSinh, DeThi, CauHoi, KetQua, CaiDat), Apps Script gắn kèm làm máy chủ.
 - Ngân hàng câu hỏi: Google Sheet "KHO CÂU HỎI VẬT LÝ" (Kho câu hỏi, Thống kê, Nhật ký nhập, Danh mục chủ đề), hình ở thư mục "02. HÌNH VẼ".
-- File kho đang dùng (từ 18/11/2026, thay file cũ không còn mở được): "KHO CÂU HỎI VẬT LÝ" id `1sCyl8_5u-LvK8eGtfbNeG76qugPGY-8dHLEM3ecQaD8`; 10 239 câu, 1 014 câu có đáp án dùng được cho web.
+- File kho đang dùng (từ 18/11/2026, thay file cũ không còn mở được): "KHO CÂU HỎI VẬT LÝ" (id: xem bản trên Drive; repo không ghi id file thật); 10 239 câu, 1 014 câu có đáp án dùng được cho web.
 - Mật khẩu quản trị: không ghi vào tài liệu (xem trang tính CaiDat).
 
 ## 2. Kiến trúc

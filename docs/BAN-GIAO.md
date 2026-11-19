@@ -40,9 +40,9 @@ Mọi commit kết thúc bằng 2 dòng `Co-Authored-By` / `Claude-Session` theo
 ## 4. Việc riêng cho từng pha còn lại
 
 - **Pha 3**: giáo viên gõ công thức bằng **Equation** của Word. Bộ đọc phải nhận dạng mẫu "Form VLSN cho file Word đề" (QUYET-DINH mục 6). File Word thật trên Drive để thử (chỉ đọc, tải về thư mục nháp, không đưa vào repo):
-  - `01. De_thi_thu_GK1_VL12.docx` (id `1comcP0QPXr1Qr2ESlhUoT3Xz9eE9ysHn`): đề theo mẫu VLSN;
-  - `De_KS_Doi_tuyen_VL12_Lan1.docx` (id `1tFDFzgQgh0WAekVpqhNBuEvYRaEBKJw5`): nguồn của mẫu chuẩn;
-  - khoảng 30 file `VL11_ĐỀ CHÍNH THỨC_…` (có bản `_LỜI GIẢI`) trong thư mục "01. ĐỀ GỐC ĐÃ NHẬP" (id `1SPEJxeaHOjTB-7SJdl_WjIoCUCTLBiAP`).
+  - `01. De_thi_thu_GK1_VL12.docx`: đề theo mẫu VLSN;
+  - `De_KS_Doi_tuyen_VL12_Lan1.docx`: nguồn của mẫu chuẩn;
+  - khoảng 30 file `VL11_ĐỀ CHÍNH THỨC_…` (có bản `_LỜI GIẢI`) trong thư mục "01. ĐỀ GỐC ĐÃ NHẬP".
 - **Pha 4**: kết quả luyện tập ở trang tính riêng `KetQuaLuyenTap`; loại câu thuộc đề chưa công bố lời giải khỏi luyện tập; giới hạn lượt/ngày đã hoãn.
 - **Pha 5**: Cowork đã chốt **giữ bố cục hiện tại**, đổi màu chủ đạo sang **#1D6B3E**, logo VLSN lấy từ vatly.ai (ảnh "Logo Vật Lý Siêu Nhẩm" ở góc trên khung bài học). Bản `docs/spec/pha-5-thiet-ke.md` hiện viết theo phương án bảng đen đã bỏ: cho agent Kiến trúc sư viết lại trước, rồi chạy soát đặc tả. Nếu không tải được logo từ vatly.ai (mạng bị chặn), hỏi giáo viên gửi file logo.
 - **Còn lại từ Pha 2 (Nhẹ, sửa đầu Pha 3 hoặc ở Pha 6)**: R-12 `bankImageName_` đọc ô có hai hình "Có – A.png, B.png" thành một tên (vẫn có cảnh báo thiếu hình); R-13 `logout()` trang quản trị không xóa thống kê kho và giỏ câu trong bộ nhớ. Chi tiết: `docs/bao-cao/pha-2-soat.md` mục Vòng 2.
@@ -50,8 +50,8 @@ Mọi commit kết thúc bằng 2 dòng `Co-Authored-By` / `Claude-Session` theo
 
 ## 5. Liên kết
 
-- Quyết định chung (nguồn đúng): Google Doc "Quyết định đã chốt — Web luyện đề VLSN", id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`, thư mục "WEB LUYỆN ĐỀ – TÀI LIỆU CHUNG" (id `1XW9A6LT9HCWTOJthY2mi2FNP_qqgKF_L`).
-- Kho câu hỏi đang dùng: "KHO CÂU HỎI VẬT LÝ", id `1sCyl8_5u-LvK8eGtfbNeG76qugPGY-8dHLEM3ecQaD8` (file cũ `1p6B…` không còn mở được).
+- Quyết định chung (nguồn đúng): Google Doc "Quyết định đã chốt — Web luyện đề VLSN", thư mục "WEB LUYỆN ĐỀ – TÀI LIỆU CHUNG".
+- Kho câu hỏi đang dùng: "KHO CÂU HỎI VẬT LÝ" (file cũ `1p6B…` không còn mở được).
 - Danh sách 31 câu kho lỗi định dạng: Google Doc "Danh sách câu kho bị lỗi định dạng (18-11-2026)" trong thư mục tài liệu chung.
 - Trang theo dõi tiến độ (artifact riêng tư của giáo viên): https://claude.ai/artifact/LShA5Qu3C1h7gzq3py4z8L. Cập nhật từ phiên mới bằng công cụ Artifact: đọc (`action: "read"`) rồi publish với `url` đó.
 
