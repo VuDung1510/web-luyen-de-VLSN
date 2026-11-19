@@ -41,7 +41,7 @@ Lệnh:
 | TC-5.10 | Biểu đồ đọc biến CSS | ĐẠT | `chTimeline` viền `#1d6b3e` = `--primary`; `chBins` = `--primary`; `chQ` dùng 3 màu `#4a7311`, `#c2410c`, `#1d6b3e`. Cả hai máy chủ |
 | TC-5.11 | Không lỗi JS | ĐẠT | Không `pageerror`, không `console.error` ở mọi màn, cả hai máy chủ và cả bản main. Lỗi tải Google Fonts/CDN bị bỏ qua (mạng chặn; KaTeX, Chart.js lấy từ `LIBS_DIR`) |
 | TC-5.12 | Không cuộn ngang | ĐẠT | `scrollWidth ≤ innerWidth` ở 6 màn + Thống kê, khổ 390 và 1280, sáng và tối |
-| TC-5.13 | Test cũ đạt | ĐẠT | Xem mục "Test cũ" |
+| TC-5.13 | Test cũ đạt | ĐẠT (trừ K-1 có sẵn trên main) | Xem mục "Test cũ" |
 | TC-5.14 | Máy chủ không đổi | ĐẠT | `git diff origin/main -- apps-script/` rỗng (trong `pha5.test.js`) |
 | TC-5.15 | Lighthouse ≥ 90 (khuyến nghị) | CHƯA ĐO | Không có Lighthouse trong môi trường (mạng chặn tải gói). Để kiểm thử viên/Pha 6 |
 
@@ -107,7 +107,8 @@ Trước / sau trang chủ học sinh: ![trước](anh/pha-5/21-truoc-trang-chu-
 Không phải sửa test cũ nào (không test nào kiểm màu hay chữ chân trang cũ).
 - Node: `backend` 13/13, `importer` đạt, `bank` 30/30, `pha1-kiem-thu` 29/29, `pha2-kiem-thu` 31/31, `pha3-kiem-thu` 17/17, `pha4-kiem-thu` 33/33, `pha4` 22/22, `cache` 17/17, `common-cache` 5/5, `docx` 27/27.
 - Cần dev-server ngoài, chạy cả máy chủ mới và `SERVER_COMPAT=1.0.0`: `e2e.js`, `bank.e2e.js`, `docx.e2e.js`, `pha1-r1.e2e.js` — đạt cả hai.
-- Tự chạy dev-server (`all`): KET_QUA_E2E_TU_CHAY
+- Tự chạy dev-server (`all`, ảnh ghi ra thư mục nháp): `pha4.e2e.js` đạt hết; `pha2-kiem-thu.e2e.js` 16/16; `pha3-kiem-thu.e2e.js` 23/23; `pha4-kiem-thu.e2e.js` 22/22.
+- `pha1-kiem-thu.e2e.js`: đạt hết **trừ K-1** ("viên Đang cập nhật ở 390 px che nút Làm lại"). **Lỗi này có sẵn trên `main`**: tôi chạy cùng test trên worktree `origin/main` (0715c88) và nhận đúng lỗi K-1 đó. Bố cục Pha 5 lệch 0 px so với main nên không gây ra lỗi này. Có lẽ do Pha 4 thêm thẻ "Luyện tập" đẩy nút "Làm lại" lên đúng chỗ viên chỉ báo ở khổ 390. Đề nghị điều phối mở việc riêng (không thuộc phạm vi Pha 5: không đổi bố cục).
 
 ### Chỗ lệch đặc tả và lý do
 1. **Phông khi đo.** Google Fonts bị chặn, nên Montserrat và Be Vietnam Pro đều rơi về phông hệ thống (Inter). Số đo TC-5.8 "sau" chưa phản ánh Montserrat. Không tìm thấy file Montserrat cục bộ để đo thêm. Trên trang thật, tiêu đề Montserrat 800 có thể rộng hơn một chút; nếu tiêu đề dài xuống dòng thì trang chỉ dài thêm (TC-5.8 cho phép phần này).
