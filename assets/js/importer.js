@@ -3,10 +3,11 @@
   'use strict';
 
   /** Tách dữ liệu dán từ bảng tính (tab), hỗ trợ ô có xuống dòng trong dấu ngoặc kép */
-  function parseTsv(text) {
+  function parseTsv(text, delim) {
+    const D = delim || '\t';
     const rows = [];
     let row = [], cell = '', q = false;
-    const s = String(text || '').replace(/\r\n?/g, '\n');
+    const s = String(text || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
     for (let i = 0; i < s.length; i++) {
       const c = s[i];
       if (q) {
@@ -14,7 +15,7 @@
         else if (c === '"') q = false;
         else cell += c;
       } else if (c === '"' && cell === '') q = true;
-      else if (c === '\t') { row.push(cell); cell = ''; }
+      else if (c === D) { row.push(cell); cell = ''; }
       else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
       else cell += c;
     }
@@ -30,8 +31,26 @@
     ['A', /^(a|pa\s*a|phương án a)$/i], ['B', /^(b|pa\s*b|phương án b)$/i], ['C', /^(c|pa\s*c|phương án c)$/i], ['D', /^(d|pa\s*d|phương án d)$/i]
   ];
 
-  function fromTsv(text) {
-    const rows = parseTsv(text);
+  /** CSV (Excel lưu "CSV UTF-8"): tự nhận dấu phân cách , ; hoặc tab ở dòng đầu (ngoài dấu ngoặc kép) */
+  function parseCsv(text) {
+    const s = String(text || '').replace(/^\uFEFF/, '');
+    const first = [];
+    let q = false;
+    for (let i = 0; i < s.length && (q || (s[i] !== '\n' && s[i] !== '\r')); i++) {
+      if (s[i] === '"') q = !q; else if (!q) first.push(s[i]);
+    }
+    const cnt = (c) => first.filter((x) => x === c).length;
+    const delim = [['\t', cnt('\t')], [';', cnt(';')], [',', cnt(',')]].sort((a, b) => b[1] - a[1])[0];
+    return parseTsv(s, delim[1] ? delim[0] : ',');
+  }
+
+  function fromTsv(text) { return fromRows(parseTsv(text)); }
+  function fromCsv(text) { return fromRows(parseCsv(text)); }
+
+  /** Mảng hàng (từ TSV, CSV hoặc trang tính .xlsx) → câu hỏi, theo mẫu cột DEFAULT_COLS hoặc hàng tiêu đề */
+  function fromRows(input) {
+    const rows = (input || []).map((r) => (r || []).map((x) => (x == null ? '' : String(x))))
+      .filter((r) => r.some((x) => x.trim() !== ''));
     if (!rows.length) return { questions: [], warnings: ['Không có dữ liệu.'] };
     let cols = DEFAULT_COLS;
     const first = rows[0].map((x) => String(x).trim());
@@ -67,28 +86,41 @@
    *   Đáp án: B  |  Đáp án: ĐSĐS  |  Đáp số: 12,5
    *   Lời giải: …  (các dòng sau thuộc lời giải đến câu tiếp theo)
    *   BẢNG ĐÁP ÁN: 1.B 2.C 3.A …  (đặt cuối, có thể kèm PHẦN I/II/III)
+   * Thêm (Pha 3, mẫu "Form VLSN cho file Word đề" và đề có lời giải):
+   *   PHẦN 1. TRẮC NGHIỆM NHIỀU LỰA CHỌN / PHẦN 2. … / PHẦN 3. …  (số Ả Rập)
+   *   PHẦN IV (tự luận) → bỏ qua kèm cảnh báo (web chưa chấm tự luận)
+   *   "Đáp án của em: ……" (dòng để học sinh ghi) → bỏ qua
+   *   "---------- HẾT ----------" → hết đề; sau đó "Câu n" (nếu có) là lời giải của câu n đã có
+   *   Câu 1. [NB] / [B] / [H] / [VD] / [VDC] … → mức độ; a) [NB] … → bỏ nhãn
+   *   Lời giải: Chọn B. → đáp án B; lời giải Đúng/Sai "a) Đúng – …" → đáp án ĐS…; "Đáp số: 0,5 Hz" → 0,5
    */
   function fromText(text) {
     const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
     const qs = [];
     const warnings = [];
-    let part = 0, cur = null, mode = 'body', inKey = false, keyPart = 0;
+    let part = 0, cur = null, mode = 'body', inKey = false, keyPart = 0, ended = false, sawP4 = false;
     const keyMap = {};
     const partOf = (s) => {
-      const m = s.match(/^\s*PH[ẦÀAẦ]N\s+(III|II|I|3|2|1)\b/i);
+      const m = s.match(/^\s*PH[ẦÀAẦ]N\s+(IV|III|II|I|4|3|2|1)\b/i);
       if (!m) return 0;
-      return { I: 1, II: 2, III: 3, 1: 1, 2: 2, 3: 3 }[m[1].toUpperCase()];
+      return { I: 1, II: 2, III: 3, IV: 4, 1: 1, 2: 2, 3: 3, 4: 4 }[m[1].toUpperCase()];
     };
-    const push = () => { if (cur) qs.push(cur); cur = null; };
+    const LEVEL = { NB: 'NB', B: 'NB', TH: 'TH', H: 'TH', VD: 'VD', VDC: 'VDC' };
+    const LEVEL_RE = /^\[\s*(NB|TH|VDC|VD|B|H)\s*\]\s*\.?\s*/i;
+    const push = () => { if (cur && !cur._old) qs.push(cur); cur = null; };
 
     for (let raw of lines) {
       const line = raw.replace(/ /g, ' ').trimEnd();
       const t = line.trim();
       if (!t) { if (cur && mode === 'sol') cur.loiGiai += '\n'; continue; }
 
+      // dòng để học sinh tự ghi đáp án (Phần III của mẫu VLSN) — không phải đáp án
+      if (/^Đ[áa]p\s*[áa]n\s+c[ủu]a\s+em\b/i.test(t)) continue;
+      // "---------- HẾT ----------": hết phần đề
+      if (/^[-–—_=.*\s]*H[ẾE]T[-–—_=.*\s]*$/i.test(t) && /[-–—_=.*]/.test(t)) { push(); ended = true; mode = 'body'; continue; }
       if (/^(B[ẢA]NG\s+)?Đ[ÁA]P\s+[ÁA]N\s*:?\s*$/i.test(t) || /^B[ẢA]NG\s+Đ[ÁA]P\s+[ÁA]N/i.test(t)) { push(); inKey = true; keyPart = part; }
       const p = partOf(t);
-      if (p) { if (inKey) keyPart = p; else { push(); part = p; } continue; }
+      if (p) { if (inKey) keyPart = p; else { push(); part = p; if (p === 4) sawP4 = true; } continue; }
       if (inKey) {
         const re = /(?:C[âa]u\s*)?(\d+)\s*[.:)\-]\s*([ĐDSABCđds]{1,4}(?=\s|$|[,;|])|[-+]?\d+(?:[.,]\d+)?)/g;
         let m;
@@ -99,13 +131,35 @@
       const qm = t.match(/^C[âa]u\s*(\d+)\s*[.:)]?\s*(?:\((?:[^)]*)\)\s*)?(.*)$/i);
       if (qm) {
         push();
-        cur = { num: +qm[1], phan: part || 0, noiDung: qm[2] || '', A: '', B: '', C: '', D: '', dapAn: '', loiGiai: '', _ds: false, _tn: false };
+        if (ended) {
+          // sau "HẾT": phần hướng dẫn giải, "Câu n" là lời giải của câu n đã đọc
+          const old = qs.find((q) => q.num === +qm[1] && q.phan === (part || 0)) || qs.find((q) => q.num === +qm[1] && !part);
+          if (old) {
+            cur = old; cur._old = true; mode = 'sol';
+            const rest = (qm[2] || '').replace(LEVEL_RE, '').trim();
+            if (rest) cur.loiGiai = (cur.loiGiai ? cur.loiGiai + '\n' : '') + rest;
+          }
+          continue;
+        }
+        let body = qm[2] || '', lv = '';
+        const lm0 = body.match(LEVEL_RE);
+        if (lm0) { lv = LEVEL[lm0[1].toUpperCase()]; body = body.slice(lm0[0].length); }
+        cur = { num: +qm[1], phan: part || 0, noiDung: body, A: '', B: '', C: '', D: '', dapAn: '', loiGiai: '', mucDo: lv, _ds: false, _tn: false };
         mode = 'body';
         continue;
       }
       if (!cur) continue;
+      if (cur._old && mode === 'sol') {
+        const am2 = t.match(/^(Đ[áa]p\s*[áa]n|ĐA|Đ[áa]p\s*s[ốo])\s*[:.]?\s*(.+)$/i);
+        if (am2 && !cur.dapAn) cur.dapAn = am2[2].trim().replace(/[.。]$/, '');
+        const lm2 = t.match(/^(L[ờo]i\s*gi[ảa]i|H[ưu][ớo]ng\s*d[ẫa]n(\s*gi[ảa]i)?|HDG|HD|Gi[ảa]i)\s*[:.]\s*(.*)$/i);
+        const line = lm2 ? lm2[3] : t;
+        if (line) cur.loiGiai += (cur.loiGiai && !cur.loiGiai.endsWith('\n') ? '\n' : '') + line;
+        continue;
+      }
 
-      const am = t.match(/^(Đ[áa]p\s*[áa]n|ĐA|Đ[áa]p\s*s[ốo]|Ch[ọo]n)\s*[:.]?\s*(.+)$/i);
+      // "Chọn" chỉ là đáp án khi theo sau là đúng một chữ A–D (tránh nhầm câu dẫn "Chọn phát biểu đúng…")
+      const am = t.match(/^(Đ[áa]p\s*[áa]n|ĐA|Đ[áa]p\s*s[ốo])\s*[:.]?\s*(.+)$/i) || t.match(/^(Ch[ọo]n)\s*[:.]?\s*([A-D]\b.*)$/i);
       if (am && mode !== 'sol') {
         cur.dapAn = am[2].trim().replace(/[.。]$/, '');
         const sm = cur.dapAn.match(/^(\S+)\s*[.;]?\s*(L[ờo]i\s*gi[ảa]i|HD|Gi[ảa]i)\s*[:.]?\s*(.*)$/i);
@@ -114,12 +168,18 @@
       }
       const lm = t.match(/^(L[ờo]i\s*gi[ảa]i|H[ưu][ớo]ng\s*d[ẫa]n(\s*gi[ảa]i)?|HDG|HD|Gi[ảa]i)\s*[:.]\s*(.*)$/i);
       if (lm) { mode = 'sol'; cur.loiGiai = (cur.loiGiai ? cur.loiGiai + '\n' : '') + lm[3]; continue; }
-      if (mode === 'sol') { cur.loiGiai += (cur.loiGiai && !cur.loiGiai.endsWith('\n') ? '\n' : '') + t; continue; }
+      if (mode === 'sol') {
+        // "Đáp số: 0,5 Hz" / "Đáp án: B" nằm trong lời giải: ghi đáp án (nếu chưa có), vẫn giữ trong lời giải
+        const am3 = t.match(/^(Đ[áa]p\s*[áa]n|ĐA|Đ[áa]p\s*s[ốo])\s*[:.]\s*(.+)$/i);
+        if (am3 && !cur.dapAn) cur.dapAn = am3[2].trim().replace(/[.。]$/, '');
+        cur.loiGiai += (cur.loiGiai && !cur.loiGiai.endsWith('\n') ? '\n' : '') + t;
+        continue;
+      }
 
       const dm = t.match(/^([a-d])\s*[).]\s*(.*)$/);
       if (dm && (dm[1] === 'a' || cur._ds)) {
         cur._ds = true;
-        cur[dm[1].toUpperCase()] = dm[2].trim();
+        cur[dm[1].toUpperCase()] = dm[2].trim().replace(LEVEL_RE, '');
         continue;
       }
 
@@ -136,12 +196,40 @@
     }
     push();
 
-    const out = qs.map((q, i) => {
+    const p4 = qs.filter((q) => q.phan === 4).length;
+    if (sawP4 || p4) warnings.push('Bỏ qua Phần IV (tự luận)' + (p4 ? ': ' + p4 + ' câu' : '') + '. Web chưa chấm tự luận.');
+    const out = qs.filter((q) => q.phan !== 4).map((q, i) => {
       let loai = q._ds ? 'DS' : q._tn ? 'TN' : q.phan === 2 ? 'DS' : q.phan === 1 ? 'TN' : 'TL';
       if (!q.dapAn) {
         // bảng đáp án có chia PHẦN thì khớp theo (phần, số câu); không chia phần thì khớp theo số câu
         const k = keyMap[(q.phan || 0) + ':' + q.num] || keyMap['0:' + q.num];
         if (k) q.dapAn = k;
+      }
+      if (!q.dapAn && loai === 'TN') {
+        // "Lời giải: Chọn B."
+        const cm = String(q.loiGiai).match(/^\s*(?:Ch[ọo]n|Đ[áa]p\s*[áa]n)\s*[:.]?\s*([ABCD])(?![\p{L}\d])/iu);
+        if (cm) q.dapAn = cm[1].toUpperCase();
+      }
+      if (!q.dapAn && loai === 'DS') {
+        // lời giải từng ý: "a) Đúng – …", "b) Sai – …"
+        const got = {};
+        String(q.loiGiai).split('\n').forEach((ln) => {
+          const mm = ln.trim().match(/^([a-d])\s*[).]\s*(Đúng|Sai|Đ|S)(?=[\s,.;:–—\-)]|$)/i);
+          if (mm && !got[mm[1].toLowerCase()]) got[mm[1].toLowerCase()] = /^(Đ|Đúng)$/i.test(mm[2]) ? 'Đ' : 'S';
+        });
+        if (['a', 'b', 'c', 'd'].every((k) => got[k])) q.dapAn = ['a', 'b', 'c', 'd'].map((k) => got[k]).join('');
+      }
+      if (loai === 'TL' && q.dapAn) {
+        // "Đáp số: $0,5$ Hz" → 0,5 (giữ nguyên nếu đã là số / nhiều số cách "|")
+        const raw = String(q.dapAn).trim();
+        const plain = raw.replace(/\$/g, '').replace(/\\[,;: ]/g, ' ').replace(/\{,\}/g, ',').trim();
+        if (!/^[-+]?\d+(?:[.,]\d+)?(\s*\|\s*[-+]?\d+(?:[.,]\d+)?)*$/.test(plain)) {
+          const nm = plain.match(/^(?:[^\d=]*=\s*)?([-+−]?\d+(?:[.,]\d+)?)(?![\d.,]*\s*[.,]?\d)/);
+          if (nm) {
+            q.dapAn = nm[1].replace('−', '-');
+            warnings.push('Câu ' + (i + 1) + ' (số ' + q.num + ' trong văn bản): đáp số "' + raw + '" — đã lấy số ' + q.dapAn + ', hãy kiểm tra lại.');
+          }
+        } else q.dapAn = plain;
       }
       if (loai === 'DS') {
         // đáp án ghi cuối mỗi ý: "(Đ)" / "(S)"
@@ -158,7 +246,7 @@
       if (!q.dapAn) warnings.push('Câu ' + (i + 1) + ' (số ' + q.num + ' trong văn bản): chưa tìm thấy đáp án.');
       return {
         loai, phan: q.phan || (loai === 'TN' ? 1 : loai === 'DS' ? 2 : 3), noiDung: q.noiDung.trim(),
-        A: q.A, B: q.B, C: q.C, D: q.D, dapAn: q.dapAn, loiGiai: q.loiGiai.trim()
+        A: q.A, B: q.B, C: q.C, D: q.D, dapAn: q.dapAn, loiGiai: q.loiGiai.trim(), mucDo: q.mucDo || '', num: q.num
       };
     });
     if (!out.length) warnings.push('Không tìm thấy câu hỏi nào. Mỗi câu cần bắt đầu bằng "Câu 1.", "Câu 2:"…');
@@ -178,7 +266,7 @@
     return seq.map((mk, i) => ({ k: mk.k, star: mk.star, v: t.slice(mk.end, i + 1 < seq.length ? seq[i + 1].start : t.length).trim() }));
   }
 
-  const api = { parseTsv, fromTsv, fromText, splitOptions };
+  const api = { parseTsv, parseCsv, fromTsv, fromCsv, fromRows, fromText, splitOptions, DEFAULT_COLS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Importer = api;
 })(typeof window !== 'undefined' ? window : this);
