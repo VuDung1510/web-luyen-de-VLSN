@@ -91,12 +91,12 @@ TC-2.12 (bảng) và TC-2.14 có trong e2e của người làm. TC-2.13 dành ch
 | Dùng được, theo lớp | Lớp 12: P1 136 · P2 32 · P3 **6**. Lớp 11: P1 636 · P2 88 · P3 116 |
 | Bị loại: chưa có đáp án | 9 156 (P1 5 793 · P2 1 331 · P3 2 032) |
 | Bị loại: Phần IV (tự luận) | 38 (12 câu có đáp án) |
-| Bị loại: đáp án Phần III không phải một số | 27 câu, đều lớp 11. Đáp án có đơn vị/LaTeX/chữ, dạng `\approx <số>`, `<số>\ \text{<đơn vị>}.`, `<đại lượng> = <số> <đơn vị>.`, hoặc một câu chữ. Mã câu: L11C3B18-P3-00130, L11C3B16-P3-00367, -00368, -00369, -00370, -00371, L11C2B12-P3-00454, -00531, -00559, L11C3B20-P3-00579, L11C3B18-P3-00580, L11C1B03-P3-00601, L11C1B02-P3-00674, L11C1B05-P3-00675, L11C1B02-P3-00676, -00677, L11C3B17-P3-00693, L11C3B18-P3-00694, -00695, -00696, L11C1B05-P3-00715, L11C1B02-P3-00764, -00785, L11C1B03-P3-00786, L11C1B02-P3-00804, L11C1B03-P3-00805, L11C1B05-P3-00891 |
-| Bị loại: Phần I thiếu phương án | 2 (L12C2B11-P1-02480, L12C1B01-P1-07951) |
-| Bị loại: Phần II thiếu nội dung câu (và không có hình) | 2 (L11C1B02-P2-00501, L11C1B06-P2-00820) |
+| Bị loại: đáp án Phần III không phải một số | 27 câu, đều lớp 11. Đáp án có đơn vị/LaTeX/chữ, dạng `\approx <số>`, `<số>\ \text{<đơn vị>}.`, `<đại lượng> = <số> <đơn vị>.`, hoặc một câu chữ. Danh sách mã câu đầy đủ sẽ gửi giáo viên riêng (không ghi vào repo). |
+| Bị loại: Phần I thiếu phương án | 2 (danh sách gửi riêng) |
+| Bị loại: Phần II thiếu nội dung câu (và không có hình) | 2 (danh sách gửi riêng) |
 | Phần II | Đủ 3 kiểu đáp án: `a) Đúng b) Sai…`, `a) S b) Đ…`, `a) Đúng, b) Sai, …` (có dấu phẩy). Cả 122 đáp án đều đọc ra 4 ý |
 | Đề gốc | 289 tên Nguồn. Một Nguồn có thể gồm nhiều file đề (tới 7). Tách theo Nguồn + file thì có **379 đề gốc**; 41 đề có câu dùng được; 210 đề có số câu nhảy (`thieu`) |
-| Hình | 2 838 hàng có ô "Có – ….png (02. HÌNH VẼ/Lớp 12/HINH_VE_Lop12_lanN)". Chưa thử chép hình trên Drive thật (môi trường không có Apps Script) |
+| Hình | 2 838 hàng có ô "Có – <mã>.png (02. HÌNH VẼ/…)", file nằm trong các thư mục con sâu hơn. Không có ô "Có" nào thiếu tên file. Chưa thử chép hình trên Drive thật (môi trường không có Apps Script) |
 | Chỉ mục | 970 KB < 2 MB → được nhớ tạm. Meta hiện cảnh báo "Kho có 10 239 câu (nhiều hơn 3 000)" |
 | Ma trận 18–4–6 Lớp 12 | Đủ (P3 vừa đúng 6 câu). `adminSaveExam` nhận 28 câu đã ánh xạ |
 
@@ -133,6 +133,43 @@ TC-2.12 (bảng) và TC-2.14 có trong e2e của người làm. TC-2.13 dành ch
 1. (Từ Pha 1) Đo số gốc TC-1.15a trên trang thật đang chạy máy chủ 1.0.0 (hoặc cho phép một phiên agent có mạng mở trang để đo).
 2. Pha 6: dán toàn bộ `apps-script/Code.gs` (bản **1.3.0** trở lên), chạy `setup` một lần, rồi Triển khai → Quản lý các bản triển khai → ✏ → **Phiên bản mới** → Triển khai (URL giữ nguyên). Lần chạy `setup` này Google sẽ **xin thêm quyền đọc Google Sheets khác và Google Drive** (để đọc kho và chép hình): bấm Cho phép. `setup` tự thêm 2 dòng `KHO_CAU_HOI_ID`, `THU_MUC_HINH_KHO_ID` vào CaiDat; 5 cột mới của `CauHoi` tự thêm vào cuối.
 3. (Từ Pha 1) Sau Pha 6: sửa một ô trên Sheet rồi tải lại trang web để kiểm `onEdit`.
-4. Sau Pha 6: vào **Cài đặt** của trang quản trị, dán link file "KHO CÂU HỎI VẬT LÝ" vào ô *Kho câu hỏi*, và link thư mục "02. HÌNH VẼ" vào ô *Thư mục hình của kho*, rồi Lưu.
+4. Sau Pha 6: vào **Cài đặt** của trang quản trị, dán link file "KHO CÂU HỎI VẬT LÝ" **mà thầy mở được trong Drive của mình** (mở file, chép địa chỉ trên thanh trình duyệt; kho có thể đã đổi sang file khác) vào ô *Kho câu hỏi*, và link thư mục "02. HÌNH VẼ" vào ô *Thư mục hình của kho*, rồi Lưu.
 5. Thử tab **Ngân hàng**: Ma trận 1 chạm lớp 12 → Tạo đề → xem hình có hiện trong trình soạn → Lưu (để Bản nháp) → xóa đề thử.
-6. Bổ sung đáp án trong kho: mới 1 030/10 239 câu có đáp án hợp lệ. Sửa 27 đáp án Phần III có đơn vị/chữ thành **chỉ số** (đơn vị ghi trong đề), 2 câu Phần I thiếu phương án, 2 câu Phần II thiếu nội dung (mã ở bảng trên). Xong bấm **↻ Đọc lại kho**.
+6. Bổ sung đáp án trong kho: mới 1 030/10 239 câu có đáp án hợp lệ. Sửa 27 đáp án Phần III có đơn vị/chữ thành **chỉ số** (đơn vị ghi trong đề), 2 câu Phần I thiếu phương án, 2 câu Phần II thiếu nội dung (danh sách mã câu gửi riêng). Xong bấm **↻ Đọc lại kho**.
+7. (R-9, kiểm ở Pha 6) Theo dõi kích thước trang `CauHoi`: câu từ kho có lời giải dài, khoảng 20–25 đề 28 câu có thể vượt ngưỡng đệm 900 KB của Pha 1. Khi đó web vẫn đúng nhưng `startExam`/`submitExam` đọc thẳng Sheet (chậm hơn). Pha 6 đo `/__stats` hoặc thời gian thật; nếu cần thì đệm `CauHoi` theo đề.
+8. (R-10, kiểm ở Pha 6 trên Apps Script thật) Khi `CauHoi` vượt 1 000 hàng: hàng mới có thể không có định dạng văn bản `@` (đáp án `3,0` có thể bị đổi thành số) hoặc `getRange` vượt số hàng tối đa. Thử lưu một đề khi `CauHoi` đã đầy 1 000 hàng; nếu lỗi thì thêm `insertRowsAfter` + `setNumberFormat('@')` trước khi ghi.
+
+---
+
+## Vòng 2 (người làm) — sửa theo `pha-2-soat.md` và `pha-2-kiem-thu.md`
+
+### Đã sửa
+| Mã | Sửa | File |
+|---|---|---|
+| **R-1** (Vừa) | `App.currentView()`/`App.viewIs(id)` mới trong `common.js`. Ở tab Ngân hàng: lấy mã màn trước mỗi `await`, sau `await` nếu đã sang màn khác thì không vẽ, không mở hộp, không báo lỗi; chỉ giữ `bankMeta`. Áp dụng cho: đọc kho lần đầu, "Đọc lại kho", danh sách, Ma trận, Lấy đề gốc, Xem đầy đủ, Tạo đề (đã rời tab thì không tự mở trình soạn). Lỗi `AUTH` cũng đổi màn nên không còn hộp lỗi đè màn đăng nhập. | `common.js`, `admin.js` |
+| **N-1** | `bankReadRows_`: mỗi khối hàng liền nhau đúng **1** lần `getRange` phủ cột đầu → cuối cần đọc (A:T), vẫn so ô mã câu với chỉ mục. 28 câu rải rác của test người kiểm thử: 85 → 29 lần `getRange` (1 tiêu đề + 28 khối), 582 ô. | `Code.gs` |
+| **R-2, R-3** | Không còn im lặng khi thiếu hình. Lượt cuối của `adminBankToQuestions` (không còn `tiepTuc`) rà **mọi** câu kho ghi "Có" hình mà chưa có URL — dù hình không tìm thấy, chép lỗi, hay con trỏ lượt trước nhảy qua — và trả `thieuHinh: [mã câu]` kèm cảnh báo "Câu <mã>: …". `bankImageName_` đọc được tên file có dấu cách ("Có – hinh 1.png (…)"). Ô chỉ ghi "Có" mà không có tên file: câu vẫn dùng được, chỉ mục đánh dấu có hình, và có cảnh báo "không đọc được tên file". Trình soạn đề hiện các cảnh báo ở đầu trang và nhãn "Kho ghi có hình — chưa có hình" trên từng câu, **trước khi lưu**. | `Code.gs`, `admin.js` |
+| **R-4** | Đáp án Phần III nhận `1e-7`, `6.4e-19`, `.5`, `,5`, `-0,5`, và ô kiểu số (Sheet trả `1e-7`). Chấm: `1e-7` đúng với `0,0000001`. | `Code.gs` |
+| **R-5** | Một giới hạn chung 500 câu: `adminBankMatrix` từ chối tổng > 500; Meta trả `gioiHan`. Giao diện báo ngay khi bấm "Tạo ma trận" với tổng > 500; giỏ > 500 thì hiện "Quá 500 câu — bớt N câu" và khóa nút Tạo đề. | `Code.gs`, `admin.js` |
+| **R-7** | Bản chép công khai tên `hinh-<12 ký tự hex>.<đuôi>`. 12 ký tự là băm có khóa (HMAC với khóa bí mật của máy chủ) của tên gốc, nên người ngoài không đoán ngược ra mã câu. Máy chủ tra ngược bằng `IMG_<tên gốc>` → id, hoặc tính lại `bankCopyName_(tên gốc)`. | `Code.gs` |
+| **R-6** | Mỗi lượt đọc Script Properties **1 lần** (`getProperties()`), gọi `imageFolder_()` 1 lần. `secret_()` nhớ trong request. 30 câu có hình: ≤ 5 lần đọc Properties. | `Code.gs`, shim thêm `getProperties` |
+| **R-8** | "Đọc lại kho" (`adminBankMeta {refresh}`) xóa luôn bản đồ tên hình đã nhớ (`bkimg_<thư mục>`), nên hình mới thêm vào Drive được tìm thấy ngay. | `Code.gs` |
+| R-11 | Bỏ danh sách mã câu thật khỏi báo cáo, chỉ ghi số lượng theo loại lỗi. Danh sách đầy đủ ở thư mục nháp của phiên để gửi giáo viên riêng (không vào repo). | báo cáo |
+| N-2 | README và việc giáo viên mục 4: dán link file kho **mà mình mở được**. | `README.md`, báo cáo |
+
+**Không sửa ở pha này** (theo chỉ đạo): R-9, R-10 → đưa vào "Việc giáo viên cần làm / kiểm ở Pha 6" (mục 7, 8).
+
+### Test mới
+- `tests/bank.test.js` thêm 7 test (tổng 30):
+  - R-4: số mũ, `.5`, ô kiểu số; chấm đúng.
+  - R-3: tên có dấu cách; ô chỉ ghi "Có" → `thieuHinh` + cảnh báo.
+  - R-2: con trỏ nhảy và hình không có trên Drive → lượt cuối cảnh báo đủ 8 câu.
+  - R-7: tên bản chép không chứa mã câu, đúng dạng `hinh-<hex>`, tính lại được.
+  - R-5: giới hạn chung, Meta có `gioiHan`.
+  - R-6, R-8: số lần đọc Properties; "Đọc lại kho" tìm thấy hình mới.
+  - N-1: 3 khối hàng → 4 lần `getRange`.
+- `tests/bank.e2e.js` thêm R-1: làm chậm `adminBankMeta` 2,5 s → sang trình soạn và gõ tên đề → sau 3,5 s ô tên vẫn còn. Tương tự "Đọc lại kho" → sang Tổng quan. Đã xác nhận test **bắt được lỗi**: bỏ dòng kiểm `viewIs` thì test báo KHÔNG ĐẠT.
+- Sửa 1 dòng test cũ của người làm: TC-2.3 dùng ma trận 100/100/100 thay cho 200/200/200 (vượt giới hạn mới).
+
+### Kết quả test vòng 2
+KET_QUA_VONG_2

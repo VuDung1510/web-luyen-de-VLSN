@@ -151,7 +151,7 @@ Nên ghi **Chủ đề** và **Mức độ** (NB/TH/VD/VDC) cho mỗi câu. Ph�
 
 Ngân hàng là file Google Sheet riêng **"KHO CÂU HỎI VẬT LÝ"**. Web chỉ **đọc** kho (không bao giờ sửa kho), rồi chép các câu được chọn sang trang tính `CauHoi` của đề.
 
-1. **Cài một lần:** trong **Cài đặt** (hoặc trang tính `CaiDat`), dán link file kho vào *KHO_CAU_HOI_ID* và nên dán link thư mục hình "02. HÌNH VẼ" vào *THU_MUC_HINH_KHO_ID*. Lần đầu: mở Apps Script, chạy hàm `setup` một lần để cho phép máy chủ đọc Drive.
+1. **Cài một lần:** trong **Cài đặt** (hoặc trang tính `CaiDat`), dán link file kho **mà thầy mở được trong Drive của mình** (mở file kho, chép địa chỉ trên thanh trình duyệt) vào *KHO_CAU_HOI_ID* và nên dán link thư mục hình "02. HÌNH VẼ" vào *THU_MUC_HINH_KHO_ID*. Lần đầu: mở Apps Script, chạy hàm `setup` một lần để cho phép máy chủ đọc Drive.
 2. Mở tab **Ngân hàng**: lọc theo lớp, chương → bài, dạng câu, mức độ, nguồn, hoặc tìm chữ. Chỉ câu **đã có đáp án hợp lệ** mới hiện; câu tự luận (Phần IV) tạm bỏ qua.
 3. Cho câu vào **giỏ** (thanh dưới cùng: *P1 x · P2 y · P3 z*), hoặc:
    - **Ma trận 1 chạm**: mặc định 18–4–6, sửa được số câu mỗi phần; ưu tiên câu ít được dùng. Kho không đủ câu thì web báo rõ phần nào thiếu bao nhiêu câu.
