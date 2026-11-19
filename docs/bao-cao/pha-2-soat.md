@@ -73,3 +73,38 @@ Không có phát hiện Nặng. Có 1 phát hiện Vừa nên sửa trước khi
 | 7 | Không `withLock_` khi chép hình | **Chấp nhận.** Không ghi vào Sheet. Giữ khóa 4,5 phút sẽ chặn học sinh nộp bài. Hệ quả xấu nhất là thừa bản chép hoặc `IMG_` bị ghi đè, vô hại. |
 | 8 | Tên file test `bank.test.js` / `bank.e2e.js` | **Chấp nhận.** Để dành `pha2.test.js` cho người kiểm thử. |
 | 9 | `[BẢNG]` trong `rich()` làm ở Pha 2, bỏ dòng trống trước bảng | **Chấp nhận.** Đặc tả cho phép ("nếu Pha 3 chưa làm"). 00-quy-trinh §4 giao cho pha vào trước. Văn bản không có bảng cho kết quả như cũ. |
+
+---
+
+## Vòng 2 (soát lại, 19/11/2026)
+
+Phạm vi: `git diff 50a0d0a..4565ec6` (gồm các commit lưu tạm b40582a, 07e58b9) và mục "Vòng 2" trong `docs/bao-cao/pha-2.md`.
+
+Test chạy lại trên `4565ec6`:
+- `node tests/backend.test.js`: 13/13 đạt.
+- `node tests/cache.test.js`: 17/17 đạt.
+- `node tests/bank.test.js`: 30/30 đạt.
+
+Không chạy e2e vì agent kiểm thử đang chạy song song.
+
+### Kết luận Vòng 2: **ĐẠT**
+Các phát hiện R-1 đến R-8 và N-1 đều đã sửa đúng. Không có lỗi mới mức Nặng hay Vừa.
+
+| Mã | Đánh giá |
+|---|---|
+| R-1 | **Đã sửa, bịt hết các đường vẽ đè.** `route()` gọi `App.newView()` mỗi lần chuyển màn. Lỗi `AUTH` gọi `logout()`, mà `logout()` lại gọi `route()`, nên mã màn cũng đổi. Sau mỗi `await` trong tab Ngân hàng đều có kiểm `viewIs`/`here()`: đọc kho lần đầu (cả nhánh lỗi), Đọc lại kho, danh sách (kèm `seq`), Ma trận (sau API và sau hộp xác nhận), Lấy đề gốc (sau API và sau hộp xác nhận), Xem đầy đủ, Tạo đề (không tự mở trình soạn nếu đã rời tab) và `drawCart`. Khi đã rời tab, `bankMeta` vẫn được cất. Cũng không còn hộp lỗi đè lên màn đăng nhập. |
+| R-2, R-3 | Đã sửa. Lượt cuối rà mọi câu có hình nhưng chưa có URL, lấy theo mã câu chứ không theo con trỏ, rồi trả `thieuHinh` và cảnh báo. Trình soạn hiện nhãn trước khi lưu. Tên file có dấu cách và ô chỉ ghi "Có" đều được xử lý. |
+| R-4 | Đã sửa. Đáp án nhận dạng số mũ, `.5`, `,5`. `parseNum_` vốn đã đọc được số mũ nên chấm đúng. |
+| R-5 | Đã sửa. Ma trận kiểm cùng giới hạn 500 ở cả máy chủ lẫn giao diện. Giỏ quá 500 câu thì khóa nút Tạo đề. |
+| R-6 | Đã sửa. Mỗi lượt gọi `getProperties()` 1 lần và `imageFolder_()` 1 lần. `secret_()` được nhớ trong `MEMO_`, mà `MEMO_` mới tinh ở mỗi lần chạy. |
+| R-7 | **Đã sửa đúng.** Tên bản chép là `hinh-<12 hex>.<đuôi>`, với 12 hex là HMAC-SHA256 tính bằng `secret_()`. Bí mật chỉ nằm ở Script Properties phía máy chủ, không bao giờ trả về giao diện. Đoạn chuyển `(b + 256) % 256` cho kết quả đúng với cả byte có dấu (Apps Script thật) lẫn byte không dấu (shim). Tên bản chép không chứa mã câu. Việc tra ngược vẫn dùng `IMG_<tên gốc>` như trước. |
+| R-8 | Đã sửa. `refresh` xóa `bkimg_<thư mục>` trong đệm và cả trong `MEMO_`. |
+| N-1 | **Đã sửa đúng.** `bankReadRows_` đọc mỗi khối hàng liền nhau bằng 1 lần `getRange` (cột đầu → cột cuối cần đọc). `bankPick_` không đổi: vẫn so ô "Mã câu" của từng hàng với mã cần lấy, lệch thì dựng lại chỉ mục và lấy theo mã. |
+| R-9, R-10 | Đã chuyển sang việc kiểm ở Pha 6. Chấp nhận. |
+| R-11 | Đã bỏ danh sách mã câu thật khỏi báo cáo. |
+
+### Phát hiện mới (Nhẹ, không chặn)
+| Mã | Mức | File:dòng | Mô tả | Đề xuất |
+|---|---|---|---|---|
+| R-12 | Nhẹ | `apps-script/Code.gs` `bankImageName_` (≈1311–1313) | Hàm mới nhận cả phần giữa "Có –" và "(…)" làm tên file. Ô ghi hai hình ("Có – A.png, B.png (…)") vì thế bị đọc thành một tên `A.png, B.png`, không tìm thấy trên Drive. Câu không bị lỗi im lặng vì lượt cuối có cảnh báo `thieuHinh`. Kho thật hiện chỉ có một hình mỗi ô. | Nếu phần đó chứa `,` hoặc `;` thì lấy tên đầu, hoặc cảnh báo "nhiều hình". |
+| R-13 | Nhẹ | `assets/js/admin.js` `logout()` | Đăng xuất không xóa `bankMeta` (thống kê kho trong bộ nhớ) và `ld_bank_*` (chỉ chứa mã câu). Không lộ đáp án; người đăng nhập lại cũng là giáo viên. | Có thể đặt `bankMeta = null` trong `logout()`. |

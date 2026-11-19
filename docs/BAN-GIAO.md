@@ -45,6 +45,7 @@ Mọi commit kết thúc bằng 2 dòng `Co-Authored-By` / `Claude-Session` theo
   - khoảng 30 file `VL11_ĐỀ CHÍNH THỨC_…` (có bản `_LỜI GIẢI`) trong thư mục "01. ĐỀ GỐC ĐÃ NHẬP" (id `1SPEJxeaHOjTB-7SJdl_WjIoCUCTLBiAP`).
 - **Pha 4**: kết quả luyện tập ở trang tính riêng `KetQuaLuyenTap`; loại câu thuộc đề chưa công bố lời giải khỏi luyện tập; giới hạn lượt/ngày đã hoãn.
 - **Pha 5**: Cowork đã chốt **giữ bố cục hiện tại**, đổi màu chủ đạo sang **#1D6B3E**, logo VLSN lấy từ vatly.ai (ảnh "Logo Vật Lý Siêu Nhẩm" ở góc trên khung bài học). Bản `docs/spec/pha-5-thiet-ke.md` hiện viết theo phương án bảng đen đã bỏ: cho agent Kiến trúc sư viết lại trước, rồi chạy soát đặc tả. Nếu không tải được logo từ vatly.ai (mạng bị chặn), hỏi giáo viên gửi file logo.
+- **Còn lại từ Pha 2 (Nhẹ, sửa đầu Pha 3 hoặc ở Pha 6)**: R-12 `bankImageName_` đọc ô có hai hình "Có – A.png, B.png" thành một tên (vẫn có cảnh báo thiếu hình); R-13 `logout()` trang quản trị không xóa thống kê kho và giỏ câu trong bộ nhớ. Chi tiết: `docs/bao-cao/pha-2-soat.md` mục Vòng 2.
 - **Pha 6**: gom "Việc giáo viên cần làm" từ các `docs/bao-cao/pha-*.md`; Code.gs bản cuối; README; danh sách kiểm tra trên trang thật (đo thời gian thật, `onEdit`, chỉ mục kho 10 239 hàng, chép hình, R-9/R-10 của Pha 2).
 
 ## 5. Liên kết
