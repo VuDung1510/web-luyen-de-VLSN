@@ -37,6 +37,9 @@
     App.clearCache();
     App.setCacheScope(null);
     studentsCache = null;
+    // R-13 (Pha 2): thống kê kho, giỏ câu và bộ lọc Ngân hàng thuộc phiên đăng nhập cũ
+    bankMeta = null; draftFromBank = null;
+    try { sessionStorage.removeItem(CART_KEY); sessionStorage.removeItem(BF_KEY); } catch (e) { /* bỏ qua */ }
     me = null;
     if (!silent) toast('Đã đăng xuất');
     route();
@@ -283,7 +286,7 @@
     }
 
     function qEditHtml(q, i) {
-      const opt = (k, label) => `<div class="field"><label>${label}</label><textarea rows="1" data-f="${k}" data-i="${i}">${esc(q[k])}</textarea></div>`;
+      const opt = (k, label) => `<div class="field"><label>${label}</label><textarea rows="1" data-f="${k}" data-i="${i}"${todoCls(q[k])}>${esc(q[k])}</textarea></div>`;
       let ans = '';
       if (q.loai === 'TN') {
         ans = `<div class="field"><label>Đáp án đúng</label><div class="key-pick">${['A', 'B', 'C', 'D'].map((k) => `<button type="button" class="${q.dapAn === k ? 'sel' : ''}" data-key="${k}" data-i="${i}">${k}</button>`).join('')}</div></div>`;
@@ -296,30 +299,27 @@
           <div class="field"><label>Sai số cho phép</label><input data-f="saiSo" data-i="${i}" value="${esc(q.saiSo)}" placeholder="0"><span class="hint">VD 0,05 → 12,45–12,55 đều đúng</span></div></div>`;
       }
       const optsHtml = q.loai === 'TL' ? '' : `<div class="opt-grid">${q.loai === 'DS' ? opt('A', 'Ý a)') + opt('B', 'Ý b)') + opt('C', 'Ý c)') + opt('D', 'Ý d)') : opt('A', 'A') + opt('B', 'B') + opt('C', 'C') + opt('D', 'D')}</div>`;
-      return `<div class="qedit" data-q="${i}">
+      const todo = hasTodo(q);
+      return `<div class="qedit${todo ? ' qedit-todo' : ''}" data-q="${i}">
         <div class="qedit-head"><span class="q-num">Câu ${i + 1}</span>${q.maKho ? `<span class="badge" title="${esc(q.bai)}">Kho: ${esc(q.maKho)}</span>` : ''}${q.thieuHinh && !q.hinhAnh ? '<span class="badge badge-warn" data-thieuhinh="">Kho ghi có hình — chưa có hình</span>' : ''}
+          ${todo ? '<span class="badge badge-todo" data-todo="">Còn công thức cần gõ lại ⟦…⟧</span>' : ''}${q.hinhLoi ? `<span class="badge badge-warn" data-hinhloi="">File Word có ${q.hinhLoi > 1 ? q.hinhLoi + ' hình' : 'hình'} cần chụp lại</span>` : ''}
           <select data-f="loai" data-i="${i}" aria-label="Loại câu">${Object.keys(App.TYPES).map((k) => `<option value="${k}" ${q.loai === k ? 'selected' : ''}>${App.TYPES[k]}</option>`).join('')}</select>
           <select data-f="phan" data-i="${i}" aria-label="Phần"><option value="1" ${q.phan == 1 ? 'selected' : ''}>Phần I</option><option value="2" ${q.phan == 2 ? 'selected' : ''}>Phần II</option><option value="3" ${q.phan == 3 ? 'selected' : ''}>Phần III</option></select>
           <span class="spacer"></span>
           <button class="btn btn-sm" data-move="-1" data-i="${i}" title="Lên">↑</button><button class="btn btn-sm" data-move="1" data-i="${i}" title="Xuống">↓</button>
           <button class="btn btn-sm" data-dup="${i}" title="Nhân bản">⧉</button><button class="btn btn-sm btn-danger" data-rm="${i}" title="Xóa câu">✕</button></div>
-        <div class="field"><label>Nội dung câu hỏi</label><textarea data-f="noiDung" data-i="${i}" rows="3">${esc(q.noiDung)}</textarea></div>
+        <div class="field"><label>Nội dung câu hỏi</label><textarea data-f="noiDung" data-i="${i}" rows="3"${todoCls(q.noiDung)}>${esc(q.noiDung)}</textarea></div>
         <div class="row" style="margin-bottom:10px"><input data-f="hinhAnh" data-i="${i}" value="${esc(q.hinhAnh)}" placeholder="Hình ảnh: dán link ảnh hoặc bấm Tải ảnh" style="flex:1;min-width:200px">
           <label class="btn btn-sm">📷 Tải ảnh<input type="file" accept="image/*" data-upload="${i}" class="hidden"></label></div>
         ${optsHtml}${ans}
         <div class="form-grid"><div class="field"><label>Chủ đề</label><input data-f="chuDe" data-i="${i}" value="${esc(q.chuDe)}" list="topicList" placeholder="VD: Khí lí tưởng"></div>
           <div class="field"><label>Mức độ</label><select data-f="mucDo" data-i="${i}"><option value="">—</option>${Object.keys(App.LEVELS).map((k) => `<option value="${k}" ${q.mucDo === k ? 'selected' : ''}>${App.LEVELS[k]}</option>`).join('')}</select></div>
           <div class="field"><label>Điểm</label><input data-f="diem" data-i="${i}" value="${esc(q.diem)}" placeholder="${q.loai === 'DS' ? '1' : '0,25'}"></div></div>
-        <div class="field"><label>Lời giải</label><textarea data-f="loiGiai" data-i="${i}" rows="2">${esc(q.loiGiai)}</textarea></div>
+        <div class="field"><label>Lời giải</label><textarea data-f="loiGiai" data-i="${i}" rows="2"${todoCls(q.loiGiai)}>${esc(q.loiGiai)}</textarea></div>
         <details><summary class="small muted">Xem trước</summary><div class="preview" id="pv-${i}">${previewHtml(q)}</div></details></div>`;
     }
 
-    function previewHtml(q) {
-      let h = `<div>${rich(q.noiDung)}</div>${q.hinhAnh ? `<img class="q-img" src="${esc(q.hinhAnh)}" alt="">` : ''}`;
-      if (q.loai !== 'TL') h += ['A', 'B', 'C', 'D'].map((k, j) => `<div><b>${q.loai === 'DS' ? 'abcd'[j] + ')' : k + '.'}</b> ${rich(q[k])}</div>`).join('');
-      if (q.loiGiai) h += `<div class="solution">${rich(q.loiGiai)}</div>`;
-      return h;
-    }
+    const previewHtml = (q) => qPreviewHtml(q);
 
     let pvTimer;
     qList.addEventListener('input', (e) => {
@@ -328,6 +328,11 @@
       const i = +el.dataset.i, f = el.dataset.f;
       qs[i][f] = f === 'phan' ? +el.value : el.value;
       markDirty();
+      if (el.tagName === 'TEXTAREA') {
+        el.classList.toggle('todo', String(el.value).indexOf('⟦') >= 0);
+        const box = el.closest('.qedit');
+        if (box) { box.classList.toggle('qedit-todo', hasTodo(qs[i])); const b = box.querySelector('[data-todo]'); if (b && !hasTodo(qs[i])) b.remove(); }
+      }
       if (f === 'loai') {
         qs[i].phan = el.value === 'DS' ? 2 : el.value === 'TL' ? 3 : 1;
         qs[i].dapAn = '';
@@ -459,50 +464,215 @@
     });
   }
 
+  /* ---------- Xem trước câu hỏi (trình soạn + hộp nhập) ---------- */
+  const TODO_FIELDS = ['noiDung', 'A', 'B', 'C', 'D', 'loiGiai'];
+  const hasTodo = (q) => TODO_FIELDS.some((f) => String(q[f] || '').indexOf('⟦') >= 0);
+  const todoCls = (v) => (String(v || '').indexOf('⟦') >= 0 ? ' class="todo"' : '');
+  /** imgs: { n: blobUrl } — hình của file Word chưa tải lên (mốc {{HINH:n}}) */
+  function qPreviewHtml(q, imgs) {
+    const r = (t) => {
+      let h = rich(String(t || '').replace(/\{\{HINH:(\d+)\}\}/g, '\u0003$1\u0003'));
+      h = h.replace(/\u0003(\d+)\u0003/g, (m, n) => (imgs && imgs[n] ? `<img class="q-img" src="${imgs[n]}" alt="Hình ${n}">` : `<span class="badge badge-warn">Hình ${n}</span>`));
+      return h.replace(/⟦([^⟧]*)⟧/g, '<mark class="todo-mark">⟦$1⟧</mark>');
+    };
+    let h = `<div>${r(q.noiDung)}</div>${q.hinhAnh ? `<img class="q-img" src="${esc(q.hinhAnh)}" alt="">` : ''}`;
+    if (q.loai !== 'TL') h += ['A', 'B', 'C', 'D'].map((k, j) => `<div><b>${q.loai === 'DS' ? 'abcd'[j] + ')' : k + '.'}</b> ${r(q[k])}</div>`).join('');
+    if (q.loiGiai) h += `<div class="solution">${r(q.loiGiai)}</div>`;
+    return h;
+  }
+
+  /* ---------- Thư viện đọc file: chỉ tải khi mở tab "Tải file lên" (Pha 3) ---------- */
+  const LIB_URLS = {
+    JSZip: ['https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'],
+    XLSX: ['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js']
+  };
+  const libLoading = {};
+  function loadLib(name) {
+    if (window[name]) return Promise.resolve(window[name]);
+    if (libLoading[name]) return libLoading[name];
+    const tryUrl = (i) => new Promise((resolve, reject) => {
+      const sc = document.createElement('script');
+      sc.src = LIB_URLS[name][i];
+      sc.async = true;
+      const timer = setTimeout(() => { sc.remove(); reject(new Error('quá thời gian')); }, 20000);
+      sc.onload = () => { clearTimeout(timer); window[name] ? resolve(window[name]) : reject(new Error('thiếu ' + name)); };
+      sc.onerror = () => { clearTimeout(timer); sc.remove(); reject(new Error('lỗi tải')); };
+      document.head.appendChild(sc);
+    }).catch((e) => (i + 1 < LIB_URLS[name].length ? tryUrl(i + 1) : Promise.reject(e)));
+    libLoading[name] = tryUrl(0).catch(() => { delete libLoading[name]; throw new Error('Không tải được thư viện đọc file, hãy dán văn bản.'); });
+    return libLoading[name];
+  }
+  // công thức đổi từ Word: KaTeX không hiển thị được thì để mốc ⟦…⟧ (dấu phẩy thập phân như rich())
+  const katexOk = (t) => {
+    if (!window.katex) return true;
+    try { window.katex.renderToString(t.replace(/(\d),(?=\d)/g, '$1{,}'), { throwOnError: true }); return true; } catch (e) { return false; }
+  };
+
   function importDialog(onDone) {
-    modal(`<h2>Nhập nhanh câu hỏi</h2>
-      <div class="tabs" id="impTabs"><button class="active" data-t="text">Dán văn bản (Word)</button><button data-t="tsv">Dán từ Excel / Sheets</button></div>
+    const mopts = { wide: true };
+    let blobUrls = [];
+    const freeBlobs = () => { blobUrls.forEach((u) => { try { URL.revokeObjectURL(u); } catch (e) { /* bỏ qua */ } }); blobUrls = []; };
+    mopts.onOpen = (m, close) => {
+      let mode = 'text', parsed = null, fileRun = 0, busy = false;
+      const $ = (sel) => m.querySelector(sel);
+      const help = {
+        text: `Mỗi câu bắt đầu bằng <b>Câu 1.</b>, <b>Câu 2:</b>… Các dòng <b>PHẦN I / II / III</b> tự xác định dạng câu.
+          Phương án <b>A. B. C. D.</b> (cùng dòng hoặc mỗi dòng một phương án; viết <b>*B.</b> để đánh dấu đáp án đúng).
+          Đúng/Sai dùng <b>a) b) c) d)</b>, ghi <b>(Đ)</b>/<b>(S)</b> cuối mỗi ý. Có thể thêm dòng <b>Đáp án: …</b>, <b>Lời giải: …</b>,
+          hoặc <b>BẢNG ĐÁP ÁN</b> ở cuối (1.B 2.C …). Công thức Word nên đổi sang dạng $…$ (LaTeX) trước khi dán — hoặc dùng tab <b>Tải file lên</b>.`,
+        tsv: `Bôi đen các ô trong Excel/Google Sheets rồi dán. Thứ tự cột: <b>Loại | Nội dung | A | B | C | D | Đáp án | Chủ đề | Mức độ | Lời giải | Điểm | Sai số | Hình ảnh</b>.
+          Loại: TN / DS / TL (để trống sẽ tự đoán). Đáp án Đúng/Sai dạng ĐSĐS. Nếu có dòng tiêu đề, hệ thống tự nhận cột theo tên.`,
+        file: `Chọn file đề <b>Word (.docx)</b> theo mẫu VLSN (PHẦN 1/2/3, Câu 1., A. B. C. D., a) b) c) d)), hoặc <b>Excel (.xlsx) / .csv</b> theo thứ tự cột như tab "Dán từ Excel".
+          Công thức gõ bằng <b>Equation</b> của Word được đổi tự động; hình trong file được tải lên khi bấm <b>Thêm vào đề</b>. Web đọc file ngay trên máy, không gửi file đi.`
+      };
+      const setBtns = (on) => { $('#impAdd').disabled = $('#impReplace').disabled = !on; };
+      const setMode = (t) => {
+        if (busy) return;
+        mode = t; parsed = null; fileRun++;
+        m.querySelectorAll('#impTabs button').forEach((b) => b.classList.toggle('active', b.dataset.t === t));
+        $('#impHelp').innerHTML = help[t];
+        $('#impResult').innerHTML = '';
+        $('#impTextWrap').classList.toggle('hidden', t === 'file');
+        $('#impFile').classList.toggle('hidden', t !== 'file');
+        $('#impCheck').classList.toggle('hidden', t === 'file');
+        $('#impProg').classList.add('hidden');
+        setBtns(false);
+        if (t === 'file') {
+          // tải sẵn thư viện ngay khi mở tab (không chặn giao diện); lỗi sẽ báo khi chọn file
+          loadLib('JSZip').catch(() => {});
+          loadLib('XLSX').catch(() => {});
+        }
+      };
+      const prog = (text, pct) => {
+        $('#impProg').classList.remove('hidden');
+        $('#impProgText').textContent = text;
+        if (pct != null) $('#impProgBar').style.width = Math.max(3, Math.min(100, pct)) + '%';
+      };
+      const showError = (msg) => {
+        $('#impProg').classList.add('hidden');
+        $('#impResult').innerHTML = `<div class="notice warn" id="impError" role="alert"><b>Không đọc được file.</b> ${esc(msg)}</div>`;
+        setBtns(false);
+      };
+      const summaryHtml = (p) => {
+        const cnt = { TN: 0, DS: 0, TL: 0 };
+        const byPart = { 1: 0, 2: 0, 3: 0 };
+        p.questions.forEach((q) => { cnt[q.loai] = (cnt[q.loai] || 0) + 1; byPart[q.phan] = (byPart[q.phan] || 0) + 1; });
+        let h = `<p id="impCount">Tìm thấy <b>${p.questions.length}</b> câu: ${cnt.TN} trắc nghiệm, ${cnt.DS} đúng/sai, ${cnt.TL} trả lời ngắn.</p>`;
+        if (p.kind === 'docx') {
+          const st = p.stats;
+          h += `<table class="imp-stats" id="impStats"><tbody>
+            <tr><th>Số câu theo phần</th><td>Phần I: <b>${byPart[1] || 0}</b> · Phần II: <b>${byPart[2] || 0}</b> · Phần III: <b>${byPart[3] || 0}</b></td></tr>
+            <tr><th>Công thức</th><td>Đã đổi: <b data-k="mathOk">${st.mathOk}</b> · Chưa đổi được: <b data-k="mathFail" class="${st.mathFail ? 'warn-text' : ''}">${st.mathFail}</b>${st.ole ? ` · MathType (OLE): <b class="warn-text">${st.ole}</b>` : ''}</td></tr>
+            <tr><th>Hình</th><td>Sẽ tải lên: <b data-k="imgs">${p.images.length}</b>${st.imagesBad ? ` · Cần chụp lại: <b class="warn-text">${st.imagesBad}</b>` : ''}${st.tables ? ` · Bảng: <b>${st.tables}</b>` : ''}</td></tr>
+          </tbody></table>`;
+        }
+        if (p.kind === 'xlsx' && p.stats.sheet) h += `<p class="small muted">Trang tính: ${esc(p.stats.sheet)}</p>`;
+        return h;
+      };
+      const renderResult = (p, name) => {
+        freeBlobs();
+        const imgs = {};
+        (p.images || []).forEach((im) => { const u = URL.createObjectURL(new Blob([im.data], { type: im.mime })); imgs[im.n] = u; blobUrls.push(u); });
+        const typeName = { TN: 'Trắc nghiệm', DS: 'Đúng/Sai', TL: 'Trả lời ngắn' };
+        $('#impResult').innerHTML = (name ? `<p class="small muted">File: <b>${esc(name)}</b></p>` : '') + summaryHtml(p) +
+          (p.warnings.length ? `<div class="notice warn" id="impWarn"><b>Cần kiểm tra (${p.warnings.length}):</b><br>${p.warnings.map(esc).join('<br>')}</div>` : '') +
+          (p.questions.length ? `<div class="imp-list" id="impList">${p.questions.map((q, i) => `<div class="imp-q${hasTodo(q) ? ' imp-todo' : ''}" data-iq="${i}">
+            <div class="imp-q-head"><b>Câu ${i + 1}</b> · ${['', 'Phần I', 'Phần II', 'Phần III'][q.phan] || ''} · ${typeName[q.loai]} · Đáp án: <b>${esc(q.dapAn || '—')}</b>${q.mucDo ? ' · ' + esc(q.mucDo) : ''}</div>
+            ${qPreviewHtml(q, imgs)}</div>`).join('')}</div>` : '');
+        math($('#impResult'));
+        setBtns(p.questions.length > 0);
+      };
+      const handleFile = async (file) => {
+        if (!file || busy) return;
+        const run = ++fileRun;
+        parsed = null; setBtns(false);
+        $('#impResult').innerHTML = '';
+        let kind;
+        try { kind = DocxReader.kindOf(file.name, file.size); } catch (e) { showError(e.message); return; }
+        try {
+          prog('Đọc file…', 10);
+          const libs = { Importer, validate: katexOk, onProgress: (t) => { if (run === fileRun) prog(t, t === 'Đổi công thức…' ? 50 : t === 'Xong' ? 100 : 30); } };
+          if (kind === 'docx') libs.JSZip = await loadLib('JSZip');
+          if (kind === 'xlsx') libs.XLSX = await loadLib('XLSX');
+          const buf = await file.arrayBuffer();
+          await new Promise((r) => setTimeout(r, 0)); // vẽ thanh tiến độ trước khi đọc
+          const out = await DocxReader.readFile(file.name, buf, libs);
+          if (run !== fileRun) return;
+          prog('Xong', 100);
+          setTimeout(() => { if (run === fileRun && !busy) $('#impProg').classList.add('hidden'); }, 600);
+          parsed = out;
+          renderResult(out, file.name);
+        } catch (e) {
+          if (run === fileRun) showError(e && e.message ? e.message : String(e));
+        }
+      };
+
+      setMode('text');
+      $('#impTabs').onclick = (e) => { const b = e.target.closest('button'); if (b) setMode(b.dataset.t); };
+      $('#impText').oninput = () => { parsed = null; setBtns(false); };
+      $('#impCheck').onclick = () => {
+        const txt = $('#impText').value;
+        parsed = mode === 'text' ? Importer.fromText(txt) : Importer.fromTsv(txt);
+        parsed.kind = mode;
+        renderResult(parsed);
+      };
+      const input = $('#impFileInput');
+      input.onchange = () => { handleFile(input.files[0]); input.value = ''; };
+      const drop = $('#impDrop');
+      ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('drag'); }));
+      ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('drag'); }));
+      drop.addEventListener('drop', (e) => { const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) handleFile(f); });
+
+      const finish = async (replace) => {
+        if (!parsed || busy) return;
+        const qs = parsed.questions.map((q) => Object.assign({}, q));
+        const imgs = parsed.images || [];
+        if (imgs.length) {
+          // hình chỉ tải lên lúc này (sau khi giáo viên bấm thêm); cùng một file hình chỉ tải 1 lần
+          busy = true; mopts.sticky = true; setBtns(false);
+          m.querySelectorAll('[data-close], #impTabs button').forEach((b) => { b.disabled = true; });
+          const urls = {}, byPath = {};
+          const paths = [...new Set(imgs.map((im) => im.path))];
+          let k = 0;
+          const errs = [];
+          for (const im of imgs) {
+            if (Object.prototype.hasOwnProperty.call(byPath, im.path)) { urls[im.n] = byPath[im.path]; continue; }
+            k++;
+            prog(`Tải ${paths.length} hình… (${k}/${paths.length})`, (k - 1) / paths.length * 100);
+            try {
+              const blob = new Blob([im.data], { type: im.mime });
+              const { base64, mime } = await shrinkImage(blob);
+              const r = await api('adminUploadImage', { base64, mime, name: im.name });
+              urls[im.n] = byPath[im.path] = r.url;
+            } catch (e) { urls[im.n] = byPath[im.path] = null; errs.push(e.message); }
+          }
+          prog('Đã tải hình', 100);
+          const bad = DocxReader.attachImages(qs, urls);
+          busy = false; mopts.sticky = false;
+          if (bad.length) toast('Không tải được hình ở câu ' + [...new Set(bad)].join(', ') + (errs[0] ? ': ' + errs[0] : '') + '. Có thể bấm "Tải ảnh" trong từng câu.', 'err');
+        }
+        qs.forEach((q) => { delete q.num; });
+        freeBlobs();
+        onDone(qs, replace);
+        close('ok');
+      };
+      $('#impAdd').onclick = () => finish(false);
+      $('#impReplace').onclick = () => finish(true);
+    };
+    return modal(`<h2>Nhập nhanh câu hỏi</h2>
+      <div class="tabs" id="impTabs"><button class="active" data-t="text">Dán văn bản (Word)</button><button data-t="tsv">Dán từ Excel / Sheets</button><button data-t="file" id="impTabFile">Tải file lên</button></div>
       <div id="impHelp" class="notice small"></div>
-      <div class="field" style="margin-top:10px"><textarea id="impText" rows="12" placeholder="Dán nội dung vào đây…"></textarea></div>
+      <div class="field" style="margin-top:10px" id="impTextWrap"><textarea id="impText" rows="12" placeholder="Dán nội dung vào đây…"></textarea></div>
+      <div id="impFile" class="hidden" style="margin-top:10px">
+        <label class="dropzone" id="impDrop"><input type="file" id="impFileInput" accept=".docx,.xlsx,.xls,.csv" class="hidden">
+          <span class="dz-icon" aria-hidden="true">⇪</span>
+          <span><b>Kéo thả file vào đây</b> hoặc <span class="btn btn-sm">Chọn file</span></span>
+          <span class="small muted">Word (.docx), Excel (.xlsx) hoặc .csv · tối đa 10 MB</span></label>
+      </div>
+      <div id="impProg" class="imp-prog hidden" aria-live="polite"><div class="progress"><div id="impProgBar"></div></div><span id="impProgText" class="small"></span></div>
       <div id="impResult" class="small"></div>
       <div class="modal-actions"><button class="btn" data-close="">Hủy</button><button class="btn" id="impCheck">Kiểm tra</button>
-        <button class="btn" id="impReplace" disabled>Thay toàn bộ câu hiện có</button><button class="btn btn-primary" id="impAdd" disabled>Thêm vào đề</button></div>`, {
-      wide: true,
-      onOpen(m, close) {
-        let mode = 'text', parsed = null;
-        const help = {
-          text: `Mỗi câu bắt đầu bằng <b>Câu 1.</b>, <b>Câu 2:</b>… Các dòng <b>PHẦN I / II / III</b> tự xác định dạng câu.
-            Phương án <b>A. B. C. D.</b> (cùng dòng hoặc mỗi dòng một phương án; viết <b>*B.</b> để đánh dấu đáp án đúng).
-            Đúng/Sai dùng <b>a) b) c) d)</b>, ghi <b>(Đ)</b>/<b>(S)</b> cuối mỗi ý. Có thể thêm dòng <b>Đáp án: …</b>, <b>Lời giải: …</b>,
-            hoặc <b>BẢNG ĐÁP ÁN</b> ở cuối (1.B 2.C …). Công thức Word nên đổi sang dạng $…$ (LaTeX) trước khi dán.`,
-          tsv: `Bôi đen các ô trong Excel/Google Sheets rồi dán. Thứ tự cột: <b>Loại | Nội dung | A | B | C | D | Đáp án | Chủ đề | Mức độ | Lời giải | Điểm | Sai số | Hình ảnh</b>.
-            Loại: TN / DS / TL (để trống sẽ tự đoán). Đáp án Đúng/Sai dạng ĐSĐS. Nếu có dòng tiêu đề, hệ thống tự nhận cột theo tên.`
-        };
-        const setMode = (t) => {
-          mode = t; parsed = null;
-          m.querySelectorAll('#impTabs button').forEach((b) => b.classList.toggle('active', b.dataset.t === t));
-          m.querySelector('#impHelp').innerHTML = help[t];
-          m.querySelector('#impResult').innerHTML = '';
-          m.querySelector('#impAdd').disabled = m.querySelector('#impReplace').disabled = true;
-        };
-        setMode('text');
-        m.querySelector('#impTabs').onclick = (e) => { const b = e.target.closest('button'); if (b) setMode(b.dataset.t); };
-        m.querySelector('#impText').oninput = () => { parsed = null; m.querySelector('#impAdd').disabled = m.querySelector('#impReplace').disabled = true; };
-        m.querySelector('#impCheck').onclick = () => {
-          const txt = m.querySelector('#impText').value;
-          parsed = mode === 'text' ? Importer.fromText(txt) : Importer.fromTsv(txt);
-          const cnt = { TN: 0, DS: 0, TL: 0 };
-          parsed.questions.forEach((q) => { cnt[q.loai] = (cnt[q.loai] || 0) + 1; });
-          m.querySelector('#impResult').innerHTML = `<p>Tìm thấy <b>${parsed.questions.length}</b> câu: ${cnt.TN} trắc nghiệm, ${cnt.DS} đúng/sai, ${cnt.TL} trả lời ngắn.</p>
-            ${parsed.warnings.length ? `<div class="notice warn">${parsed.warnings.map(esc).join('<br>')}</div>` : ''}
-            ${parsed.questions.length ? `<div class="table-wrap" style="max-height:220px;overflow:auto;margin-top:8px"><table><thead><tr><th>#</th><th>Loại</th><th>Nội dung</th><th>Đáp án</th></tr></thead><tbody>
-            ${parsed.questions.map((q, i) => `<tr><td>${i + 1}</td><td>${App.TYPES[q.loai]}</td><td>${esc(String(q.noiDung).slice(0, 90))}</td><td>${esc(q.dapAn || '—')}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
-          m.querySelector('#impAdd').disabled = m.querySelector('#impReplace').disabled = !parsed.questions.length;
-        };
-        m.querySelector('#impAdd').onclick = () => { onDone(parsed.questions, false); close('ok'); };
-        m.querySelector('#impReplace').onclick = () => { onDone(parsed.questions, true); close('ok'); };
-      }
-    });
+        <button class="btn" id="impReplace" disabled>Thay toàn bộ câu hiện có</button><button class="btn btn-primary" id="impAdd" disabled>Thêm vào đề</button></div>`, mopts).then((v) => { freeBlobs(); return v; });
   }
 
   /* ---------- thống kê đề ---------- */
