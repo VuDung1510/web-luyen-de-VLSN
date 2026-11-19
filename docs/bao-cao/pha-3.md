@@ -57,7 +57,7 @@ Chạy chính `assets/js/docx-reader.js` + `importer.js` (Node và Chromium), c�
 - Trình soạn: câu còn mốc `⟦…⟧` tô vàng (khung câu + ô chữ), nhãn "Còn công thức cần gõ lại"; sửa hết mốc thì hết tô vàng ngay. Câu có hình hỏng có nhãn "File Word có hình cần chụp lại". `previewHtml` chuyển thành hàm chung `qPreviewHtml` (dùng cho trình soạn và hộp nhập).
 - **R-13** (còn từ Pha 2): `logout()` xóa `bankMeta`, `draftFromBank`, giỏ câu và bộ lọc Ngân hàng trong `sessionStorage`.
 
-**Khác**: `admin.html` nạp `docx-reader.js` (mã của web, ~35 KB, không kéo theo thư viện ngoài); `style.css` thêm vùng kéo thả, thanh tiến độ, bảng kết quả, tô vàng (cả chế độ tối, điện thoại 390 px).
+**Khác**: `admin.html` nạp `docx-reader.js` (mã của web, ~50 KB, không kéo theo thư viện ngoài); `style.css` thêm vùng kéo thả, thanh tiến độ, bảng kết quả, tô vàng (cả chế độ tối, điện thoại 390 px).
 
 ### File đổi
 `assets/js/admin.js`, `assets/js/importer.js`, `assets/css/style.css`, `admin.html`. Mới: `assets/js/docx-reader.js`, `tests/fixtures/make-docx.js`, `tests/docx.test.js`, `tests/docx.e2e.js`, `docs/bao-cao/pha-3.md`, `docs/bao-cao/anh/pha-3/*.png`. **Không đổi `apps-script/Code.gs`.**
