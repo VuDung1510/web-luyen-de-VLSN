@@ -1960,6 +1960,16 @@ function contentHash_(q) {
   return ('0000000' + h.toString(16)).slice(-8);
 }
 
+/** Số thứ tự của "Chương IV. …" / "Bài 12. …" (số La Mã hoặc số thường) để xếp cây chương → bài; không có số → rất lớn. */
+function topicNo_(s) {
+  var m = /^\s*(?:ch[uư][oơ]ng|b[aà]i|ph[aầ]n)?\s*([IVXLC]+|\d+)\b/i.exec(str_(s));
+  if (!m) return 1e9;
+  if (/^\d+$/.test(m[1])) return +m[1];
+  var R = { I: 1, V: 5, X: 10, L: 50, C: 100 }, t = m[1].toUpperCase(), n = 0;
+  for (var i = 0; i < t.length; i++) { var v = R[t[i]], w = R[t[i + 1]] || 0; n += v < w ? -v : v; }
+  return n;
+}
+
 function timeOf_(v) { var d = parseDate_(v); return d ? d.getTime() : 0; }
 
 /* ---------- chặn câu đang thi ---------- */
@@ -2246,8 +2256,11 @@ function apiPracticeMeta_(req) {
   });
   var mine = readTable_('KetQuaLuyenTap').filter(function (r) { return r.studentId === st.id; });
   var scores = mine.map(function (r) { return num_(r.diem); });
+  var cay = order.map(function (k) { return tree[k]; }).sort(function (a, b) {
+    return (topicNo_(a.chuong) - topicNo_(b.chuong)) || sortVi_(a.chuong, b.chuong) || (topicNo_(a.bai) - topicNo_(b.bai)) || sortVi_(a.bai, b.bai);
+  });
   return {
-    cay: order.map(function (k) { return tree[k]; }),
+    cay: cay,
     soCauSai: wrongList_(st).length,
     nhanh: quickConf_(),
     soBai: mine.length,

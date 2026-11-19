@@ -17,7 +17,8 @@
   const unsupported = {}; // action/tính năng máy chủ báo "Không có chức năng" trong phiên này
   const FEATURE_OF = {
     changePin: 'changePin', bootstrap: 'bootstrap', adminBootstrap: 'bootstrap',
-    adminBankMeta: 'bank', adminBankList: 'bank', adminBankSource: 'bank', adminBankMatrix: 'bank', adminBankToQuestions: 'bank'
+    adminBankMeta: 'bank', adminBankList: 'bank', adminBankSource: 'bank', adminBankMatrix: 'bank', adminBankToQuestions: 'bank',
+    practiceMeta: 'practice', practiceStart: 'practice', adminPracticeSync: 'practice', adminPracticeList: 'practice', adminPracticeToggle: 'practice'
   };
   function savePub(p) { store.set(PUB_KEY, p); store.set(PUB_TIME_KEY, Date.now()); }
   function pubFresh() { return !!store.get(PUB_KEY, null) && Date.now() - (+store.get(PUB_TIME_KEY, 0) || 0) < PUB_MAX_AGE; }
@@ -261,6 +262,7 @@
   const gradeName = (d) => (d >= 9 ? 'Xuất sắc' : d >= 8 ? 'Giỏi' : d >= 6.5 ? 'Khá' : d >= 5 ? 'Trung bình' : 'Cần cố gắng');
   const LEVELS = { NB: 'Nhận biết', TH: 'Thông hiểu', VD: 'Vận dụng', VDC: 'Vận dụng cao' };
   const TYPES = { TN: 'Trắc nghiệm', DS: 'Đúng/Sai', TL: 'Trả lời ngắn' };
+  const PRACTICE_KIEU = { TU_TAO: 'Tự tạo đề', CAU_SAI: 'Luyện câu đã sai', NHANH: 'Đề nhanh' };
   const PARTS = { 1: 'PHẦN I. Trắc nghiệm nhiều phương án lựa chọn', 2: 'PHẦN II. Trắc nghiệm đúng sai', 3: 'PHẦN III. Trắc nghiệm trả lời ngắn' };
 
   /**
@@ -406,7 +408,10 @@
       ${it.mucDo ? `<span class="badge">${LEVELS[it.mucDo] || esc(it.mucDo)}</span>` : ''}</span>
       <span class="review-tag ${it.correct ? 'ok' : 'no'}">${it.correct ? '✓ Đúng' : (it.score > 0 ? '◐ Đúng một phần' : '✗ Sai')} · ${fmtNum(it.score)}/${fmtNum(it.max)}</span></div>`;
     let body = `<div class="q-body">${rich(it.noiDung)}</div>${it.hinhAnh ? `<img class="q-img" src="${esc(it.hinhAnh)}" alt="Hình câu ${it.stt}" loading="lazy">` : ''}`;
-    if (it.loai === 'TN') {
+    if (it.go) {
+      // bài luyện tập: câu đã bị xóa khỏi pool / đề nguồn đã sửa (Pha 4)
+      body = `<div class="notice warn q-gone">Câu đã bị gỡ khỏi ngân hàng.</div><div class="muted small" style="margin-top:6px">Bạn trả lời: <b>${esc(it.loai === 'DS' ? String(it.answer || '').replace(/D/g, 'Đ') : it.answer || '(bỏ trống)')}</b></div>`;
+    } else if (it.loai === 'TN') {
       body += '<div class="opts">' + ['A', 'B', 'C', 'D'].map((k) => {
         const cls = k === it.dapAn ? 'right' : (k === it.answer ? 'wrong' : '');
         return `<button class="opt ${cls}" disabled><span class="key">${k}</span><span>${rich(it[k])}</span></button>`;
@@ -461,7 +466,13 @@
       : 'Không sao cả, mỗi lần làm bài là một lần học thêm. Hãy ôn lại phần cơ bản rồi chinh phục dần — có thể đặt mục tiêu vừa sức hơn để tiến từng bước.';
     const prog = g.lanTruoc != null && v.diem > g.lanTruoc ? `<p style="margin:8px 0 0">📈 Bạn đã tiến bộ <b>+${fmtNum(v.diem - g.lanTruoc)}</b> điểm so với lần làm trước — đang đi đúng hướng!</p>` : '';
     let plan = '';
-    if (!opts.showName) {
+    if (!opts.showName && v.luyenTap) {
+      // bài luyện tập (Pha 4): không gợi ý đề thi; mời luyện tiếp
+      const steps = [];
+      if (nWrong) steps.push(`<button class="btn btn-sm" data-showwrong>📖 Xem lời giải ${nWrong} câu chưa đúng</button>`);
+      steps.push('<a class="btn btn-sm" href="#/luyen-tap">🔁 Luyện tiếp</a>');
+      plan = `<h3 style="margin-top:16px">Kế hoạch để đạt mục tiêu</h3><div class="row">${steps.join('')}</div>`;
+    } else if (!opts.showName) {
       const steps = [];
       if (v.reveal && nWrong) steps.push(`<button class="btn btn-sm" data-showwrong>📖 Xem lời giải ${nWrong} câu chưa đúng</button>`);
       if (g.lamLai) steps.push(`<a class="btn btn-sm" href="#/lam-bai/${encodeURIComponent(v.examId)}">🔁 Làm lại đề này</a>`);
@@ -571,6 +582,7 @@
       <div style="flex:1;min-width:220px">
         <h1 style="margin-bottom:4px">${esc(v.tieuDe)}</h1>
         ${opts.showName ? `<div><b>${esc(v.hoTen)}</b> — Lớp ${esc(v.lop)}</div>` : ''}
+        ${v.luyenTap ? `<div class="small"><span class="badge badge-primary" id="practiceBadge">Luyện tập${PRACTICE_KIEU[v.kieu] ? ' · ' + PRACTICE_KIEU[v.kieu] : ''}</span> <span class="muted">không tính vào bảng xếp hạng</span></div>` : ''}
         <div class="row" style="margin:6px 0"><span class="badge ${scoreClass(v.diem)}">${gradeName(v.diem)}</span>
           <span class="badge">Đúng ${v.soCauDung}/${v.tongCau} câu</span><span class="badge">${fmtNum(v.diemGoc)}/${fmtNum(v.diemToiDa)} điểm gốc</span></div>
         <div class="muted small">Thời gian làm: ${esc(v.thoiGianLam)} · Nộp lúc ${esc(v.nopLuc)}${v.ghiChu ? ' · <b>' + esc(v.ghiChu) + '</b>' : ''}</div>
@@ -630,7 +642,7 @@
     CFG, store, api, has, canTry, savePub, pubFresh, cached, cacheGet, cacheSet, cacheDel, cacheToken, clearCache, setCacheScope, newView, currentView, viewIs, skeletonHtml,
     esc, fmtNum, fmtDateIso, fmtClock, sleep, rich, math, toast, modal, confirmBox, loadingHtml, withBusy,
     renderGoogleButton, resultHtml, feedbackHtml, barsHtml, questionReviewHtml, chart, cssVar, downloadCsv, scoreClass, gradeName,
-    LEVELS, TYPES, PARTS, tokenKey: 'ld_token',
+    LEVELS, TYPES, PARTS, PRACTICE_KIEU, tokenKey: 'ld_token',
     setAuthErrorHandler(fn) { onAuthError = fn; }
   };
   window.App = App;

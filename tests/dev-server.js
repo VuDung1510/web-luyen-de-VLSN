@@ -10,6 +10,8 @@
 //   BANK=0               không gắn kho câu hỏi giả (mặc định: máy chủ mới có kho giả tests/fixtures/kho-gia.js,
 //                        KHO_CAU_HOI_ID đã điền sẵn; BANK_ROWS=3000 dùng kho lớn tự sinh thay cho kho chuẩn).
 //   MAKE_COPY_MS=1000    chi phí giả (đồng hồ giả) mỗi lần chép hình từ kho.
+//   PRACTICE=0           (Pha 4) để CHO_LUYEN_TAP=KHONG (mặc định máy chủ mới: CO).
+//   PRACTICE_POOL=0      (Pha 4) không đưa sẵn câu kho giả vào pool luyện tập (mặc định: đưa mọi câu dùng được).
 // GET /__stats trả số lần đọc trang tính / gọi CacheService / số request theo action; /__stats?reset=1 để đặt lại.
 const http = require('http');
 const fs = require('fs');
@@ -31,6 +33,22 @@ let kho = null;
 if (!COMPAT && process.env.BANK !== '0') {
   const K = require('./fixtures/kho-gia');
   kho = K.install(g, process.env.BANK_ROWS ? { rows: K.bigRows(+process.env.BANK_ROWS, { hinh: true }), missingImages: 0 } : {});
+}
+if (!COMPAT) {
+  // Pha 4: bật luyện tập và đưa sẵn câu kho giả vào pool (giáo viên làm việc này ở tab Ngân hàng)
+  const K = require('./fixtures/kho-gia');
+  K.setSetting(g, { CHO_LUYEN_TAP: process.env.PRACTICE === '0' ? 'KHONG' : 'CO' });
+  if (kho && process.env.PRACTICE_POOL !== '0') {
+    const pw = g._sheets.CaiDat._data().find((r) => r[0] === 'MAT_KHAU_QUAN_TRI')[1];
+    const tok = JSON.parse(g.doPost({ postData: { contents: JSON.stringify({ action: 'loginAdminPassword', password: pw }) } }).getContent()).data.token;
+    let cur, r;
+    do {
+      g.__MEMO();
+      r = JSON.parse(g.doPost({ postData: { contents: JSON.stringify({ action: 'adminPracticeSync', token: tok, filter: {}, mode: 'them', cursor: cur }) } }).getContent());
+      cur = r.ok ? r.data.tiepTuc : null;
+    } while (cur != null);
+    if (!r.ok) console.error('Không đưa được câu vào pool:', r.error);
+  }
 }
 const adminPw = g._sheets.CaiDat._data().find((r) => r[0] === 'MAT_KHAU_QUAN_TRI')[1];
 let actions = {};
