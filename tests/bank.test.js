@@ -140,7 +140,7 @@ t('TC-2.3 câu chưa có đáp án / sai định dạng / Phần IV không xuấ
     const r = ok(g.call('adminBankSource', { token: tTok, nguon: s.ma }));
     r.items.forEach((x) => assert(unusable.indexOf(x.maKho) < 0, x.maKho));
   });
-  const mx = ok(g.call('adminBankMatrix', { token: tTok, so: { TN: 200, DS: 200, TL: 200 } }));
+  const mx = ok(g.call('adminBankMatrix', { token: tTok, so: { TN: 100, DS: 100, TL: 100 } }));
   mx.maKho.forEach((m) => assert(unusable.indexOf(m) < 0, m));
   assert.strictEqual(mx.maKho.length, meta.dungDuoc);
   // adminBankToQuestions bỏ qua kèm cảnh báo
@@ -414,6 +414,96 @@ t('máy chủ 1.0.0 (fixture) không có adminBank*', () => {
   old.setup();
   const r = old.call('adminBankMeta', {});
   assert(!r.ok && /Không có chức năng: adminBankMeta/.test(r.error));
+});
+
+// ---------- Vòng 2 ----------
+t('R-4 Phần III nhận 1e-7, .5, ,5, -0,5 và ô kiểu số; chấm đúng', () => {
+  ['1e-7', '6.4e-19', '.5', ',5', '-0,5', '3,0', '-120', '1,2|1,25'].forEach((a) => assert.strictEqual(g0.bankShort_(a), a, a));
+  assert.strictEqual(g0.bankShort_(1e-7), '1e-7');
+  assert.strictEqual(g0.bankShort_(0.5), '0.5');
+  ['3 cm', 'x = 2', 'e5', '.'].forEach((a) => assert.strictEqual(g0.bankShort_(a), '', a));
+  const q = g0.normalizeQuestion_(g0.bankToQuestion_(asRow(K.row({ phan: 3, dapAn: '1e-7' }))).q, 0);
+  assert(g0.gradeOne_(q, '0,0000001').correct);
+  assert(g0.gradeOne_(q, '1e-7').correct);
+  const q2 = g0.normalizeQuestion_(g0.bankToQuestion_(asRow(K.row({ phan: 3, dapAn: '.5' }))).q, 0);
+  assert(g0.gradeOne_(q2, '0,5').correct);
+});
+
+t('R-3 tên hình có dấu cách; ô "Có" không có tên file → cảnh báo theo mã câu', () => {
+  assert.strictEqual(g0.bankImageName_('Có – hinh 1.png (02. HÌNH VẼ/Lớp 12)'), 'hinh 1.png');
+  assert.strictEqual(g0.bankImageName_('Có – L12C2B11-P1-00001.png (02. HÌNH VẼ/Lớp 12/HINH_VE_Lop12_lan6)'), 'L12C2B11-P1-00001.png');
+  assert.strictEqual(g0.bankImageName_('Có'), '');
+  assert(g0.bankSaysImage_('Có') && g0.bankSaysImage_('Có – x.png') && !g0.bankSaysImage_('') && !g0.bankSaysImage_('Không'));
+  const rows = [K.row({ phan: 1, dapAn: 'A' }), K.row({ phan: 1, dapAn: 'B' })];
+  rows[0][15] = 'Có';                                  // không có tên file
+  rows[1][15] = 'Có – hinh co dau cach.png (02. HÌNH VẼ/Lớp 12)';
+  const W = world({ kho: { rows, missingImages: 0 } });
+  const fid = W.g._drive.addFile('hinh co dau cach.png', W.k.folderId);
+  const r = ok(W.g.call('adminBankToQuestions', { token: W.tTok, maKho: [rows[0][0], rows[1][0]] }));
+  assert.strictEqual(r.questions.length, 2);
+  assert.deepStrictEqual(r.thieuHinh, [rows[0][0]]);
+  assert(r.canhBao.some((c) => c.indexOf(rows[0][0]) >= 0 && /không đọc được tên file/.test(c)));
+  assert(r.questions[1].hinhAnh, 'tên có dấu cách vẫn tìm được hình');
+  assert.strictEqual(W.g._drive.files[W.g._props['IMG_hinh co dau cach.png']].copyOf, fid);
+  const list = ok(W.g.call('adminBankList', { token: W.tTok })).items;
+  assert(list.every((x) => x.coHinh), 'chỉ mục đánh dấu có hình');
+});
+
+t('R-2 con trỏ bị lệch / hình không tìm thấy ở lượt trước → lượt cuối vẫn cảnh báo theo mã câu', () => {
+  const W = world({ ctx: { makeCopyMs: 1000 }, kho: { rows: K.bigRows(60, { hinh: true }), missingImages: 3 } });
+  const codes = W.k.rows.map((r) => r[0]);
+  const r1 = ok(W.g.call('adminBankToQuestions', { token: W.tTok, maKho: codes }));
+  assert.strictEqual(r1.tiepTuc, 40);
+  assert(!r1.thieuHinh, 'lượt giữa chưa tổng kết');
+  // giả lập con trỏ nhảy quá (kho đổi giữa hai lượt): bỏ qua 5 hình
+  const r2 = ok(W.g.call('adminBankToQuestions', { token: W.tTok, maKho: codes, cursor: 45 }));
+  assert.strictEqual(r2.tiepTuc, undefined);
+  assert.strictEqual(r2.thieuHinh.length, 5 + 3, JSON.stringify(r2.thieuHinh));
+  W.k.missingImages.forEach((n) => assert(r2.thieuHinh.indexOf(n.replace('.png', '')) >= 0));
+  assert(r2.questions.filter((q) => !q.hinhAnh).length === 8);
+});
+
+t('R-7 bản chép công khai không lộ mã câu kho; máy chủ tính lại được', () => {
+  const W = world();
+  const m = W.k.rows.filter((r) => /^Có/.test(r[15]))[0][0];
+  ok(W.g.call('adminBankToQuestions', { token: W.tTok, maKho: [m] }));
+  const copy = W.g._drive.files[W.g._props['IMG_' + m + '.png']];
+  assert(copy.name.indexOf(m) < 0 && !/L1[12]C/.test(copy.name), copy.name);
+  assert(/^hinh-[0-9a-f]{12}\.png$/.test(copy.name), copy.name);
+  assert.strictEqual(W.g.bankCopyName_(m + '.png'), copy.name);
+  assert.notStrictEqual(W.g.bankCopyName_('a.png'), W.g.bankCopyName_('b.png'));
+});
+
+t('R-5 ma trận và Tạo đề cùng giới hạn; Meta trả gioiHan', () => {
+  const r = g.call('adminBankMatrix', { token: tTok, so: { TN: 200, DS: 200, TL: 101 } });
+  assert(!r.ok && /tối đa 500/.test(r.error));
+  assert.strictEqual(ok(g.call('adminBankMeta', { token: tTok })).gioiHan, 500);
+});
+
+t('R-6 đọc Script Properties một lần mỗi lượt; R-8 "Đọc lại kho" làm mới bản đồ hình', () => {
+  const W = world({ kho: { rows: K.bigRows(30, { hinh: true }), missingImages: 1 } });
+  const codes = W.k.rows.map((r) => r[0]);
+  W.g._resetStats();
+  ok(W.g.call('adminBankToQuestions', { token: W.tTok, maKho: codes }));
+  assert(W.g._stats.propReads <= 5, 'đọc Properties ' + W.g._stats.propReads);
+  // thêm hình thiếu vào Drive → chưa "Đọc lại kho" thì vẫn dùng bản đồ cũ; đọc lại thì tìm thấy
+  const miss = W.k.missingImages[0];
+  W.g._drive.addFile(miss, W.k.folderId);
+  const code = miss.replace('.png', '');
+  assert(!ok(W.g.call('adminBankToQuestions', { token: W.tTok, maKho: [code] })).questions[0].hinhAnh);
+  ok(W.g.call('adminBankMeta', { token: W.tTok, refresh: true }));
+  assert(ok(W.g.call('adminBankToQuestions', { token: W.tTok, maKho: [code] })).questions[0].hinhAnh);
+});
+
+t('N-1 lấy câu: mỗi khối hàng liền nhau 1 lần getRange', () => {
+  const W = world({ kho: { rows: K.bigRows(200), missingImages: 0 } });
+  ok(W.g.call('adminBankMeta', { token: W.tTok }));
+  const codes = [3, 4, 5, 50, 51, 120].map((i) => W.k.rows[i][0]);
+  W.g._resetStats();
+  const r = ok(W.g.call('adminBankToQuestions', { token: W.tTok, maKho: codes }));
+  assert.strictEqual(r.questions.length, 6);
+  // 1 lần đọc tiêu đề + 3 khối hàng
+  assert.strictEqual(W.g._stats.ranges['Kho câu hỏi'], 4);
 });
 
 console.log(`\n${passed} kiểm thử đạt${failed ? ', ' + failed + ' LỖI' : ''}.`);

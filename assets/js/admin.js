@@ -297,7 +297,7 @@
       }
       const optsHtml = q.loai === 'TL' ? '' : `<div class="opt-grid">${q.loai === 'DS' ? opt('A', 'Ý a)') + opt('B', 'Ý b)') + opt('C', 'Ý c)') + opt('D', 'Ý d)') : opt('A', 'A') + opt('B', 'B') + opt('C', 'C') + opt('D', 'D')}</div>`;
       return `<div class="qedit" data-q="${i}">
-        <div class="qedit-head"><span class="q-num">Câu ${i + 1}</span>${q.maKho ? `<span class="badge" title="${esc(q.bai)}">Kho: ${esc(q.maKho)}</span>` : ''}
+        <div class="qedit-head"><span class="q-num">Câu ${i + 1}</span>${q.maKho ? `<span class="badge" title="${esc(q.bai)}">Kho: ${esc(q.maKho)}</span>` : ''}${q.thieuHinh && !q.hinhAnh ? '<span class="badge badge-warn" data-thieuhinh="">Kho ghi có hình — chưa có hình</span>' : ''}
           <select data-f="loai" data-i="${i}" aria-label="Loại câu">${Object.keys(App.TYPES).map((k) => `<option value="${k}" ${q.loai === k ? 'selected' : ''}>${App.TYPES[k]}</option>`).join('')}</select>
           <select data-f="phan" data-i="${i}" aria-label="Phần"><option value="1" ${q.phan == 1 ? 'selected' : ''}>Phần I</option><option value="2" ${q.phan == 2 ? 'selected' : ''}>Phần II</option><option value="3" ${q.phan == 3 ? 'selected' : ''}>Phần III</option></select>
           <span class="spacer"></span>
@@ -575,23 +575,29 @@
 
   async function viewBank() {
     $app.onclick = null;
+    const view = App.currentView(); // R-1: dữ liệu về muộn không vẽ đè màn khác
     const p = store.get('ld_pub', null);
     if (!App.canTry('adminBankMeta')) { $app.innerHTML = needUpdateHtml(p && p.version); return; }
     $app.innerHTML = loadingHtml('Đang đọc kho câu hỏi…');
     try {
       if (!bankMeta) bankMeta = await api('adminBankMeta');
     } catch (e) {
+      if (!App.viewIs(view)) return;
       if (e.unsupported) { $app.innerHTML = needUpdateHtml(p && p.version); return; }
       $app.innerHTML = `<h1>Ngân hàng câu hỏi</h1><div class="card empty" id="bankError"><b>Chưa đọc được kho:</b> ${esc(e.message)}
         <div class="row" style="margin-top:10px;justify-content:center"><a class="btn" href="#/cai-dat">Mở Cài đặt</a><button class="btn" id="bkRetry">Thử lại</button></div></div>`;
       document.getElementById('bkRetry').onclick = () => { bankMeta = null; viewBank(); };
       return;
     }
+    if (!App.viewIs(view)) return; // đã chuyển màn: chỉ giữ bankMeta, không vẽ
     renderBank();
   }
 
   function renderBank() {
     const m = bankMeta;
+    const view = App.currentView();
+    const here = () => App.viewIs(view);
+    const LIMIT = m.gioiHan || 500;
     const f = Object.assign({ lop: '', chuong: [], bai: [], loai: [], mucDo: [], nguon: '', q: '' }, sess.get(BF_KEY, {}));
     if (f.lop && m.lop.indexOf(f.lop) < 0) f.lop = '';
     const so = sess.get('ld_bank_so', { TN: 18, DS: 4, TL: 6 });
@@ -661,7 +667,7 @@
       box.innerHTML = loadingHtml();
       try {
         const r = await api('adminBankList', { filter: f, page, size: 20 });
-        if (my !== seq || !document.getElementById('bkList')) return;
+        if (my !== seq || !here() || !document.getElementById('bkList')) return;
         const pages = Math.max(1, Math.ceil(r.tong / r.size));
         const inCart = new Set(cartGet().items.map((x) => x.maKho));
         box.innerHTML = `<div class="muted small" style="margin:4px 0 8px">${r.tong} câu phù hợp</div>
@@ -678,7 +684,7 @@
           ${pages > 1 ? `<div class="row pager" style="justify-content:center;margin:12px 0"><button class="btn btn-sm" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>← Trước</button>
             <span class="small">Trang ${page}/${pages}</span><button class="btn btn-sm" data-page="${page + 1}" ${page >= pages ? 'disabled' : ''}>Sau →</button></div>` : ''}`;
         math(box);
-      } catch (e) { if (my === seq && document.getElementById('bkList')) box.innerHTML = errorBox(e); }
+      } catch (e) { if (my === seq && here() && document.getElementById('bkList')) box.innerHTML = errorBox(e); }
     };
     const refresh = () => { readFilter(); page = 1; loadList(); };
     const drawCart = () => {
@@ -686,10 +692,12 @@
       const n = { 1: 0, 2: 0, 3: 0 };
       c.items.forEach((x) => { n[x.phan] = (n[x.phan] || 0) + 1; });
       const el = document.getElementById('bkCart');
-      if (!el) return;
+      if (!el || !here()) return;
+      const over = c.items.length > LIMIT;
       el.innerHTML = `<div class="cart-in"><b>Giỏ câu:</b> <span id="cartCount">P1 ${n[1]} · P2 ${n[2]} · P3 ${n[3]}</span>
+        ${over ? `<span class="badge badge-warn" id="cartOver">Quá ${LIMIT} câu — bớt ${c.items.length - LIMIT} câu để tạo đề</span>` : ''}
         <span class="spacer"></span><button class="btn btn-sm" id="cartClear" ${c.items.length ? '' : 'disabled'}>Xóa giỏ</button>
-        <button class="btn btn-primary btn-sm" id="cartMake" ${c.items.length ? '' : 'disabled'}>Tạo đề (${c.items.length} câu) →</button></div>`;
+        <button class="btn btn-primary btn-sm" id="cartMake" ${c.items.length && !over ? '' : 'disabled'}>Tạo đề (${c.items.length} câu) →</button></div>`;
       document.getElementById('cartClear').onclick = async () => {
         if (!(await confirmBox('Xóa giỏ câu?', 'Bỏ toàn bộ ' + c.items.length + ' câu đã chọn khỏi giỏ.', 'Xóa giỏ', true))) return;
         cartSet({ items: [], tieuDe: '' }); drawCart(); loadList();
@@ -704,14 +712,20 @@
     document.getElementById('bkFilter').addEventListener('change', (e) => { if (e.target.matches('input[type=checkbox]')) refresh(); });
     document.getElementById('bkClear').onclick = () => { sess.set(BF_KEY, {}); renderBank(); };
     document.getElementById('bkReload').onclick = (e) => withBusy(e.currentTarget, async () => {
-      try { bankMeta = await api('adminBankMeta', { refresh: true }); toast('Đã đọc lại kho', 'ok'); renderBank(); } catch (err) { toast(err.message, 'err'); }
+      try {
+        bankMeta = await api('adminBankMeta', { refresh: true });
+        if (!here()) return; // R-1: giáo viên đã sang màn khác
+        toast('Đã đọc lại kho', 'ok'); renderBank();
+      } catch (err) { if (here()) toast(err.message, 'err'); }
     });
     document.getElementById('bkMatrix').onclick = (e) => withBusy(e.currentTarget, async () => {
       readFilter();
       const want = { TN: +document.getElementById('soTN').value || 0, DS: +document.getElementById('soDS').value || 0, TL: +document.getElementById('soTL').value || 0 };
       sess.set('ld_bank_so', want);
+      if (want.TN + want.DS + want.TL > LIMIT) { toast(`Ma trận tối đa ${LIMIT} câu (giới hạn của Tạo đề).`, 'err'); return; }
       try {
         const r = await api('adminBankMatrix', { lop: f.lop, chuong: f.chuong, bai: f.bai, mucDo: f.mucDo, nguon: f.nguon, so: want });
+        if (!here()) return;
         const parts = [['TN', 'Phần I'], ['DS', 'Phần II'], ['TL', 'Phần III']];
         const short = parts.filter(([k]) => r.thieu[k] > 0);
         const cur = cartGet();
@@ -720,7 +734,7 @@
           + (cur.items.length ? '<p class="muted small">Giỏ hiện tại sẽ được thay bằng các câu này.</p>' : '');
         if (!r.maKho.length) { await modal(`<h2>Ma trận đề</h2>${msg}<div class="modal-actions"><button class="btn" data-close="">Đóng</button></div>`); return; }
         const go = await confirmBox('Ma trận đề', msg, short.length ? 'Vẫn thêm vào giỏ' : 'Thêm vào giỏ');
-        if (!go) return;
+        if (!go || !here()) return;
         const loaiOf = {};
         // phần của từng câu: ma trận trả theo thứ tự TN, DS, TL
         let i = 0;
@@ -728,13 +742,14 @@
         cartSet({ items: r.maKho.map((ma) => Object.assign({ maKho: ma }, loaiOf[ma])), tieuDe: '' });
         drawCart(); loadList();
         toast('Đã thêm ' + r.maKho.length + ' câu vào giỏ', 'ok');
-      } catch (err) { toast(err.message, 'err'); }
+      } catch (err) { if (here()) toast(err.message, 'err'); }
     });
     document.getElementById('bkSource').onclick = (e) => withBusy(e.currentTarget, async () => {
       readFilter();
       if (!f.nguon) return;
       try {
         const r = await api('adminBankSource', { nguon: f.nguon });
+        if (!here()) return;
         const n = { 1: 0, 2: 0, 3: 0 };
         r.items.forEach((x) => { n[x.phan]++; });
         const html = `<p>Đề gốc <b>${esc(r.ten)}</b>: lấy được <b>${r.items.length}</b> câu có đáp án (P1 ${n[1]} · P2 ${n[2]} · P3 ${n[3]}).</p>
@@ -743,11 +758,11 @@
           ${r.tuLuan ? `<p class="muted small">Bỏ qua ${r.tuLuan} câu tự luận (Phần IV).</p>` : ''}
           ${cartGet().items.length ? '<p class="muted small">Giỏ hiện tại sẽ được thay bằng các câu này.</p>' : ''}`;
         if (!r.items.length) { await modal(`<h2>Lấy đề gốc</h2>${html}<div class="modal-actions"><button class="btn" data-close="">Đóng</button></div>`); return; }
-        if (!(await confirmBox('Lấy đề gốc', html, 'Nạp vào giỏ'))) return;
+        if (!(await confirmBox('Lấy đề gốc', html, 'Nạp vào giỏ')) || !here()) return;
         cartSet({ items: r.items.map((x) => ({ maKho: x.maKho, loai: x.loai, phan: x.phan })), tieuDe: 'Đề gốc — ' + r.ten });
         drawCart(); loadList();
         toast('Đã nạp ' + r.items.length + ' câu của đề gốc vào giỏ', 'ok');
-      } catch (err) { toast(err.message, 'err'); }
+      } catch (err) { if (here()) toast(err.message, 'err'); }
     });
     $app.onclick = async (ev) => {
       const pg = ev.target.closest('[data-page]');
@@ -767,13 +782,14 @@
       if (v) withBusy(v, async () => {
         try {
           const r = await api('adminBankToQuestions', { maKho: [v.dataset.view] });
+          if (!here()) return;
           const q = r.questions[0];
           if (!q) { toast((r.canhBao || [])[0] || 'Không đọc được câu này.', 'err'); return; }
           modal(`<h2>${esc(q.maKho)}</h2><div class="muted small" style="margin-bottom:8px">${esc(q.chuong)} · ${esc(q.bai)} · ${App.LEVELS[q.mucDo] || ''}${q.mucDoY ? ' · ' + esc(q.mucDoY) : ''}</div>
             <div class="preview" id="bkPreview">${bankPreviewHtml(q)}</div>
             ${(r.canhBao || []).map((c) => `<div class="notice warn small">${esc(c)}</div>`).join('')}
             <div class="modal-actions"><button class="btn" data-close="">Đóng</button></div>`, { wide: true, onOpen(mm) { math(mm); } });
-        } catch (err) { toast(err.message, 'err'); }
+        } catch (err) { if (here()) toast(err.message, 'err'); }
       });
     };
     drawCart();
@@ -793,15 +809,17 @@
   async function makeExamFromCart() {
     const c = cartGet();
     if (!c.items.length) return;
+    const view = App.currentView();
     let closeProg = null;
     modal(`<h2>Đang lấy câu từ kho…</h2><p id="bkProg">Đang đọc ${c.items.length} câu…</p><div class="progress" style="margin-top:8px"><i id="bkProgBar" style="width:5%"></i></div>`,
       { sticky: true, onOpen(m, close) { closeProg = close; } });
     try {
       const codes = c.items.map((x) => x.maKho);
-      let cursor, r, canhBao = [];
+      let cursor, r, canhBao = [], thieuHinh = [];
       for (let lot = 0; lot < 200; lot++) {
         r = await api('adminBankToQuestions', { maKho: codes, cursor });
         canhBao = canhBao.concat(r.canhBao || []);
+        thieuHinh = thieuHinh.concat(r.thieuHinh || []);
         const t = r.tienDo || { xong: 0, tong: 0 };
         const el = document.getElementById('bkProg');
         if (el) el.textContent = t.tong ? `Đã chép ${t.xong}/${t.tong} hình…` : 'Xong.';
@@ -811,12 +829,15 @@
         cursor = r.tiepTuc;
       }
       const qs = r.questions.map((q, i) => ({ q, i })).sort((a, b) => (a.q.phan - b.q.phan) || (a.i - b.i)).map((x) => x.q);
-      draftFromBank = { questions: qs, canhBao: [...new Set(canhBao)], tieuDe: c.tieuDe || '' };
       if (closeProg) closeProg();
+      if (!App.viewIs(view)) return; // đã rời tab Ngân hàng (vd nút Quay lại): không tự mở trình soạn
+      const miss = new Set(thieuHinh);
+      qs.forEach((q) => { if (miss.has(q.maKho)) q.thieuHinh = true; });
+      draftFromBank = { questions: qs, canhBao: [...new Set(canhBao)], tieuDe: c.tieuDe || '' };
       location.hash = '#/de-thi/moi';
     } catch (err) {
       if (closeProg) closeProg();
-      toast(err.message, 'err');
+      if (App.viewIs(view)) toast(err.message, 'err');
     }
   }
 

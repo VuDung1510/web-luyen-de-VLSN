@@ -222,7 +222,7 @@ function createContext(opts = {}) {
       newBlob: (data, mime, name) => blob(typeof data === 'string' ? [...Buffer.from(data, 'utf8')] : data, mime, name),
       sleep: () => {}
     },
-    PropertiesService: { getScriptProperties: () => ({ getProperty: k => props[k] || null, setProperty: (k, v) => { props[k] = v; } }) },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: k => { env.stats.propReads = (env.stats.propReads || 0) + 1; return props[k] || null; }, getProperties: () => { env.stats.propReads = (env.stats.propReads || 0) + 1; return Object.assign({}, props); }, setProperty: (k, v) => { props[k] = String(v); } }) },
     CacheService: {
       getScriptCache: () => ({
         get: (k) => { cacheCall(); return cacheGet(k); },

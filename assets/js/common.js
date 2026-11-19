@@ -161,6 +161,9 @@
   let viewId = 0;
   /** Gọi ở đầu mỗi lần chuyển màn: dữ liệu về muộn của màn cũ sẽ không vẽ đè màn mới. */
   function newView() { ++viewId; syncPill(false); return viewId; }
+  /** Màn đang xem: lấy ở đầu màn, so lại sau mỗi `await` (đã chuyển màn thì không vẽ). */
+  const currentView = () => viewId;
+  const viewIs = (id) => id === viewId;
 
   // Chỉ báo "Đang cập nhật…" đếm theo từng màn: chỉ hiện khi màn ĐANG XEM còn lời gọi chưa xong
   const syncing = {};
@@ -624,7 +627,7 @@
   }
 
   const App = {
-    CFG, store, api, has, canTry, savePub, pubFresh, cached, cacheGet, cacheSet, cacheDel, cacheToken, clearCache, setCacheScope, newView, skeletonHtml,
+    CFG, store, api, has, canTry, savePub, pubFresh, cached, cacheGet, cacheSet, cacheDel, cacheToken, clearCache, setCacheScope, newView, currentView, viewIs, skeletonHtml,
     esc, fmtNum, fmtDateIso, fmtClock, sleep, rich, math, toast, modal, confirmBox, loadingHtml, withBusy,
     renderGoogleButton, resultHtml, feedbackHtml, barsHtml, questionReviewHtml, chart, cssVar, downloadCsv, scoreClass, gradeName,
     LEVELS, TYPES, PARTS, tokenKey: 'ld_token',

@@ -68,6 +68,29 @@ function check(cond, msg) { if (!cond) throw new Error('KHÔNG ĐẠT: ' + msg);
     return;
   }
 
+  // ---- R-1: dữ liệu kho về muộn không vẽ đè màn khác (trình soạn đang gõ dở) ----
+  ad.on('dialog', (d) => d.accept());
+  const slow = /"action":"adminBankMeta"/;
+  await ad.route('**/exec', async (r) => {
+    if (slow.test(r.request().postData() || '')) await new Promise((res) => setTimeout(res, 2500));
+    r.continue();
+  });
+  await ad.click('[data-nav="bank"]');
+  await ad.waitForTimeout(300);
+  await ad.evaluate(() => { location.hash = '#/de-thi/moi'; });
+  await ad.waitForSelector('#eTitle');
+  await ad.fill('#eTitle', 'Đang soạn dở');
+  await ad.waitForTimeout(3500);
+  check((await ad.$('#eTitle')) && (await ad.inputValue('#eTitle')) === 'Đang soạn dở', 'R-1: kho đọc xong muộn không vẽ đè trình soạn đang gõ');
+  await ad.click('[data-nav="bank"]'); // rời trình soạn (hộp xác nhận được chấp nhận)
+  await ad.waitForSelector('#bkReload');
+  await ad.click('#bkReload');
+  await ad.waitForTimeout(200);
+  await ad.click('[data-nav="home"]');
+  await ad.waitForTimeout(3500);
+  check(!(await ad.$('#bkReload')) && /Tổng quan/.test(await ad.textContent('#app h1')), 'R-1: "Đọc lại kho" xong muộn không vẽ đè Tổng quan');
+  await ad.unroute('**/exec');
+
   // ---- tab Ngân hàng ----
   await ad.click('[data-nav="bank"]');
   await ad.waitForSelector('.bank-item');
