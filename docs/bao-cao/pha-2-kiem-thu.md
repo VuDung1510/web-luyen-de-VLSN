@@ -101,3 +101,54 @@ Nhận xét (không chặn):
 
 ## Kết luận kiểm thử
 **ĐẠT.** Mọi TC kiểm được tại đây đều đạt. Phần cần Apps Script thật chuyển sang Pha 6 (cần giáo viên).
+
+---
+
+## Vòng 2 (commit `4565ec6`, ngày 19/11/2026)
+
+### Tóm tắt cho giáo viên
+- Ba thay đổi thầy nhìn thấy đều chạy đúng:
+  - Câu thiếu hình được cảnh báo ngay trong trình soạn, **trước khi lưu**.
+  - Ma trận và giỏ câu giới hạn 500 câu.
+  - Đang mở tab Ngân hàng mà chuyển sang soạn đề thì không mất đề đang soạn.
+- Còn **1 lỗi nhẹ (K-1)**: gõ số câu Phần I/II/III **lớn hơn 200** vào ô ma trận thì web lặng lẽ chỉ lấy 200 câu, không báo thiếu.
+- Kho thật: chạy lại trên Code.gs mới, vẫn 1 014 câu dùng được, **0 lệch**.
+
+### Chạy lại toàn bộ
+| Lệnh | Kết quả |
+|---|---|
+| `node tests/pha2-kiem-thu.test.js` | **30/31**: 29 test vòng 1 đạt (TC-2.11 nay 29 lần `getRange`, 582 ô); 1 test vòng 2 KHÔNG ĐẠT vì K-1 |
+| `pha2-kiem-thu.e2e.js all` (8792 / 8793 / 8794) | **15/16 nhóm**: 11 nhóm vòng 1 đạt cả hai chế độ; vòng 2 đạt 4/5, nhóm còn lại là K-1 |
+| `backend` / `importer` / `cache` / `common-cache` | 13/13 · đạt · 17/17 · 5/5 |
+| `pha1-kiem-thu.test.js` / `bank.test.js` | 29/29 · 30/30 |
+| `e2e.js`, máy chủ mới / 1.0.0 | đạt / đạt |
+| `bank.e2e.js`, máy chủ mới / 1.0.0 | ĐẠT / ĐẠT |
+| `pha1-kiem-thu.e2e.js all` (8790/8791) | PHA1_V2 |
+| Kho thật (Code.gs mới, cùng dữ liệu nháp) | Meta không đổi (1 014 dùng được); so tự động 1 057 câu: 0 lệch; 0 lần ghi kho |
+
+### Kiểm thêm theo thay đổi người dùng thấy được
+| Mục | Kết quả | Bằng chứng |
+|---|---|---|
+| Cảnh báo câu thiếu hình trước khi lưu | **ĐẠT** | Node: `adminBankToQuestions` lượt cuối trả `thieuHinh: ["L12C2B01-P1-00036"]` (câu có hình không nằm trong đó), kèm cảnh báo nêu mã câu và tên file. E2E: cho vào giỏ 1 câu thiếu hình + 1 câu có hình → Tạo đề. Đầu trình soạn có "Câu L12C2B01-P1-00036: chưa có hình …"; chỉ câu thiếu hình có nhãn "chưa có hình"; đề chưa được lưu |
+| Giới hạn 500 câu | **ĐẠT** | Node: Meta `gioiHan` = 500; Matrix 200+200+101 bị từ chối "Ma trận tối đa 500 câu…"; 460 câu được; ToQuestions 501 mã bị từ chối. E2E: ma trận 501 → toast "Ma trận tối đa 500 câu (giới hạn của Tạo đề).", giỏ không đổi. Giỏ 500 (ma trận 200/150/150) + 1 câu → "Quá 500 câu — bớt 1 câu để tạo đề", nút Tạo đề bị khóa |
+| Chuyển màn khi tab Ngân hàng đang tải (máy chủ chậm 2,5 s) | **ĐẠT** | 4 tình huống: đọc kho lần đầu, "Đọc lại kho", Ma trận, Tạo đề. Mỗi lần đang chờ thì sang "Tạo đề mới" và gõ tên đề. Sau 3,5–3,8 s tên vẫn còn, không có hộp thoại đè lên, không bị trình soạn của giỏ thay thế, không lỗi JS |
+
+### Lỗi
+**K-1 (Nhẹ). Ma trận lặng lẽ cắt số câu mỗi phần xuống 200.**
+- Tái hiện:
+  1. Kho đủ câu (dev-server `BANK_ROWS=1200`).
+  2. Ô P1 = 250, P2 = 0, P3 = 0 → bấm "Tạo ma trận".
+  3. Hộp hiện "Tìm được 200 câu (Phần I 200 …)", không có dòng "thiếu".
+- API cho cùng kết quả: `adminBankMatrix {so:{TN:250}}` trả 200 mã câu, `thieu` = 0, `so.TN` = 200.
+- Trái TC-2.6 ("không tạo đề thiếu một cách âm thầm") ở trường hợp biên.
+- Chẩn đoán:
+  - `apps-script/Code.gs`, `apiAdminBankMatrix_`: `want[p] = Math.max(0, Math.min(200, v))`.
+  - Ô nhập có `max="200"`, nhưng gõ tay vẫn vượt được.
+  - Lỗi có từ vòng 1 (`898fdd3`); vòng 1 chưa có kịch bản thử số > 200.
+- Đề xuất: báo lỗi "mỗi phần tối đa 200 câu", hoặc bỏ mức trần 200 vì đã có giới hạn chung 500.
+- Kịch bản bắt lỗi:
+  - test "Vòng 2: giới hạn 500 câu…" trong `tests/pha2-kiem-thu.test.js`;
+  - nhóm "K-1 ma trận P1 > 200…" trong `tests/pha2-kiem-thu.e2e.js`.
+
+### Kết luận vòng 2
+**ĐẠT, kèm K-1 (Nhẹ).** Mọi TC-2.x vẫn đạt với số liệu mặc định 18–4–6. K-1 chỉ xảy ra khi gõ hơn 200 câu cho một phần. Nên sửa trước khi gộp, hoặc giáo viên chấp nhận. Ảnh `kt-01` … `kt-06` đã được chụp lại trên bản vòng 2.

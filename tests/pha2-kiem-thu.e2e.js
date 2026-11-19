@@ -351,11 +351,129 @@ async function runCompat(browser) {
   }
 }
 
+// ---------- Vòng 2: cảnh báo thiếu hình trước khi lưu; giới hạn 500; chuyển màn khi tab Ngân hàng đang tải ----------
+const PORT_V2 = +(process.env.PORT_V2 || 8794);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function delayActions(page, re, ms) {
+  await page.route(/\/exec$/, async (route) => {
+    const body = route.request().postData() || '';
+    if (re.test(body)) await sleep(ms);
+    route.continue();
+  });
+}
+async function newAdmin(browser, srv, errors, tag) {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
+  const ad = await ctx.newPage();
+  watchErrors(ad, errors, tag);
+  ad.on('dialog', (d) => d.accept());
+  await routeCdn(ad);
+  await adminLogin(ad, srv.base, srv.pw);
+  return { ctx, ad };
+}
+async function runV2(browser) {
+  const errors = [];
+  // A + C trên kho chuẩn
+  let srv = await startServer(PORT_NEW, { LATENCY_MS: String(LAT) });
+  try {
+    const B = srv.base;
+    const tTok = (await api(B, 'loginAdminPassword', { password: srv.pw })).token;
+    // A. Câu kho ghi có hình nhưng không có hình → cảnh báo trong trình soạn, trước khi lưu
+    let { ctx, ad } = await newAdmin(browser, srv, errors, 'v2-A');
+    await ad.click('a[data-nav="bank"]'); await ad.waitForSelector('#bkInfo'); await listCount(ad);
+    for (const m of ['L12C2B01-P1-00036', 'L12C3B01-P1-00002']) {
+      await ad.fill('#bkQ', m); await ad.press('#bkQ', 'Enter'); await settle(ad);
+      await ad.click(`[data-cart="${m}"]`); await ad.waitForTimeout(150);
+    }
+    const nExam = (await api(B, 'adminListExams', { token: tTok })).length;
+    await ad.click('#cartMake');
+    await ad.waitForSelector('.qedit', { timeout: 30000 }); await ad.waitForTimeout(500);
+    const w = await ad.evaluate(() => {
+      const qe = [...document.querySelectorAll('.qedit')];
+      const miss = qe.find((q) => /L12C2B01-P1-00036/.test(q.textContent));
+      const okq = qe.find((q) => /L12C3B01-P1-00002/.test(q.textContent));
+      const top = (document.querySelector('main').textContent.split('Tên đề')[0] || '').replace(/\s+/g, ' ');
+      return { top, missLabel: miss ? /chưa có hình/.test(miss.textContent) : null, okLabel: okq ? /chưa có hình/.test(okq.textContent) : null,
+        missImg: miss ? (miss.querySelector('input[data-f="hinhAnh"]') || {}).value : null };
+    });
+    const nExam2 = (await api(B, 'adminListExams', { token: tTok })).length;
+    verdict('V2 cảnh báo thiếu hình', /L12C2B01-P1-00036/.test(w.top) && w.missLabel === true && w.okLabel === false && !w.missImg && nExam2 === nExam,
+      `đầu trình soạn: "${w.top.slice(0, 200)}"; nhãn trên câu thiếu hình: ${w.missLabel}, trên câu có hình: ${w.okLabel}; đề chưa lưu (${nExam}→${nExam2})`);
+    await ctx.close();
+
+    // C1. Mở Ngân hàng (máy chủ chậm 2,5 s) → sang trình soạn, gõ tên đề → sau 3,5 s tên vẫn còn
+    ({ ctx, ad } = await newAdmin(browser, srv, errors, 'v2-C1'));
+    await delayActions(ad, /adminBank/, 2500);
+    await ad.click('a[data-nav="bank"]'); await ad.waitForTimeout(300);
+    await ad.goto(B + '/admin.html#/de-thi/moi'); await ad.waitForSelector('#eTitle');
+    await ad.fill('#eTitle', 'Đề đang soạn dở');
+    await ad.waitForTimeout(3500);
+    let st = await ad.evaluate(() => ({ t: (document.querySelector('#eTitle') || {}).value, modal: !!document.querySelector('.modal'), hash: location.hash }));
+    verdict('V2 chuyển màn khi Ngân hàng đang tải', st.t === 'Đề đang soạn dở' && !st.modal && /de-thi\/moi/.test(st.hash), `đọc kho lần đầu → sang Tạo đề mới: ${JSON.stringify(st)}`);
+    // C2. Bấm "Đọc lại kho" (chậm) → sang trình soạn → tên còn
+    await ad.click('a[data-nav="bank"]'); await ad.waitForSelector('#bkReload', { timeout: 15000 }); await ad.waitForTimeout(3000);
+    await ad.click('#bkReload'); await ad.waitForTimeout(300);
+    await ad.goto(B + '/admin.html#/de-thi/moi'); await ad.waitForSelector('#eTitle');
+    await ad.fill('#eTitle', 'Đề soạn dở 2'); await ad.waitForTimeout(3500);
+    st = await ad.evaluate(() => ({ t: (document.querySelector('#eTitle') || {}).value, modal: !!document.querySelector('.modal'), hash: location.hash }));
+    verdict('V2 chuyển màn khi Ngân hàng đang tải', st.t === 'Đề soạn dở 2' && !st.modal && /de-thi\/moi/.test(st.hash), `"Đọc lại kho" → sang Tạo đề mới: ${JSON.stringify(st)}`);
+    // C3. Ma trận (chậm) → rời tab trước khi xong → không bật hộp ma trận đè lên trình soạn
+    await ad.click('a[data-nav="bank"]'); await ad.waitForSelector('#bkMatrix', { timeout: 15000 }); await ad.waitForTimeout(3000);
+    await ad.selectOption('#bkLop', 'Lớp 12'); await ad.waitForTimeout(3000);
+    await ad.click('#bkMatrix'); await ad.waitForTimeout(300);
+    await ad.goto(B + '/admin.html#/de-thi/moi'); await ad.waitForSelector('#eTitle');
+    await ad.fill('#eTitle', 'Đề soạn dở 3'); await ad.waitForTimeout(3500);
+    st = await ad.evaluate(() => ({ t: (document.querySelector('#eTitle') || {}).value, modal: !!document.querySelector('.modal'), hash: location.hash }));
+    verdict('V2 chuyển màn khi Ngân hàng đang tải', st.t === 'Đề soạn dở 3' && !st.modal, `Ma trận đang chạy → sang Tạo đề mới: ${JSON.stringify(st)}`);
+    // C4. Tạo đề (chậm) → rời sang trình soạn trống, gõ tên → không bị trình soạn của giỏ đè
+    await ad.click('a[data-nav="bank"]'); await ad.waitForSelector('#bkList [data-cart]', { timeout: 15000 }); await ad.waitForTimeout(3000);
+    const one = await ad.$eval('#bkList [data-cart]', (e) => e.dataset.cart);
+    await ad.click(`[data-cart="${one}"]`); await ad.waitForTimeout(200);
+    await ad.click('#cartMake'); await ad.waitForTimeout(300);
+    await ad.goto(B + '/admin.html#/de-thi/moi'); await ad.waitForSelector('#eTitle');
+    await ad.fill('#eTitle', 'Đề soạn dở 4'); await ad.waitForTimeout(3800);
+    st = await ad.evaluate(() => ({ t: (document.querySelector('#eTitle') || {}).value, n: document.querySelectorAll('.qedit').length, note: !!document.querySelector('#draftNote'), modal: !!document.querySelector('.modal') }));
+    verdict('V2 chuyển màn khi Ngân hàng đang tải', st.t === 'Đề soạn dở 4' && !st.note && !st.modal, `Tạo đề đang chạy → sang Tạo đề mới: ${JSON.stringify(st)}`);
+    await ctx.close();
+  } finally { srv.proc.kill(); }
+
+  // B. Giới hạn 500 (kho lớn 1 200 câu)
+  srv = await startServer(PORT_V2, { LATENCY_MS: '0', BANK_ROWS: '1200' });
+  try {
+    const { ctx, ad } = await newAdmin(browser, srv, errors, 'v2-B');
+    await ad.click('a[data-nav="bank"]'); await ad.waitForSelector('#bkInfo'); await listCount(ad);
+    await ad.fill('#soTN', '200'); await ad.fill('#soDS', '200'); await ad.fill('#soTL', '101');
+    await ad.click('#bkMatrix'); await ad.waitForTimeout(800);
+    const msg = await ad.evaluate(() => [...document.querySelectorAll('.toast, .modal')].map((e) => e.textContent.replace(/\s+/g, ' ')).join(' | '));
+    if (await ad.$('.modal [data-close]')) { await ad.click('.modal [data-close]'); await ad.waitForTimeout(300); }
+    let ct = await cartText(ad);
+    verdict('V2 giới hạn 500', /500/.test(msg) && !/P[123] [1-9]/.test(ct), `ma trận 200+200+101 → "${msg.slice(0, 160)}"; giỏ "${ct}"`);
+    // P1 250 (> 200 ô nhập cho phép): xem giao diện báo gì
+    await ad.fill('#soTN', '250'); await ad.fill('#soDS', '0'); await ad.fill('#soTL', '0');
+    await ad.click('#bkMatrix'); await ad.waitForTimeout(1200);
+    const msg250 = await ad.evaluate(() => [...document.querySelectorAll('.toast, .modal')].map((e) => e.textContent.replace(/\s+/g, ' ')).join(' | '));
+    verdict('K-1 ma trận P1 > 200 bị cắt âm thầm', /tối đa 200|thiếu/i.test(msg250.replace(/Ma trận tối đa 500[^|]*/g, '')), `ô P1 = 250 → "${msg250.slice(0, 200)}"`);
+    if (await ad.$('.modal [data-close=""]')) { await ad.click('.modal [data-close=""]'); await ad.waitForTimeout(300); }
+    // Giỏ > 500: ma trận 200/150/150 = 500 rồi thêm 1 câu
+    await ad.fill('#soTN', '200'); await ad.fill('#soDS', '150'); await ad.fill('#soTL', '150');
+    await ad.click('#bkMatrix'); await ad.waitForSelector('.modal'); await ad.waitForTimeout(300);
+    await ad.click('.modal [data-close="ok"]'); await ad.waitForTimeout(500);
+    ct = await cartText(ad);
+    const free = await ad.$eval('#bkList [data-cart]:not(.in-cart)', (e) => e.dataset.cart).catch(() => null);
+    if (free) { await ad.click(`[data-cart="${free}"]`); await ad.waitForTimeout(300); }
+    const bar = await ad.evaluate(() => ({ t: (document.querySelector('#bkCart') || {}).textContent.replace(/\s+/g, ' '), dis: (document.querySelector('#cartMake') || {}).disabled }));
+    verdict('V2 giới hạn 500', /P1 200 · P2 150 · P3 150/.test(ct) && /Quá 500 câu/.test(bar.t) && /bớt 1/.test(bar.t) && bar.dis === true,
+      `giỏ 500 ("${ct}") + 1 câu → "${bar.t.slice(0, 120)}", nút Tạo đề khóa: ${bar.dis}`);
+    await ctx.close();
+  } finally { srv.proc.kill(); }
+  verdict('V2 không lỗi JS', errors.length === 0, errors.join(' | ').slice(0, 400) || 'không có lỗi JS');
+}
+
 (async () => {
   const browser = await chromium.launch();
   try {
     if (MODE === 'new' || MODE === 'all') { console.log('— Máy chủ mới (kho giả) —'); await runNew(browser); }
     if (MODE === 'compat' || MODE === 'all') { console.log('— Máy chủ 1.0.0 —'); await runCompat(browser); }
+    if (MODE === 'v2' || MODE === 'all') { console.log('— Vòng 2 —'); await runV2(browser); }
   } catch (e) {
     console.error('LỖI KỊCH BẢN:', e.stack || e); process.exitCode = 1;
   } finally {
