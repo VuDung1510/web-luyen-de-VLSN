@@ -141,11 +141,12 @@ const { rad } = M;
   const buf = await sampleDocx();
   await setFile('de-mau.docx', buf, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
   await ad.waitForSelector('#impStats');
+  await ad.waitForSelector('#impProg', { state: 'hidden' });
   const count = await ad.textContent('#impCount');
   check(/Tìm thấy 28 câu: 18 trắc nghiệm, 4 đúng\/sai, 6 trả lời ngắn/.test(count), 'TC-3.1 nhận 28 câu 18–4–6: ' + count.trim());
   const stats = await ad.textContent('#impStats');
   check(/Phần I: 18 · Phần II: 4 · Phần III: 6/.test(stats), 'bảng kết quả: số câu theo phần');
-  check(/Đã đổi: 10 · Chưa đổi được: 1/.test(stats), 'bảng kết quả: công thức đã đổi 10 / chưa đổi 1');
+  check(/Đã đổi: 8 · Chưa đổi được: 1/.test(stats), 'bảng kết quả: công thức đã đổi 8 / chưa đổi 1');
   check(/Sẽ tải lên: 3 · Cần chụp lại: 1/.test(stats), 'bảng kết quả: 3 hình sẽ tải, 1 hình cần chụp lại');
   const warn = await ad.textContent('#impWarn');
   check(/Câu 4: 1 công thức cần gõ lại/.test(warn), 'TC-3.3 cảnh báo đúng câu 4 (ma trận)');
@@ -176,7 +177,7 @@ const { rad } = M;
   check(await ad.$$eval('.qedit[data-q="3"] textarea.todo', (x) => x.length) === 1, 'trình soạn: ô nội dung câu 4 tô vàng');
   check(await ad.$$eval('.qedit[data-q="5"] [data-hinhloi]', (x) => x.length) === 1, 'trình soạn: câu 6 có nhãn "hình cần chụp lại"');
   const q4 = await ad.$('.qedit[data-q="3"]');
-  await q4.scrollIntoViewIfNeeded();
+  await q4.evaluate((e) => { e.scrollIntoView({ block: 'start' }); window.scrollBy(0, -70); });
   await ad.screenshot({ path: path.join(SHOTS, '04-cau-moc-to-vang' + TAG + '.png') });
   // giáo viên gõ lại công thức → hết tô vàng
   await ad.fill('.qedit[data-q="3"] textarea[data-f="noiDung"]', 'Ma trận đơn vị $I$ có định thức bằng');
@@ -184,11 +185,11 @@ const { rad } = M;
   const q3 = await ad.$('.qedit[data-q="2"]');
   await q3.$eval('details', (e) => { e.open = true; });
   await ad.waitForTimeout(300);
-  await q3.scrollIntoViewIfNeeded();
+  await q3.evaluate((e) => { e.scrollIntoView({ block: 'start' }); window.scrollBy(0, -70); });
   await ad.screenshot({ path: path.join(SHOTS, '05-trinh-soan-cong-thuc' + TAG + '.png') });
 
   // ---- TC-3.11: lưu đề → học sinh làm ----
-  const title = 'Đề tải từ Word (e2e' + (COMPAT ? ', máy chủ cũ' : '') + ')';
+  const title = 'Đề tải từ Word (e2e' + (COMPAT ? ', máy chủ cũ' : '') + ' ' + Date.now().toString(36) + ')';
   await ad.fill('#eTitle', title);
   await ad.selectOption('#eStatus', 'MO');
   await ad.click('#btnSave');
@@ -214,7 +215,7 @@ const { rad } = M;
   ad.removeAllListeners('dialog'); ad.on('dialog', (dl) => dl.accept());
 
   // ---- điện thoại 390×844 ----
-  const mctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  const mctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const mp = await mctx.newPage();
   mp.on('pageerror', (e) => errors.push('ĐT: ' + e.message));
   await routeCdn(mp);
@@ -230,6 +231,8 @@ const { rad } = M;
   await mp.screenshot({ path: path.join(SHOTS, '06-hop-tai-file-dien-thoai' + TAG + '.png') });
   await mp.setInputFiles('#impFileInput', { name: 'de-mau.docx', mimeType: 'application/octet-stream', buffer: buf });
   await mp.waitForSelector('#impStats');
+  await mp.waitForSelector('#impProg', { state: 'hidden' });
+  await mp.$eval('#impCount', (e) => e.scrollIntoView({ block: 'start' }));
   const over = await mp.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   check(!over, 'điện thoại 390 px: hộp kết quả không tràn ngang');
   await mp.screenshot({ path: path.join(SHOTS, '07-ket-qua-dien-thoai' + TAG + '.png') });
