@@ -71,6 +71,7 @@
         if (parts[1] === 'sua') return viewEditor(parts[2]);
         if (parts[1] === 'thong-ke') return viewExamStats(parts[2]);
         return viewExams();
+      case 'ngan-hang': nav('bank'); return viewBank();
       case 'hoc-sinh': nav('students'); return viewStudents();
       case 'ket-qua': nav('results'); return parts[1] === 'xem' ? viewResult(parts[2]) : viewResults();
       case 'bang-diem': nav('gradebook'); return viewGradebook();
@@ -231,10 +232,16 @@
         hasResults = (list.find((x) => x.id === examId) || {}).soBai > 0;
       } catch (e) { $app.innerHTML = errorBox(e); return; }
     }
+    // Đề tạo từ Ngân hàng câu hỏi: câu đã nạp, CHƯA lưu — giáo viên xem lại rồi bấm Lưu đề
+    const draft = !examId ? draftFromBank : null;
+    draftFromBank = null;
+    if (draft) { qs = draft.questions.map((q) => Object.assign(blankQ(q.loai), q)); exam.tieuDe = draft.tieuDe || ''; }
     if (!qs.length) qs = [blankQ('TN')];
 
     $app.innerHTML = `<div class="card-title"><h1 style="margin:0">${examId ? 'Sửa đề' : 'Tạo đề mới'}</h1><a href="#/de-thi">← Danh sách đề</a></div>
       ${hasResults ? '<div class="notice warn" style="margin-bottom:12px">Đề này đã có học sinh nộp bài. Sửa đáp án sẽ <b>không</b> chấm lại các bài cũ.</div>' : ''}
+      ${draft ? `<div class="notice" id="draftNote" style="margin-bottom:12px">Đã nạp <b>${qs.length}</b> câu từ Ngân hàng câu hỏi. Đề <b>chưa được lưu</b>: kiểm tra lại, đặt tên đề rồi bấm <b>Lưu đề</b>.</div>
+        ${draft.canhBao.length ? `<div class="notice warn" id="draftWarn" style="margin-bottom:12px">${draft.canhBao.map(esc).join('<br>')}</div>` : ''}` : ''}
       <div class="card"><div class="form-grid">
         <div class="field" style="grid-column:1/-1"><label>Tên đề *</label><input id="eTitle" value="${esc(exam.tieuDe)}" placeholder="VD: Đề luyện thi TN THPT số 1"></div>
         <div class="field" style="grid-column:1/-1"><label>Mô tả</label><input id="eDesc" value="${esc(exam.moTa)}" placeholder="Ghi chú ngắn cho học sinh (không bắt buộc)"></div>
@@ -290,7 +297,7 @@
       }
       const optsHtml = q.loai === 'TL' ? '' : `<div class="opt-grid">${q.loai === 'DS' ? opt('A', 'Ý a)') + opt('B', 'Ý b)') + opt('C', 'Ý c)') + opt('D', 'Ý d)') : opt('A', 'A') + opt('B', 'B') + opt('C', 'C') + opt('D', 'D')}</div>`;
       return `<div class="qedit" data-q="${i}">
-        <div class="qedit-head"><span class="q-num">Câu ${i + 1}</span>
+        <div class="qedit-head"><span class="q-num">Câu ${i + 1}</span>${q.maKho ? `<span class="badge" title="${esc(q.bai)}">Kho: ${esc(q.maKho)}</span>` : ''}${q.thieuHinh && !q.hinhAnh ? '<span class="badge badge-warn" data-thieuhinh="">Kho ghi có hình — chưa có hình</span>' : ''}
           <select data-f="loai" data-i="${i}" aria-label="Loại câu">${Object.keys(App.TYPES).map((k) => `<option value="${k}" ${q.loai === k ? 'selected' : ''}>${App.TYPES[k]}</option>`).join('')}</select>
           <select data-f="phan" data-i="${i}" aria-label="Phần"><option value="1" ${q.phan == 1 ? 'selected' : ''}>Phần I</option><option value="2" ${q.phan == 2 ? 'selected' : ''}>Phần II</option><option value="3" ${q.phan == 3 ? 'selected' : ''}>Phần III</option></select>
           <span class="spacer"></span>
@@ -406,6 +413,7 @@
         exam.id = r.id;
         document.getElementById('saveInfo').textContent = 'Đã lưu lúc ' + new Date().toLocaleTimeString('vi-VN');
         toast('Đã lưu đề (' + payload.length + ' câu)', 'ok');
+        if (draft) cartSet({ items: [], tieuDe: '' });
         if (!examId) history.replaceState(null, '', '#/de-thi/sua/' + encodeURIComponent(r.id));
       } catch (err) {
         toast(err.message, 'err');
@@ -415,6 +423,7 @@
     });
 
     renderQs();
+    if (draft) markDirty();
     const tl = document.createElement('datalist');
     tl.id = 'topicList';
     tl.innerHTML = ['Vật lí nhiệt', 'Khí lí tưởng', 'Từ trường', 'Vật lí hạt nhân', 'Dao động', 'Sóng', 'Điện trường', 'Dòng điện', 'Cảm ứng điện từ', 'Động học', 'Động lực học', 'Năng lượng']
@@ -547,6 +556,289 @@
         options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } }
       });
     } catch (e) { $app.innerHTML = errorBox(e); }
+  }
+
+  /* ================= NGÂN HÀNG CÂU HỎI (Pha 2) ================= */
+  // Giỏ câu (chỉ mã câu, không có đáp án) giữ trong sessionStorage của tab quản trị.
+  const CART_KEY = 'ld_bank_cart', BF_KEY = 'ld_bank_filter';
+  const sess = {
+    get(k, d) { try { const v = sessionStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* bỏ qua */ } }
+  };
+  const cartGet = () => sess.get(CART_KEY, { items: [], tieuDe: '' });
+  const cartSet = (c) => sess.set(CART_KEY, c);
+  const PART_SHORT = { 1: 'P1', 2: 'P2', 3: 'P3' };
+  let bankMeta = null;
+  let draftFromBank = null; // { questions, canhBao, tieuDe } → trình soạn đề mới
+
+  const needUpdateHtml = (ver) => `<h1>Ngân hàng câu hỏi</h1><div class="notice warn" id="bankNeedUpdate">Ngân hàng câu hỏi cần máy chủ mới. Máy chủ đang chạy phiên bản ${esc(ver || 'cũ')}. <b>Cần cập nhật máy chủ (bước phát hành).</b> Các mục khác vẫn dùng bình thường.</div>`;
+
+  async function viewBank() {
+    $app.onclick = null;
+    const view = App.currentView(); // R-1: dữ liệu về muộn không vẽ đè màn khác
+    const p = store.get('ld_pub', null);
+    if (!App.canTry('adminBankMeta')) { $app.innerHTML = needUpdateHtml(p && p.version); return; }
+    $app.innerHTML = loadingHtml('Đang đọc kho câu hỏi…');
+    try {
+      if (!bankMeta) bankMeta = await api('adminBankMeta');
+    } catch (e) {
+      if (!App.viewIs(view)) return;
+      if (e.unsupported) { $app.innerHTML = needUpdateHtml(p && p.version); return; }
+      $app.innerHTML = `<h1>Ngân hàng câu hỏi</h1><div class="card empty" id="bankError"><b>Chưa đọc được kho:</b> ${esc(e.message)}
+        <div class="row" style="margin-top:10px;justify-content:center"><a class="btn" href="#/cai-dat">Mở Cài đặt</a><button class="btn" id="bkRetry">Thử lại</button></div></div>`;
+      document.getElementById('bkRetry').onclick = () => { bankMeta = null; viewBank(); };
+      return;
+    }
+    if (!App.viewIs(view)) return; // đã chuyển màn: chỉ giữ bankMeta, không vẽ
+    renderBank();
+  }
+
+  function renderBank() {
+    const m = bankMeta;
+    const view = App.currentView();
+    const here = () => App.viewIs(view);
+    const LIMIT = m.gioiHan || 500;
+    const f = Object.assign({ lop: '', chuong: [], bai: [], loai: [], mucDo: [], nguon: '', q: '' }, sess.get(BF_KEY, {}));
+    if (f.lop && m.lop.indexOf(f.lop) < 0) f.lop = '';
+    const so = sess.get('ld_bank_so', { TN: 18, DS: 4, TL: 6 });
+    const chk = (name, val, label, on) => `<label class="chk"><input type="checkbox" data-f="${name}" value="${esc(val)}" ${on ? 'checked' : ''}> ${label}</label>`;
+    $app.innerHTML = `<div class="card-title"><h1 style="margin:0">Ngân hàng câu hỏi</h1>
+        <div class="row"><button class="btn" id="bkReload" title="Đọc lại file kho (sau khi sửa kho)">↻ Đọc lại kho</button></div></div>
+      <div class="muted small" id="bkInfo" style="margin-bottom:10px">Kho có <b>${m.tong}</b> câu · có đáp án ${m.coDapAn} · <b>dùng được ${m.dungDuoc}</b>
+        (Phần I ${m.theoDang.TN} · Phần II ${m.theoDang.DS} · Phần III ${m.theoDang.TL}) · đọc lúc ${esc(m.docLuc)}.
+        Chỉ câu đã có đáp án hợp lệ mới hiện ở đây; câu tự luận (Phần IV) tạm bỏ qua.</div>
+      ${(m.canhBao || []).map((c) => `<div class="notice warn small" style="margin-bottom:10px">${esc(c)}</div>`).join('')}
+      <div class="bank-layout">
+        <aside class="card bank-filter" id="bkFilter">
+          <div class="field"><label for="bkLop">Lớp</label><select id="bkLop"><option value="">Tất cả</option>${m.lop.map((l) => `<option ${l === f.lop ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>
+          <div class="field"><label>Dạng câu</label><div class="chk-row">${chk('loai', 'TN', 'Phần I', f.loai.includes('TN'))}${chk('loai', 'DS', 'Phần II', f.loai.includes('DS'))}${chk('loai', 'TL', 'Phần III', f.loai.includes('TL'))}</div></div>
+          <div class="field"><label>Mức độ</label><div class="chk-row">${Object.keys(App.LEVELS).map((k) => chk('mucDo', k, App.LEVELS[k], f.mucDo.includes(k))).join('')}</div></div>
+          <div class="field"><label for="bkNguon">Nguồn (đề gốc)</label><select id="bkNguon"><option value="">Tất cả</option>${m.nguon.filter((s) => s.dungDuoc).map((s) => `<option value="${esc(s.ma)}" ${s.ma === f.nguon ? 'selected' : ''}>${esc(s.ten)} (${s.dungDuoc}/${s.soCau})</option>`).join('')}</select></div>
+          <div class="field"><label for="bkQ">Tìm chữ</label><input id="bkQ" value="${esc(f.q)}" placeholder="Nội dung hoặc mã câu…"></div>
+          <div class="field"><label>Chương → Bài</label><div class="bank-tree" id="bkTree"></div></div>
+          <button class="btn btn-sm" id="bkClear">Bỏ lọc</button>
+        </aside>
+        <section class="bank-main">
+          <div class="card bank-tools">
+            <div class="row"><b>Ma trận 1 chạm</b>
+              <label class="small">P1 <input class="so" type="number" min="0" max="200" id="soTN" value="${so.TN}"></label>
+              <label class="small">P2 <input class="so" type="number" min="0" max="200" id="soDS" value="${so.DS}"></label>
+              <label class="small">P3 <input class="so" type="number" min="0" max="200" id="soTL" value="${so.TL}"></label>
+              <button class="btn btn-primary btn-sm" id="bkMatrix">Tạo ma trận</button></div>
+            <div class="muted small">Theo lớp, chương, bài, mức độ, nguồn đang lọc; ưu tiên câu ít dùng.</div>
+            <div class="row" style="margin-top:8px"><button class="btn btn-sm" id="bkSource" ${f.nguon ? '' : 'disabled'}>Lấy đề gốc</button>
+              <span class="muted small">${f.nguon ? 'Nạp các câu có đáp án của nguồn đang chọn.' : 'Chọn một Nguồn để lấy nguyên đề gốc.'}</span></div>
+          </div>
+          <div id="bkList"></div>
+        </section>
+      </div>
+      <div class="cart-bar" id="bkCart"></div>`;
+
+    const drawTree = () => {
+      const lop = document.getElementById('bkLop').value;
+      const byCh = {};
+      m.cay.filter((x) => !lop || x.lop === lop).forEach((x) => { (byCh[x.chuong] = byCh[x.chuong] || []).push(x); });
+      const sum = (d) => d.TN + d.DS + d.TL;
+      document.getElementById('bkTree').innerHTML = Object.keys(byCh).length ? Object.keys(byCh).map((ch) => {
+        const bais = byCh[ch];
+        const n = bais.reduce((s, x) => s + sum(x.dem), 0);
+        return `<details ${f.chuong.includes(ch) || bais.some((x) => f.bai.includes(x.bai)) ? 'open' : ''}><summary>${chk('chuong', ch, `${esc(ch)} <span class="muted">(${n})</span>`, f.chuong.includes(ch))}</summary>
+          ${bais.map((x) => `<div class="bai">${chk('bai', x.bai, `${esc(x.bai)} <span class="muted">(${x.dem.TN}·${x.dem.DS}·${x.dem.TL})</span>`, f.bai.includes(x.bai))}</div>`).join('')}</details>`;
+      }).join('') : '<div class="muted small">Không có câu.</div>';
+    };
+    drawTree();
+
+    let page = 1;
+    const readFilter = () => {
+      const vals = (name) => [...document.querySelectorAll(`#bkFilter input[data-f="${name}"]:checked`)].map((x) => x.value);
+      Object.assign(f, {
+        lop: document.getElementById('bkLop').value, nguon: document.getElementById('bkNguon').value, q: document.getElementById('bkQ').value.trim(),
+        loai: vals('loai'), mucDo: vals('mucDo'), chuong: vals('chuong'), bai: vals('bai')
+      });
+      sess.set(BF_KEY, f);
+      const src = document.getElementById('bkSource');
+      src.disabled = !f.nguon;
+      src.nextElementSibling.textContent = f.nguon ? 'Nạp các câu có đáp án của nguồn đang chọn.' : 'Chọn một Nguồn để lấy nguyên đề gốc.';
+    };
+    let seq = 0;
+    const loadList = async () => {
+      const my = ++seq;
+      const box = document.getElementById('bkList');
+      box.innerHTML = loadingHtml();
+      try {
+        const r = await api('adminBankList', { filter: f, page, size: 20 });
+        if (my !== seq || !here() || !document.getElementById('bkList')) return;
+        const pages = Math.max(1, Math.ceil(r.tong / r.size));
+        const inCart = new Set(cartGet().items.map((x) => x.maKho));
+        box.innerHTML = `<div class="muted small" style="margin:4px 0 8px">${r.tong} câu phù hợp</div>
+          ${r.items.length ? r.items.map((x) => `<div class="bank-item" data-ma="${esc(x.maKho)}">
+            <div class="bank-item-head"><span class="badge badge-primary">${PART_SHORT[x.phan]} · ${App.TYPES[x.loai]}</span>
+              ${x.mucDo ? `<span class="badge">${App.LEVELS[x.mucDo]}</span>` : ''}${x.coHinh ? '<span class="badge">có hình</span>' : ''}
+              ${x.daDung ? `<span class="badge badge-warn">đã dùng ${x.daDung} lần</span>` : ''}
+              <span class="spacer"></span>
+              <button class="btn btn-sm" data-view="${esc(x.maKho)}">Xem đầy đủ</button>
+              <button class="btn btn-sm ${inCart.has(x.maKho) ? 'in-cart' : 'btn-primary'}" data-cart="${esc(x.maKho)}" data-loai="${x.loai}" data-phan="${x.phan}">${inCart.has(x.maKho) ? '✓ Trong giỏ' : '+ Giỏ'}</button></div>
+            <div class="bank-tom">${rich(x.tom)}${x.tom.length >= 160 ? ' …' : ''}</div>
+            <div class="muted small">${esc(x.maKho)} · ${esc(x.bai)} · ${esc(x.nguon)} · ${esc(x.viTri)}</div></div>`).join('')
+            : '<div class="card empty">Không có câu phù hợp bộ lọc.</div>'}
+          ${pages > 1 ? `<div class="row pager" style="justify-content:center;margin:12px 0"><button class="btn btn-sm" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>← Trước</button>
+            <span class="small">Trang ${page}/${pages}</span><button class="btn btn-sm" data-page="${page + 1}" ${page >= pages ? 'disabled' : ''}>Sau →</button></div>` : ''}`;
+        math(box);
+      } catch (e) { if (my === seq && here() && document.getElementById('bkList')) box.innerHTML = errorBox(e); }
+    };
+    const refresh = () => { readFilter(); page = 1; loadList(); };
+    const drawCart = () => {
+      const c = cartGet();
+      const n = { 1: 0, 2: 0, 3: 0 };
+      c.items.forEach((x) => { n[x.phan] = (n[x.phan] || 0) + 1; });
+      const el = document.getElementById('bkCart');
+      if (!el || !here()) return;
+      const over = c.items.length > LIMIT;
+      el.innerHTML = `<div class="cart-in"><b>Giỏ câu:</b> <span id="cartCount">P1 ${n[1]} · P2 ${n[2]} · P3 ${n[3]}</span>
+        ${over ? `<span class="badge badge-warn" id="cartOver">Quá ${LIMIT} câu — bớt ${c.items.length - LIMIT} câu để tạo đề</span>` : ''}
+        <span class="spacer"></span><button class="btn btn-sm" id="cartClear" ${c.items.length ? '' : 'disabled'}>Xóa giỏ</button>
+        <button class="btn btn-primary btn-sm" id="cartMake" ${c.items.length && !over ? '' : 'disabled'}>Tạo đề (${c.items.length} câu) →</button></div>`;
+      document.getElementById('cartClear').onclick = async () => {
+        if (!(await confirmBox('Xóa giỏ câu?', 'Bỏ toàn bộ ' + c.items.length + ' câu đã chọn khỏi giỏ.', 'Xóa giỏ', true))) return;
+        cartSet({ items: [], tieuDe: '' }); drawCart(); loadList();
+      };
+      document.getElementById('cartMake').onclick = (e) => withBusy(e.currentTarget, () => makeExamFromCart());
+    };
+
+    document.getElementById('bkLop').onchange = () => { readFilter(); f.chuong = []; f.bai = []; sess.set(BF_KEY, f); drawTree(); refresh(); };
+    document.getElementById('bkNguon').onchange = refresh;
+    let qTimer;
+    document.getElementById('bkQ').oninput = () => { clearTimeout(qTimer); qTimer = setTimeout(refresh, 400); };
+    document.getElementById('bkFilter').addEventListener('change', (e) => { if (e.target.matches('input[type=checkbox]')) refresh(); });
+    document.getElementById('bkClear').onclick = () => { sess.set(BF_KEY, {}); renderBank(); };
+    document.getElementById('bkReload').onclick = (e) => withBusy(e.currentTarget, async () => {
+      try {
+        bankMeta = await api('adminBankMeta', { refresh: true });
+        if (!here()) return; // R-1: giáo viên đã sang màn khác
+        toast('Đã đọc lại kho', 'ok'); renderBank();
+      } catch (err) { if (here()) toast(err.message, 'err'); }
+    });
+    document.getElementById('bkMatrix').onclick = (e) => withBusy(e.currentTarget, async () => {
+      readFilter();
+      const want = { TN: +document.getElementById('soTN').value || 0, DS: +document.getElementById('soDS').value || 0, TL: +document.getElementById('soTL').value || 0 };
+      sess.set('ld_bank_so', want);
+      if (want.TN + want.DS + want.TL > LIMIT) { toast(`Ma trận tối đa ${LIMIT} câu (giới hạn của Tạo đề).`, 'err'); return; }
+      try {
+        const r = await api('adminBankMatrix', { lop: f.lop, chuong: f.chuong, bai: f.bai, mucDo: f.mucDo, nguon: f.nguon, so: want });
+        if (!here()) return;
+        const parts = [['TN', 'Phần I'], ['DS', 'Phần II'], ['TL', 'Phần III']];
+        const short = parts.filter(([k]) => r.thieu[k] > 0);
+        const cur = cartGet();
+        const msg = (short.length ? `<div class="notice warn" id="mxShort"><b>Kho không đủ câu theo bộ lọc:</b><br>${short.map(([k, name]) => `${name}: cần ${r.so[k]}, chỉ có ${r.coSan[k]} (thiếu ${r.thieu[k]} câu)`).join('<br>')}</div>` : '')
+          + `<p>Tìm được <b>${r.maKho.length}</b> câu (${parts.map(([k, name]) => `${name} ${Math.min(r.so[k], r.coSan[k])}`).join(' · ')}).</p>`
+          + (cur.items.length ? '<p class="muted small">Giỏ hiện tại sẽ được thay bằng các câu này.</p>' : '');
+        if (!r.maKho.length) { await modal(`<h2>Ma trận đề</h2>${msg}<div class="modal-actions"><button class="btn" data-close="">Đóng</button></div>`); return; }
+        const go = await confirmBox('Ma trận đề', msg, short.length ? 'Vẫn thêm vào giỏ' : 'Thêm vào giỏ');
+        if (!go || !here()) return;
+        const loaiOf = {};
+        // phần của từng câu: ma trận trả theo thứ tự TN, DS, TL
+        let i = 0;
+        parts.forEach(([k], j) => { for (let n = 0; n < Math.min(r.so[k], r.coSan[k]); n++) loaiOf[r.maKho[i++]] = { loai: k, phan: j + 1 }; });
+        cartSet({ items: r.maKho.map((ma) => Object.assign({ maKho: ma }, loaiOf[ma])), tieuDe: '' });
+        drawCart(); loadList();
+        toast('Đã thêm ' + r.maKho.length + ' câu vào giỏ', 'ok');
+      } catch (err) { if (here()) toast(err.message, 'err'); }
+    });
+    document.getElementById('bkSource').onclick = (e) => withBusy(e.currentTarget, async () => {
+      readFilter();
+      if (!f.nguon) return;
+      try {
+        const r = await api('adminBankSource', { nguon: f.nguon });
+        if (!here()) return;
+        const n = { 1: 0, 2: 0, 3: 0 };
+        r.items.forEach((x) => { n[x.phan]++; });
+        const html = `<p>Đề gốc <b>${esc(r.ten)}</b>: lấy được <b>${r.items.length}</b> câu có đáp án (P1 ${n[1]} · P2 ${n[2]} · P3 ${n[3]}).</p>
+          ${r.thieu.length ? `<div class="notice warn" id="srcMissing" style="margin-bottom:8px"><b>Đề gốc trong kho không đủ câu:</b><br>${r.thieu.map((x) => esc(x.text)).join('<br>')}</div>` : ''}
+          ${r.khongDapAn ? `<div class="notice warn" id="srcNoKey" style="margin-bottom:8px"><b>${r.khongDapAn} câu chưa có đáp án hợp lệ</b> nên không được lấy (bổ sung đáp án trong kho rồi bấm "Đọc lại kho"):<br><span class="small">${r.khongDapAnViTri.map(esc).join('; ')}${r.khongDapAn > r.khongDapAnViTri.length ? '; …' : ''}</span></div>` : ''}
+          ${r.tuLuan ? `<p class="muted small">Bỏ qua ${r.tuLuan} câu tự luận (Phần IV).</p>` : ''}
+          ${cartGet().items.length ? '<p class="muted small">Giỏ hiện tại sẽ được thay bằng các câu này.</p>' : ''}`;
+        if (!r.items.length) { await modal(`<h2>Lấy đề gốc</h2>${html}<div class="modal-actions"><button class="btn" data-close="">Đóng</button></div>`); return; }
+        if (!(await confirmBox('Lấy đề gốc', html, 'Nạp vào giỏ')) || !here()) return;
+        cartSet({ items: r.items.map((x) => ({ maKho: x.maKho, loai: x.loai, phan: x.phan })), tieuDe: 'Đề gốc — ' + r.ten });
+        drawCart(); loadList();
+        toast('Đã nạp ' + r.items.length + ' câu của đề gốc vào giỏ', 'ok');
+      } catch (err) { if (here()) toast(err.message, 'err'); }
+    });
+    $app.onclick = async (ev) => {
+      const pg = ev.target.closest('[data-page]');
+      if (pg && !pg.disabled) { page = +pg.dataset.page; loadList(); window.scrollTo(0, 0); return; }
+      const add = ev.target.closest('[data-cart]');
+      if (add) {
+        const c = cartGet();
+        const i = c.items.findIndex((x) => x.maKho === add.dataset.cart);
+        if (i >= 0) c.items.splice(i, 1); else c.items.push({ maKho: add.dataset.cart, loai: add.dataset.loai, phan: +add.dataset.phan });
+        cartSet(c);
+        add.classList.toggle('in-cart', i < 0); add.classList.toggle('btn-primary', i >= 0);
+        add.textContent = i < 0 ? '✓ Trong giỏ' : '+ Giỏ';
+        drawCart();
+        return;
+      }
+      const v = ev.target.closest('[data-view]');
+      if (v) withBusy(v, async () => {
+        try {
+          const r = await api('adminBankToQuestions', { maKho: [v.dataset.view] });
+          if (!here()) return;
+          const q = r.questions[0];
+          if (!q) { toast((r.canhBao || [])[0] || 'Không đọc được câu này.', 'err'); return; }
+          modal(`<h2>${esc(q.maKho)}</h2><div class="muted small" style="margin-bottom:8px">${esc(q.chuong)} · ${esc(q.bai)} · ${App.LEVELS[q.mucDo] || ''}${q.mucDoY ? ' · ' + esc(q.mucDoY) : ''}</div>
+            <div class="preview" id="bkPreview">${bankPreviewHtml(q)}</div>
+            ${(r.canhBao || []).map((c) => `<div class="notice warn small">${esc(c)}</div>`).join('')}
+            <div class="modal-actions"><button class="btn" data-close="">Đóng</button></div>`, { wide: true, onOpen(mm) { math(mm); } });
+        } catch (err) { if (here()) toast(err.message, 'err'); }
+      });
+    };
+    drawCart();
+    readFilter();
+    loadList();
+  }
+
+  function bankPreviewHtml(q) {
+    let h = `<div>${rich(q.noiDung)}</div>${q.hinhAnh ? `<img class="q-img" src="${esc(q.hinhAnh)}" alt="">` : ''}`;
+    if (q.loai !== 'TL') h += ['A', 'B', 'C', 'D'].map((k, j) => `<div><b>${q.loai === 'DS' ? 'abcd'[j] + ')' : k + '.'}</b> ${rich(q[k])}</div>`).join('');
+    h += `<div style="margin-top:8px"><b>Đáp án:</b> ${esc(q.dapAn)}</div>`;
+    if (q.loiGiai) h += `<div class="solution">${rich(q.loiGiai)}</div>`;
+    return h;
+  }
+
+  /** Lấy câu đầy đủ của giỏ (chép hình theo lô, tự gọi tiếp), rồi mở trình soạn đề với các câu đã nạp (chưa lưu). */
+  async function makeExamFromCart() {
+    const c = cartGet();
+    if (!c.items.length) return;
+    const view = App.currentView();
+    let closeProg = null;
+    modal(`<h2>Đang lấy câu từ kho…</h2><p id="bkProg">Đang đọc ${c.items.length} câu…</p><div class="progress" style="margin-top:8px"><i id="bkProgBar" style="width:5%"></i></div>`,
+      { sticky: true, onOpen(m, close) { closeProg = close; } });
+    try {
+      const codes = c.items.map((x) => x.maKho);
+      let cursor, r, canhBao = [], thieuHinh = [];
+      for (let lot = 0; lot < 200; lot++) {
+        r = await api('adminBankToQuestions', { maKho: codes, cursor });
+        canhBao = canhBao.concat(r.canhBao || []);
+        thieuHinh = thieuHinh.concat(r.thieuHinh || []);
+        const t = r.tienDo || { xong: 0, tong: 0 };
+        const el = document.getElementById('bkProg');
+        if (el) el.textContent = t.tong ? `Đã chép ${t.xong}/${t.tong} hình…` : 'Xong.';
+        const bar = document.getElementById('bkProgBar');
+        if (bar) bar.style.width = (t.tong ? Math.max(5, Math.round(t.xong / t.tong * 100)) : 100) + '%';
+        if (r.tiepTuc == null) break;
+        cursor = r.tiepTuc;
+      }
+      const qs = r.questions.map((q, i) => ({ q, i })).sort((a, b) => (a.q.phan - b.q.phan) || (a.i - b.i)).map((x) => x.q);
+      if (closeProg) closeProg();
+      if (!App.viewIs(view)) return; // đã rời tab Ngân hàng (vd nút Quay lại): không tự mở trình soạn
+      const miss = new Set(thieuHinh);
+      qs.forEach((q) => { if (miss.has(q.maKho)) q.thieuHinh = true; });
+      draftFromBank = { questions: qs, canhBao: [...new Set(canhBao)], tieuDe: c.tieuDe || '' };
+      location.hash = '#/de-thi/moi';
+    } catch (err) {
+      if (closeProg) closeProg();
+      if (App.viewIs(view)) toast(err.message, 'err');
+    }
   }
 
   /* ================= HỌC SINH ================= */
@@ -751,7 +1043,9 @@
     GUI_EMAIL_KHI_NOP: { label: 'Gửi email cho giáo viên mỗi khi có bài nộp', yesno: ['Có', 'Không'] },
     EMAIL_GIAO_VIEN: { label: 'Email Google của giáo viên', hint: 'Dùng để đăng nhập trang quản trị bằng Google và nhận email báo kết quả. Nhiều email cách nhau dấu phẩy.' },
     CHO_LIEN_KET_GOOGLE: { label: 'Học sinh tự liên kết Google (xác minh bằng PIN)', yesno: ['Cho phép', 'Không'] },
-    GOOGLE_CLIENT_ID: { label: 'Google OAuth Client ID', hint: 'Để trống = tắt đăng nhập Google. Cách lấy: xem README, mục "Bật đăng nhập Google".' }
+    GOOGLE_CLIENT_ID: { label: 'Google OAuth Client ID', hint: 'Để trống = tắt đăng nhập Google. Cách lấy: xem README, mục "Bật đăng nhập Google".' },
+    KHO_CAU_HOI_ID: { label: 'Kho câu hỏi (id hoặc link file "KHO CÂU HỎI VẬT LÝ")', hint: 'Dán link Google Sheet của kho. Web chỉ đọc kho, không sửa.', wide: true, bank: true },
+    THU_MUC_HINH_KHO_ID: { label: 'Thư mục hình của kho (id hoặc link thư mục "02. HÌNH VẼ")', hint: 'Để trống thì tìm hình theo tên file trên toàn Drive (chậm hơn).', wide: true, bank: true }
   };
 
   async function viewSettings() {
@@ -765,11 +1059,11 @@
       const yes = (v) => ['CO', 'CÓ', 'TRUE', '1'].includes(String(v).toUpperCase());
       $app.innerHTML = `<h1>Cài đặt</h1>
         <div class="card"><h2>Chung</h2><div class="form-grid">
-          ${Object.keys(SETTING_UI).map((k) => {
+          ${Object.keys(SETTING_UI).filter((k) => !SETTING_UI[k].bank || k in val || App.has('bank')).map((k) => {
             const u = SETTING_UI[k];
             const input = u.yesno ? `<select data-k="${k}"><option value="CO">${u.yesno[0]}</option><option value="KHONG" ${yes(val[k]) ? '' : 'selected'}>${u.yesno[1]}</option></select>`
               : `<input data-k="${k}" value="${esc(val[k] || '')}">`;
-            return `<div class="field" ${k === 'GOOGLE_CLIENT_ID' || k === 'EMAIL_GIAO_VIEN' ? 'style="grid-column:1/-1"' : ''}><label>${u.label}</label>${input}${u.hint ? `<span class="hint">${u.hint}</span>` : ''}</div>`;
+            return `<div class="field" ${k === 'GOOGLE_CLIENT_ID' || k === 'EMAIL_GIAO_VIEN' || u.wide ? 'style="grid-column:1/-1"' : ''}><label>${u.label}</label>${input}${u.hint ? `<span class="hint">${u.hint}</span>` : ''}</div>`;
           }).join('')}</div>
           <button class="btn btn-primary" id="btnSaveSet">Lưu cài đặt</button></div>
         <div class="card"><h2>Đổi mật khẩu quản trị</h2><div class="form-grid"><div class="field"><label>Mật khẩu mới</label><input id="newPw" type="password" autocomplete="new-password" minlength="6"></div>
@@ -780,7 +1074,7 @@
       document.getElementById('btnSaveSet').onclick = (e) => withBusy(e.currentTarget, async () => {
         const settings = {};
         $app.querySelectorAll('[data-k]').forEach((el) => { settings[el.dataset.k] = el.value; });
-        try { await api('adminSaveSettings', { settings }); store.del('ld_pub'); store.del('ld_pub_t'); toast('Đã lưu cài đặt', 'ok'); } catch (err) { toast(err.message, 'err'); }
+        try { await api('adminSaveSettings', { settings }); bankMeta = null; store.del('ld_pub'); store.del('ld_pub_t'); toast('Đã lưu cài đặt', 'ok'); } catch (err) { toast(err.message, 'err'); }
       });
       document.getElementById('btnPw').onclick = (e) => withBusy(e.currentTarget, async () => {
         const a = document.getElementById('newPw').value, b = document.getElementById('newPw2').value;

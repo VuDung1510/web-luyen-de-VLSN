@@ -147,6 +147,19 @@ Nên ghi **Chủ đề** và **Mức độ** (NB/TH/VD/VDC) cho mỗi câu. Ph�
 
 **Tùy chọn của mỗi đề:** thời gian làm bài, dành cho lớp nào, giờ mở/đóng, số lần làm tối đa, trộn thứ tự câu, và thời điểm hiện đáp án (ngay sau khi nộp / sau khi đề đóng / không hiện).
 
+### Tạo đề từ Ngân hàng câu hỏi (cần máy chủ từ 1.3.0)
+
+Ngân hàng là file Google Sheet riêng **"KHO CÂU HỎI VẬT LÝ"**. Web chỉ **đọc** kho (không bao giờ sửa kho), rồi chép các câu được chọn sang trang tính `CauHoi` của đề.
+
+1. **Cài một lần:** trong **Cài đặt** (hoặc trang tính `CaiDat`), dán link file kho **mà thầy mở được trong Drive của mình** (mở file kho, chép địa chỉ trên thanh trình duyệt) vào *KHO_CAU_HOI_ID* và nên dán link thư mục hình "02. HÌNH VẼ" vào *THU_MUC_HINH_KHO_ID*. Lần đầu: mở Apps Script, chạy hàm `setup` một lần để cho phép máy chủ đọc Drive.
+2. Mở tab **Ngân hàng**: lọc theo lớp, chương → bài, dạng câu, mức độ, nguồn, hoặc tìm chữ. Chỉ câu **đã có đáp án hợp lệ** mới hiện; câu tự luận (Phần IV) tạm bỏ qua.
+3. Cho câu vào **giỏ** (thanh dưới cùng: *P1 x · P2 y · P3 z*), hoặc:
+   - **Ma trận 1 chạm**: mặc định 18–4–6, sửa được số câu mỗi phần; ưu tiên câu ít được dùng. Kho không đủ câu thì web báo rõ phần nào thiếu bao nhiêu câu.
+   - **Lấy đề gốc**: chọn một Nguồn, web nạp các câu có đáp án theo đúng thứ tự trong đề gốc và báo câu thiếu / câu chưa có đáp án.
+4. Bấm **Tạo đề**: web chép hình của các câu sang thư mục hình của web (file gốc giữ nguyên quyền), rồi mở trình soạn đề với các câu đã nạp. Kiểm tra, đặt tên rồi bấm **Lưu đề**.
+
+Sửa kho (thêm đáp án, thêm câu) xong thì bấm **↻ Đọc lại kho** (web nhớ kho 10 phút).
+
 ### Mục tiêu điểm
 
 Trước mỗi lần làm bài, học sinh **tự đặt mục tiêu** (0–10 điểm). Hệ thống gợi ý mục tiêu cao hơn điểm lần trước một chút.
@@ -205,12 +218,15 @@ ADMIN_PW=<mật khẩu> node tests/e2e.js   # kiểm thử giao diện bằng Pl
 node tests/cache.test.js       # kiểm thử đệm máy chủ và ghi an toàn (Pha 1)
 node tests/common-cache.test.js   # kiểm thử bộ đệm trình duyệt (Pha 1)
 PORT=8787 ADMIN_PW=<mật khẩu> node tests/pha1-r1.e2e.js   # đổi tài khoản giữa lúc làm mới ngầm (Pha 1)
+node tests/bank.test.js        # ngân hàng câu hỏi: ánh xạ kho → câu hỏi, chỉ mục, ma trận, chép hình theo lô (Pha 2)
+PORT=8787 ADMIN_PW=<mật khẩu> node tests/bank.e2e.js      # tab Ngân hàng đầu-cuối (dev-server mới; hoặc SERVER_COMPAT=1.0.0)
 ```
 
 Biến môi trường của `tests/dev-server.js`:
 - `SERVER_COMPAT=1.0.0` — nạp đúng máy chủ 1.0.0 (`tests/fixtures/Code-1.0.0.gs`) để thử giao diện với máy chủ cũ; chạy e2e kèm `SERVER_COMPAT=1.0.0` để bỏ qua các bước cần máy chủ mới.
 - `LATENCY_MS=1500` — mỗi lần gọi máy chủ chậm thêm 1,5 giây như Apps Script thật.
 - `SHEET_READ_MS`, `CACHE_MS` — chi phí giả mỗi lần đọc trang tính / gọi CacheService. `GET /__stats` xem số lần đọc.
+- Ngân hàng câu hỏi: dev-server máy chủ mới tự gắn **kho giả tự soạn** (`tests/fixtures/kho-gia.js`, đúng định dạng kho thật, không chứa câu thật). `BANK=0` tắt; `BANK_ROWS=3000` dùng kho lớn tự sinh; `MAKE_COPY_MS=1000` chi phí giả mỗi lần chép hình.
 - Đo số liệu Pha 1: `node tests/measure-pha1.js backend` và `ADMIN_PW=… node tests/measure-pha1.js browser`.
 
 **Giới hạn của Google Apps Script** (tài khoản miễn phí): khoảng 30 người gửi yêu cầu cùng lúc, và mỗi yêu cầu mất 1–2 giây. Một lớp 40–50 em cùng làm bài vẫn chạy ổn, vì học sinh chỉ gọi máy chủ lúc bắt đầu và lúc nộp bài.

@@ -305,3 +305,38 @@ tr.me td { background: var(--primary-soft); font-weight: 600; }
   background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); color: var(--muted); font-size: .78rem; pointer-events: none; }
 .sync-pill .spinner { width: 12px; height: 12px; border-width: 2px; }
 .sync-pill.hidden { display: none; }
+
+/* ---------- Pha 2: bảng trong nội dung câu ([BẢNG]) ---------- */
+.q-table-wrap { margin: 8px 0; }
+table.q-table { width: auto; min-width: 50%; border-collapse: collapse; font-size: .95rem; }
+table.q-table th, table.q-table td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+table.q-table th { background: var(--surface-2); font-weight: 700; }
+
+/* ---------- Pha 2: Ngân hàng câu hỏi (quản trị) ---------- */
+.badge-warn { background: var(--bad-soft); color: var(--warn); }
+.bank-layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 16px; align-items: start; padding-bottom: 72px; }
+.bank-filter { position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow: auto; }
+.bank-filter .field { margin-bottom: 10px; }
+.chk { display: inline-flex; align-items: center; gap: 4px; font-size: .9rem; margin: 2px 10px 2px 0; cursor: pointer; }
+.chk input { width: auto; margin: 0; }
+.chk-row { display: flex; flex-wrap: wrap; }
+.bank-tree details { margin: 2px 0; }
+.bank-tree summary { cursor: pointer; font-size: .9rem; list-style: none; display: flex; align-items: flex-start; gap: 2px; }
+.bank-tree summary::-webkit-details-marker { display: none; }
+.bank-tree summary::before { content: '▸'; color: var(--muted); width: 14px; flex: none; line-height: 1.6; }
+.bank-tree details[open] > summary::before { content: '▾'; }
+.bank-tree .chk { align-items: flex-start; }
+.bank-tree .bai { padding-left: 22px; }
+.bank-tools .so { width: 64px; display: inline-block; padding: 4px 6px; }
+.bank-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+.bank-item-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+.bank-item-head .spacer { flex: 1; }
+.bank-tom { font-size: .95rem; overflow-wrap: anywhere; }
+.btn.in-cart { background: var(--good-soft); color: var(--good); border-color: var(--good); }
+.cart-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -4px 16px rgba(16, 24, 40, .08); }
+.cart-bar .cart-in { max-width: 1100px; margin: 0 auto; padding: 10px 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cart-bar .spacer { flex: 1; }
+@media (max-width: 900px) {
+  .bank-layout { grid-template-columns: 1fr; }
+  .bank-filter { position: static; max-height: none; }
+}

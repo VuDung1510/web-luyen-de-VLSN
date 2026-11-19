@@ -7,6 +7,9 @@
 //   LATENCY_MS=1500      mỗi lần gọi máy chủ chậm thêm chừng ấy mili-giây (giả lập Apps Script).
 //   SHEET_READ_MS=300    chi phí giả mỗi lần đọc cả một trang tính (gas-shim).
 //   CACHE_MS=20          chi phí giả mỗi lần gọi CacheService (gas-shim).
+//   BANK=0               không gắn kho câu hỏi giả (mặc định: máy chủ mới có kho giả tests/fixtures/kho-gia.js,
+//                        KHO_CAU_HOI_ID đã điền sẵn; BANK_ROWS=3000 dùng kho lớn tự sinh thay cho kho chuẩn).
+//   MAKE_COPY_MS=1000    chi phí giả (đồng hồ giả) mỗi lần chép hình từ kho.
 // GET /__stats trả số lần đọc trang tính / gọi CacheService / số request theo action; /__stats?reset=1 để đặt lại.
 const http = require('http');
 const fs = require('fs');
@@ -22,8 +25,13 @@ if (COMPAT) {
   codePath = path.join(__dirname, 'fixtures', 'Code-' + COMPAT + '.gs');
   if (!fs.existsSync(codePath)) { console.error('Không có ' + codePath); process.exit(1); }
 }
-const g = createContext({ quiet: true, codePath });
+const g = createContext({ quiet: true, codePath, makeCopyMs: +process.env.MAKE_COPY_MS || 0 });
 g.setup();
+let kho = null;
+if (!COMPAT && process.env.BANK !== '0') {
+  const K = require('./fixtures/kho-gia');
+  kho = K.install(g, process.env.BANK_ROWS ? { rows: K.bigRows(+process.env.BANK_ROWS, { hinh: true }), missingImages: 0 } : {});
+}
 const adminPw = g._sheets.CaiDat._data().find((r) => r[0] === 'MAT_KHAU_QUAN_TRI')[1];
 let actions = {};
 
@@ -68,5 +76,6 @@ server.listen(PORT, () => {
   console.log(`Đang chạy: http://localhost:${PORT}  (quản trị: /admin.html, mật khẩu: ${adminPw})` +
     (COMPAT ? `  [máy chủ giả lập ${COMPAT}]` : '') + (LATENCY ? `  [trễ ${LATENCY} ms]` : ''));
   console.log('Học sinh mẫu: lớp 12A1, Học Sinh Mẫu, PIN 0101');
+  if (kho) console.log(`Kho câu hỏi giả: ${kho.rows.length} hàng (Ngân hàng câu hỏi ở /admin.html#/ngan-hang)`);
 });
-module.exports = { server, adminPw, g };
+module.exports = { server, adminPw, g, kho };
