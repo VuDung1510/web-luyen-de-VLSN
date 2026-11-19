@@ -172,4 +172,14 @@ TC-2.12 (bảng) và TC-2.14 có trong e2e của người làm. TC-2.13 dành ch
 - Sửa 1 dòng test cũ của người làm: TC-2.3 dùng ma trận 100/100/100 thay cho 200/200/200 (vượt giới hạn mới).
 
 ### Kết quả test vòng 2
-KET_QUA_VONG_2
+| Lệnh | Kết quả |
+|---|---|
+| `backend` / `importer` / `cache` / `common-cache` | 13/13 · đạt · 17/17 · 5/5 |
+| `pha1-kiem-thu.test.js` / `pha2-kiem-thu.test.js` (không sửa) | 29/29 · 29/29 (28 câu rải rác: 29 lần `getRange`, 582 ô) |
+| `bank.test.js` | 30/30 |
+| `e2e.js`, máy chủ mới / `SERVER_COMPAT=1.0.0` | đạt / đạt |
+| `bank.e2e.js`, máy chủ mới / 1.0.0 | đạt (có R-1) / đạt |
+| `pha1-r1.e2e.js`, hai chế độ | đạt / đạt |
+| `pha1-kiem-thu.e2e.js all` (cổng 8788/8789, ảnh ra thư mục nháp) | K-1, K-3, TC-1.0 → 1.14 đều ĐẠT |
+| `pha2-kiem-thu.e2e.js all` (cổng 8788/8789, ảnh ra thư mục nháp; không sửa) | 11/11 nhóm đạt, gồm TC-2.10, 2.12, 2.14 |
+| Chạy lại bộ chuyển đổi trên dữ liệu kho thật đã đọc (thư mục nháp) | số liệu không đổi (1 014 dùng được; 27 + 2 + 2 câu lỗi định dạng; 0 ô "Có" thiếu tên file) |
