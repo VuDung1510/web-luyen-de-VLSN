@@ -310,13 +310,57 @@ async function k1() {
   }
 }
 
+// ---- Vòng 2: kiểm theo thay đổi người dùng thấy ----
+async function v2() {
+  // .txt đọc như "Dán văn bản"
+  const lines = M.exam28Lines();
+  const rt = await D.readFile('de.txt', Buffer.from(lines.join('\r\n'), 'utf8'), LIB);
+  let same = true; try { assert.deepStrictEqual(rt.questions, I.fromText(lines.join('\n')).questions); } catch (e) { same = false; }
+  verdict('V2 .txt như Dán văn bản', same && rt.questions.length === 28, `.txt đề 28 câu → ${rt.questions.length} câu, giống fromText: ${same}`);
+  // Câu thiếu nội dung (csv/xlsx sai cột) → cảnh báo có số câu
+  const rc = await D.readFile('mot-cot.csv', Buffer.from('Câu 1. Một câu hỏi\nCâu 2. Câu khác'), LIB);
+  const rx = await D.readFile('lech.xlsx', M.xlsx([['TN', '', 'a', 'b', 'c', 'd', 'A'], ['TN', 'Có nội dung', 'a', 'b', 'c', 'd', 'B']]), LIB);
+  const wc = rc.warnings.join(' | '), wx = rx.warnings.join(' | ');
+  verdict('V2 cảnh báo câu thiếu nội dung', /Câu 1\b[^|]*không có nội dung/.test(wc) && /Câu 2\b[^|]*không có nội dung/.test(wc) && /Câu 1\b[^|]*không có nội dung/.test(wx) && !/Câu 2\b[^|]*không có nội dung/.test(wx),
+    `csv một cột: "${wc.slice(0, 160)}"; xlsx câu 1 trống: "${wx.slice(0, 120)}"`);
+  // "Chọn câu đúng." / "Chọn phát biểu đúng:" là câu dẫn, không thành đáp án; "Lời giải: Chọn B." vẫn là đáp án
+  const body = [pText('PHẦN I'),
+    pText('Câu 1. Chọn câu đúng.'), pText('A. x'), pText('B. y'), pText('C. z'), pText('D. t'),
+    pText('Câu 2. Một vật rơi tự do.'), pText('Chọn phát biểu đúng:'), pText('A. x'), pText('B. y'), pText('C. z'), pText('D. t'),
+    pText('Câu 3. Chọn đáp án đúng nhất.'), pText('A. x'), pText('B. y'), pText('C. z'), pText('D. t'), pText('Lời giải: Chọn B.'),
+    pText('Câu 4. Chọn C là sai vì'), pText('A. x'), pText('B. y'), pText('C. z'), pText('D. t'), pText('Đáp án: D')].join('');
+  const qs = D.toQuestions(await read(await M.docx({ body })), I).questions;
+  const ks = qs.map((q) => q.dapAn || '-').join(',');
+  verdict('V2 câu dẫn "Chọn …" không thành đáp án', qs.length === 4 && ks === '-,-,B,D' && /Chọn câu đúng/.test(qs[0].noiDung) && /Chọn phát biểu đúng/.test(qs[1].noiDung),
+    `đáp án 4 câu: ${ks} (mong -,-,B,D); câu 1 nội dung "${qs[0].noiDung}", câu 2 "${qs[1].noiDung.replace(/\n/g, ' / ')}"`);
+  // File hỏng / bom nén / XML độc → báo tiếng Việt, không treo
+  const vi = /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựáàãéèíìóòõúùýĐ]/;
+  const zipWith = async (xml, extra) => { const z = new M.JSZip(); z.file('[Content_Types].xml', '<Types/>'); z.file('word/document.xml', xml); if (extra) extra(z); return z.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 9 } }); };
+  const W = `<w:document ${'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'}><w:body>`;
+  const cases = [
+    ['bom nén: document.xml 80 MB', await zipWith(W + '<w:p><w:r><w:t>' + ' '.repeat(80 * 1024 * 1024) + '</w:t></w:r></w:p></w:body></w:document>')],
+    ['bom nén: 10 phần 8 MB', await zipWith(W + '<w:p/></w:body></w:document>', (z) => { for (let i = 0; i < 10; i++) z.file(`word/media/x${i}.png`, Buffer.alloc(8 * 1024 * 1024)); })],
+    ['lồng sâu 200 000 tầng', await zipWith(W + '<w:sdt>'.repeat(200000) + '</w:body></w:document>')],
+    ['50 000 thuộc tính hỏng', await zipWith(W + '<w:p ' + 'a="<b '.repeat(50000) + '</w:body></w:document>')],
+    ['100 000 dấu "<" lẻ', await zipWith(W + '<'.repeat(100000) + '</w:body></w:document>')],
+    ['chú thích không đóng', await zipWith(W + '<!-- ' + 'x'.repeat(1e6))]
+  ];
+  for (const [name, buf] of cases) {
+    const t0 = Date.now(); let msg = null, res = null;
+    try { res = await Promise.race([D.readFile('bom.docx', buf, LIB), new Promise((_, rej) => setTimeout(() => rej(new Error('__TREO__')), 8000))]); } catch (e) { msg = e.message; }
+    const ms = Date.now() - t0;
+    const ok = msg ? msg !== '__TREO__' && vi.test(msg) && !/TypeError|Cannot read|Maximum call/.test(msg) : (res && Array.isArray(res.questions));
+    verdict('V2 file hỏng / bom nén', ok && ms < 5000, `${name} (${(buf.length / 1024).toFixed(0)} KB) → ${msg ? '"' + msg.slice(0, 110) + '"' : 'đọc xong, ' + res.questions.length + ' câu, không lỗi'} (${ms} ms)`);
+  }
+}
+
 function tc313() {
   const r = spawnSync(process.execPath, [path.join(__dirname, 'importer.test.js')], { encoding: 'utf8', env: process.env });
   verdict('TC-3.13', r.status === 0, `node tests/importer.test.js → mã thoát ${r.status}; ${(r.stdout + r.stderr).trim().split('\n').slice(-2).join(' / ').slice(0, 160)}`);
 }
 
 (async () => {
-  const steps = [tc31, tc32, tc33, tc34, tc35, tc36, tc37, tc38, tc39, tc310, k1, tc313];
+  const steps = [tc31, tc32, tc33, tc34, tc35, tc36, tc37, tc38, tc39, tc310, k1, v2, tc313];
   for (const s of steps) {
     try { await s(); } catch (e) { verdict(s.name.replace('tc3', 'TC-3.'), false, 'LỖI KỊCH BẢN: ' + (e.stack || e).toString().slice(0, 300)); }
   }

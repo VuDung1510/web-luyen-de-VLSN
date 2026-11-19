@@ -399,6 +399,79 @@ async function runMode(browser, compat) {
     const x2 = await ad.evaluate(() => ({ run: !!(window.__kt1 || window.__kt2 || window.__kt3 || window.__kt4), inj: document.querySelectorAll('main img[src="x"], main b[onmouseover]').length }));
     verdict('An toàn HTML trong file', !x1.run && !x1.inj && x1.txt && !x2.run && !x2.inj, `xem trước: mã chạy ${x1.run}, phần tử chèn ${x1.inj}, chữ hiện nguyên văn ${x1.txt}; trình soạn: mã chạy ${x2.run}, phần tử chèn ${x2.inj}`);
 
+    // ================= Vòng 2 =================
+    // .txt đọc như Dán văn bản; trình soạn giống hệt dán
+    await newEditor(ad, B);
+    await pasteImport(ad, 'text', M.exam28Lines().join('\n'));
+    const sP = await editorState(ad);
+    await openFileTab(ad);
+    await upload(ad, 'de.txt', Buffer.from(M.exam28Lines().join('\r\n'), 'utf8'), 'text/plain');
+    const rTxt = await resultText(ad);
+    await addToExam(ad, true);
+    const sT = await editorState(ad);
+    verdict('V2 .txt như Dán văn bản', /Tìm thấy\s*28/.test(rTxt) && JSON.stringify(sP) === JSON.stringify(sT), `.txt → "${(rTxt.match(/Tìm thấy[^\n]*/) || [''])[0]}"; trình soạn giống dán văn bản: ${JSON.stringify(sP) === JSON.stringify(sT)}`);
+    // csv sai cột → cảnh báo câu thiếu nội dung trong bảng kết quả
+    await openFileTab(ad);
+    await upload(ad, 'mot-cot.csv', Buffer.from('Câu 1. Một câu hỏi\nCâu 2. Câu khác'), 'text/csv');
+    const wCsv = await ad.$eval('#impWarn', (e) => e.innerText).catch(() => '');
+    verdict('V2 cảnh báo câu thiếu nội dung', /Câu 1[^\n]*không có nội dung/.test(wCsv) && /Câu 2[^\n]*không có nội dung/.test(wCsv), `csv một cột → "${wCsv.replace(/\n/g, ' / ').slice(0, 160)}"`);
+    // Kéo thả lọc đuôi: thả .pdf / .png → "Chỉ nhận…"; thả .docx → đọc được
+    const dropFile = async (name, b64, type) => ad.evaluate(async ({ name, b64, type }) => {
+      const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const dt = new DataTransfer(); dt.items.add(new File([bin], name, { type }));
+      const z = document.querySelector('#impDrop');
+      ['dragenter', 'dragover', 'drop'].forEach((t) => z.dispatchEvent(new DragEvent(t, { bubbles: true, cancelable: true, dataTransfer: dt })));
+      await new Promise((r) => setTimeout(r, 900));
+      return document.querySelector('#impResult').innerText;
+    }, { name, b64: b64, type });
+    const dPdf = await dropFile('de.pdf', Buffer.from('%PDF-1.4').toString('base64'), 'application/pdf');
+    const dPng = await dropFile('anh.png', M.png(4, 4, [1, 2, 3]).toString('base64'), 'image/png');
+    const dDoc = await dropFile('de.docx', (await docx28()).toString('base64'), DOCX);
+    verdict('V2 kéo thả lọc đuôi', /Chỉ nhận/.test(dPdf) && /Chỉ nhận/.test(dPng) && /Tìm thấy\s*28/.test(dDoc), `thả .pdf → "${dPdf.replace(/\n/g, ' ').slice(0, 90)}"; thả .png → "${dPng.replace(/\n/g, ' ').slice(0, 60)}"; thả .docx → "${(dDoc.match(/Tìm thấy[^\n]*/) || ['?'])[0]}"`);
+    await ad.click('.modal [data-close]'); await ad.waitForTimeout(200);
+    // "Công thức trong câu hỏi": công thức ngoài câu (đầu đề) không tính
+    await newEditor(ad, B);
+    await openFileTab(ad);
+    const nBuf = await M.docx({ body: [p(t('Cho biết '), math(O.r('g=9,8')), t(' và '), math(O.r('R=8,31'))), pText('PHẦN I'), p(t('Câu 1. Tính '), math(O.r('F=ma'))), pText('A. a'), pText('B. b'), pText('C. c'), pText('D. d'), pText('Đáp án: A')].join('') });
+    await upload(ad, 'ngoai-cau.docx', nBuf, DOCX);
+    const rN = await resultText(ad);
+    const rowN = (rN.match(/Công thức[^\n]*\n?[^\n]*/) || [''])[0].replace(/\n/g, ' ');
+    verdict('V2 dòng "Công thức trong câu hỏi"', /Công thức trong câu hỏi/.test(rN) && /Đã đổi:\s*1\b/.test(rN), `2 công thức ở "Cho biết" trước PHẦN + 1 trong câu → "${rowN}"`);
+    await ad.click('.modal [data-close]'); await ad.waitForTimeout(200);
+    // Tải hình lỗi → câu vẫn thêm, nhãn "hình cần chụp lại" trong trình soạn
+    await newEditor(ad, B);
+    await ad.route(/\/exec$/, (route) => {
+      const body = route.request().postData() || '';
+      if (/"adminUploadImage"/.test(body)) return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ ok: false, error: 'Lỗi giả lập khi tải hình' }) });
+      return route.continue();
+    });
+    await openFileTab(ad);
+    await upload(ad, 'de-hinh.docx', await docxImg(), DOCX);
+    await ad.click('#impReplace');
+    await ad.waitForFunction(() => !document.querySelector('.modal #impResult'), null, { timeout: 30000 }).catch(() => {});
+    await ad.waitForTimeout(500);
+    const hl2 = await ad.evaluate(() => ({ n: document.querySelectorAll('.qedit').length, modal: !!document.querySelector('.modal #impResult'), lab: [...document.querySelectorAll('.qedit')].map((q, i) => (q.querySelector('[data-hinhloi]') ? (i + 1) + ':' + q.querySelector('[data-hinhloi]').textContent.trim() : null)).filter(Boolean), msg: [...document.querySelectorAll('.toast, .modal')].map((e) => e.innerText).join(' | ').slice(0, 200) }));
+    await ad.unroute(/\/exec$/);
+    if (hl2.modal) { await ad.click('.modal [data-close]').catch(() => {}); }
+    if (!compat) { const el = (await ad.$$('.qedit'))[4]; if (el) { await el.scrollIntoViewIfNeeded(); await shot(ad, '10-nhan-hinh-loi'); } }
+    verdict('V2 nhãn "hình cần chụp lại" khi tải hình lỗi', hl2.n === 6 && hl2.lab.length === 2 && /^2:/.test(hl2.lab[0]) && /^5:.*2 hình/.test(hl2.lab[1]),
+      `adminUploadImage trả lỗi → ${hl2.n} câu vẫn vào trình soạn, nhãn: ${JSON.stringify(hl2.lab)}; thông báo: "${hl2.msg.replace(/\n/g, ' ').slice(0, 120)}"`);
+    // Bom nén / XML độc trong giao diện → báo tiếng Việt, trang không treo
+    await newEditor(ad, B);
+    await openFileTab(ad);
+    const zb = new M.JSZip(); zb.file('[Content_Types].xml', '<Types/>'); zb.file('word/document.xml', '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>' + ' '.repeat(80 * 1024 * 1024) + '</w:t></w:r></w:p></w:body></w:document>');
+    const bomb = await zb.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 9 } });
+    const zq = new M.JSZip(); zq.file('word/document.xml', '<w:document><w:body><w:p ' + 'a="<b '.repeat(50000) + '</w:body></w:document>');
+    const quad = await zq.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    for (const [name, buf] of [['bom nén 80 MB', bomb], ['XML 50 000 thuộc tính hỏng', quad]]) {
+      const t0 = Date.now(); let txt = '';
+      try { await upload(ad, 'bom.docx', buf, DOCX); } catch (e) { /* đọc lại bên dưới */ }
+      txt = await resultText(ad);
+      const alive = await Promise.race([ad.evaluate(() => 1), new Promise((r) => setTimeout(() => r(0), 2000))]);
+      verdict('V2 file hỏng / bom nén', alive === 1 && Date.now() - t0 < 6000 && /bất thường|hỏng|Tìm thấy\s*0|Không/.test(txt), `${name} (${(buf.length / 1024).toFixed(0)} KB) → "${txt.replace(/\n/g, ' ').slice(0, 130)}" sau ${Date.now() - t0} ms; trang còn phản hồi: ${alive === 1}`);
+    }
+    await ad.click('.modal [data-close]'); await ad.waitForTimeout(200);
+
     // ---- TC-3.11: tải docx → lưu đề → học sinh làm được ----
     const title = 'KT Pha 3 ' + (compat ? '1.0.0' : 'mới') + ' — đề tải từ Word';
     await newEditor(ad, B);

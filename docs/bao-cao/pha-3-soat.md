@@ -69,3 +69,45 @@ Không có phát hiện Nặng. Có 3 phát hiện **Vừa** nên sửa trước
 ## Ghi chú
 - Đã chạy e2e trên cổng 8795 (máy chủ 1.0.0) rồi tắt đúng tiến trình đó. Không đụng file của người kiểm thử.
 - Script và file thử nằm trong thư mục nháp của phiên (`soat/`). Không đưa vào repo, không chép nội dung đề thật.
+
+---
+
+## Vòng 2 (soát lại, 19/11/2026)
+
+Phạm vi: `git diff 7cb813a..b5a4757` (1 commit b5a4757) và mục "Vòng 2" trong `docs/bao-cao/pha-3.md`.
+
+Test chạy lại trên `b5a4757`:
+- `node tests/importer.test.js`: đạt.
+- `node tests/backend.test.js`: 13/13 đạt.
+- `node tests/docx.test.js`: 27/27 đạt.
+- `node tests/pha3-kiem-thu.test.js` (của người kiểm thử, chỉ chạy, không sửa): 17/17 nhóm đạt.
+- `tests/docx.e2e.js` trên cổng 8795: ĐẠT ở **cả hai** chế độ máy chủ (mới và `SERVER_COMPAT=1.0.0`). Gồm R-7, R-10, R-11, và TC-3.11 (lưu 28 câu → học sinh làm và nộp bài). Sau đó đã tắt đúng tiến trình cổng 8795.
+- Chạy lại các script tái hiện trong thư mục nháp `soat/`:
+  - `xml.js`, `bomb.js` (deep, deepbody, quad, bomb), `ft.js`, `om.js`.
+  - `real.js` trên 4 file thật: kết quả không đổi (28/44/22/28 câu, 525/525 công thức, 0 đáp án sai kiểu).
+  - `xss.e2e.js`: vẫn 0 lần chạy mã, 0 thuộc tính `onerror`.
+
+### Kết luận Vòng 2: **ĐẠT**
+Cả 3 phát hiện Vừa (R-1, R-2, R-3) đã sửa đúng. Các phát hiện Nhẹ đều đã sửa hoặc ghi rủi ro hợp lý. K-1 của người kiểm thử đã sửa. Có 2 phát hiện mới, đều Nhẹ và không chặn gộp.
+
+| Mã | Trạng thái | Bằng chứng |
+|---|---|---|
+| R-1 | **Đã sửa** | Regex mới có cờ `u`, chỉ nhận chữ hoa, dùng `(?![\p{L}\d])`, và chỉ nhận khi sau chữ cái không còn gì (hoặc là "Lời giải …"). Thử 7 câu dẫn: "Chọn câu đúng." / "Chọn câu sai:" / "Chọn cách làm đúng:" / "Chọn dãy đúng." / "Chọn đáp án đúng." đều giữ nguyên trong nội dung, `dapAn` rỗng, có cảnh báo "chưa tìm thấy đáp án". "Chọn B." → B. "Chọn D, vì x" không được nhận là đáp án (thận trọng, có cảnh báo). Chấp nhận. |
+| R-2 | **Đã sửa** | Không có tiêu đề PHẦN thì ghép theo thứ tự. Ca tái hiện cũ: lời giải và "Đáp án: B" nay gắn vào câu Phần I, câu Phần III không nhận gì và có cảnh báo. "Câu 1 … Đáp án: B / Câu 1 … Đáp số: 5" lần lượt vào Phần I (B) và Phần III (5). Đáp án lấy từ lời giải mà không hợp loại câu thì bị bỏ và cảnh báo. Khi có tiêu đề PHẦN thì khớp theo (phần, số). |
+| R-3 | **Đã sửa** | Với `xml.js`, N = 2 000 / 4 000 / 8 000 / 16 000 mất 2 / 3 / 4 / 6 ms (vòng 1: 56 / 211 / 888 / 3 323 ms). `bomb.js quad` (docx 757 B): 26 ms (vòng 1: 12 522 ms). Không còn thành phần nào của regex nhận `<`. Chú thích và CDATA tìm điểm kết thúc bằng `indexOf`. Thời gian tuyến tính. |
+| R-4 | **Đã sửa (còn kẽ hở nhỏ, xem N-2)** | `bomb.js bomb` (195 KB → 200 MB): bị chặn sau 4 ms với thông báo tiếng Việt "File Word bất thường: khi giải nén quá lớn (191 MB)…". `bomb.js deepbody`: "File bất thường (cấu trúc lồng quá sâu hoặc quá lớn)…". |
+| R-5 | **Đã sửa** | `"$1,6.10^{-19}$ C"` và `"2,5.10^5"` nay có cảnh báo "đáp án Phần III … không phải số — máy không chấm được, hãy sửa". |
+| R-6 | **Chấp nhận** | Giữ 0.18.5 theo đặc tả (bản mới chỉ có trên CDN ngoài danh sách cho phép). Không thêm SRI vì chưa so được băm thật trên CDN. Rủi ro đã ghi trong báo cáo người làm. Kiểm URL CDN trên trang thật ở Pha 6. |
+| R-7 | **Đã sửa** | `admin.js` 659: câu có hình tải lỗi được gắn `hinhLoi`. e2e "R-7" đạt ở cả hai chế độ. |
+| R-8 | **Đã sửa** | `$` thành `\char36` (trong `\text{}` thành `\textdollar`), KaTeX `throwOnError` vẽ được. "x − −y" thành `x - -y`. |
+| R-9 | **Đã sửa** | `docs/QUYET-DINH.md` không còn id file kho (bỏ ở commit 7cb813a). Bảng file thật trong `pha-3.md` đổi thành "File 1–4" + mô tả chung. |
+| R-10 | **Đã sửa** | `logout()` xóa thêm `ld_bank_so`. e2e "R-13/R-10" đạt. |
+| R-11 | **Đã sửa** | Mime ngoài png/jpeg/gif/webp thì `shrinkImage(blob, true)` vẽ lại qua canvas. e2e: hình BMP được gửi dạng `image/jpeg`. |
+| K-1 | **Đã sửa** | .txt đọc như tab "Dán văn bản" (`fromText`). `fromRows`/`fromTsv`/`fromCsv` cảnh báo hàng không có nội dung. Kéo thả lọc đuôi giống ô chọn file. Nhóm K-1 trong `pha3-kiem-thu.test.js` nay đạt. Dữ liệu cũ hợp lệ không sinh cảnh báo mới (đã thử TSV/hàng đúng mẫu → `warnings: []`). |
+| N-1 | **Đã sửa** | Bảng kết quả chỉ đếm công thức nằm trong câu ("Công thức trong câu hỏi"). |
+
+### Phát hiện mới (Nhẹ, không chặn)
+| Mã | Mức | File:dòng | Mô tả | Tái hiện | Đề xuất |
+|---|---|---|---|---|---|
+| N-2 | Nhẹ | `assets/js/docx-reader.js` 509–513 (kiểm `_data.uncompressedSize`), 514 (`get`) | Phần chặn bom nén dựa vào kích thước **do chính file khai báo** trong mục lục zip. File độc khai báo sai (vd 1 000 byte) thì qua được bước kiểm. JSZip vẫn giải nén hết vào bộ nhớ rồi mới báo lỗi tiếng Anh "Bug : uncompressed data size mismatch". Lỗi này ném ra trong `get()`, ngoài khối `try` của `loadAsync`, nên thông báo không được Việt hóa. File 10 MB khai báo sai vẫn có thể làm tab hết bộ nhớ. Chỉ gặp khi có người cố ý làm file độc; trang chỉ giáo viên dùng. | `soat/lie.js 200`: docx 195 KB khai báo 1 000 B → giải nén 200 MB rồi báo "Bug : uncompressed data size mismatch" (695 ms, khoảng 207 MB bộ nhớ). | (a) Bọc `get()` trong `try` và đổi lỗi thành "File Word bị hỏng…". (b) Nếu muốn chặn hẳn: đọc bằng `f.internalStream('uint8array')`, đếm byte, quá `MAX_XML` thì `pause()` rồi báo lỗi. |
+| N-3 | Nhẹ | `assets/js/importer.js` 142–157 (nhánh `ended`) | Sau "HẾT", nếu lời giải viết cùng dòng với số câu ("Câu 1. Lời giải: Chọn B.") thì phần `rest` được ghi nguyên vào lời giải, không bỏ nhãn "Lời giải:". Vì vậy không lấy được đáp án "Chọn B". Câu vẫn có cảnh báo "chưa tìm thấy đáp án", không sai âm thầm. Lỗi này có từ vòng 1. | `fromText('PHẦN 1\nCâu 1. a?\nA. 1\nB. 2\nC. 3\nD. 4\n---------- HẾT ----------\nCâu 1. Lời giải: Chọn B.')` → `dapAn: ""`, `loiGiai: "Lời giải: Chọn B."`. | Cho `rest` đi qua cùng xử lý `lm2`/`am2` như các dòng sau (bỏ nhãn, nhận "Đáp án:"). |
