@@ -192,7 +192,7 @@
   };
   Out.prototype.done = function () {
     return this.s.replace(/\s+/g, ' ').replace(/(\\ )+/g, '\\ ').replace(/^(\s|\\ )+/, '').replace(/(\s|\\ )+$/, '')
-      .replace(/\{\s+/g, '{').replace(/\s+\}/g, '}')
+      .replace(/(?<!\\)\{\s+/g, '{').replace(/\s+(?=\}(?<!\\\}))/g, '')
       .replace(/(\d),(?=\{\d)/g, '$1{,}'); // "1,{2.10}^{5}": dấu phẩy thập phân trước nhóm → không chèn khoảng trắng
   };
 
@@ -244,7 +244,7 @@
 
   function needBrace(b) {
     if (!b) return true;
-    if (/^([A-Za-z0-9]|\\[a-zA-Z]+|\\text\{[^{}]*\}|\{[^{}]*\})$/.test(b)) return false;
+    if (/^([A-Za-z]|\d+|\\[a-zA-Z]+|\\text\{[^{}]*\}|\{[^{}]*\})$/.test(b)) return false;
     if (/^\\left[\s\S]*\\right(\\?[^a-zA-Z\s]|\\[a-zA-Z]+)$/.test(b) && b.split('\\left').length === 2) return false;
     return true;
   }
