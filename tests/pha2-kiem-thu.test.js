@@ -580,6 +580,36 @@ t('TC-2.14 Máy chủ 1.0.0 (fixture): không có features; adminBank* → "Khô
   });
 });
 
+// ---------- Vòng 2 (thay đổi người dùng thấy được) ----------
+t('Vòng 2: câu kho ghi có hình mà không có hình → thieuHinh + cảnh báo nêu mã câu (trước khi lưu)', () => {
+  const { w } = imageWorld();
+  const missName = w.kho.missingImages[0];
+  const row = w.kho.rows.find((r) => r[0] + '.png' === missName);
+  const okRow = w.kho.rows.find((r) => /^Có/.test(r[15]) && r[13] && w.kho.originals[r[0] + '.png']);
+  let cursor; let last; const all = [];
+  for (let i = 0; i < 20; i++) { last = ok(w.A('adminBankToQuestions', { maKho: [okRow[0], row[0]], cursor })); all.push(...(last.canhBao || [])); if (!last.tiepTuc) break; cursor = last.tiepTuc; }
+  info('thieuHinh=' + JSON.stringify(last.thieuHinh) + ' canhBao=' + JSON.stringify(all));
+  assert(Array.isArray(last.thieuHinh) && last.thieuHinh.includes(row[0]) && !last.thieuHinh.includes(okRow[0]));
+  assert(JSON.stringify(all).includes(row[0]));
+});
+t('Vòng 2: giới hạn 500 câu — Matrix tổng 501 bị từ chối, 460 được, không cắt âm thầm; ToQuestions 501 bị từ chối; Meta có gioiHan', () => {
+  const w = world({ install: { rows: K.bigRows(700) } });
+  const m = ok(w.A('adminBankMeta'));
+  info('gioiHan=' + m.gioiHan);
+  assert.strictEqual(+m.gioiHan, 500);
+  const r = w.A('adminBankMatrix', { so: { TN: 200, DS: 200, TL: 101 }, seed: 1 });
+  assert(!r.ok && /500/.test(r.error), JSON.stringify(r).slice(0, 200));
+  info('501: ' + r.error);
+  const r2 = ok(w.A('adminBankMatrix', { so: { TN: 200, DS: 140, TL: 140 - 20 }, seed: 1 }));
+  assert.strictEqual(r2.maKho.length, 460);
+  // Xin 250 câu P1 (kho có 420): phải ra đủ 250, hoặc báo rõ — không âm thầm ra ít hơn
+  const r4 = w.A('adminBankMatrix', { so: { TN: 250, DS: 0, TL: 0 }, seed: 1 });
+  info('xin TN 250: ' + (r4.ok ? 'ra ' + r4.data.maKho.length + ' câu, thieu=' + JSON.stringify(r4.data.thieu) + ', so=' + JSON.stringify(r4.data.so) : 'lỗi "' + r4.error + '"'));
+  assert(!r4.ok || r4.data.maKho.length === 250 || (r4.data.thieu && r4.data.thieu.TN > 0), 'TN 250 bị cắt âm thầm');
+  const r3 = w.A('adminBankToQuestions', { maKho: w.kho.rows.slice(0, 501).map(maOf) });
+  assert(!r3.ok && /500/.test(r3.error));
+});
+
 const fail = results.filter((r) => !r[1]);
 console.log(`\n${results.length - fail.length}/${results.length} đạt`);
 if (fail.length) fail.forEach((f) => console.log('  ✗ ' + f[0] + ': ' + f[2]));
