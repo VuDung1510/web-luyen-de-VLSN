@@ -200,7 +200,6 @@ async function runNew(browser) {
     await ad.click('.modal [data-close="ok"]'); await ad.waitForTimeout(400);
     ct = await cartText(ad);
     verdict('Ma trận 1 chạm', /P1 18 · P2 4 · P3 6/.test(ct) && !/thiếu/.test(mx2), `Lớp 12, 18–4–6 → "${mx2.slice(0, 120)}"; giỏ "${ct}"`);
-    await shot(ad, '04-gio-ma-tran');
     await ad.click('#cartMake');
     await ad.waitForSelector('.qedit', { timeout: 30000 });
     await ad.waitForTimeout(500);
@@ -225,7 +224,9 @@ async function runNew(browser) {
     await ad.fill('#eClass', '12A1');
     await ad.selectOption('#eStatus', 'MO');
     await ad.selectOption('#eReveal', 'SAU_HAN');
-    await shot(ad, '05-trinh-soan');
+    await ad.evaluate(() => { const i = [...document.querySelectorAll('.qedit input[data-f="hinhAnh"]')].find((x) => x.value); (i ? i.closest('.qedit') : document.querySelector('.qedit')).scrollIntoView({ block: 'start' }); window.scrollBy(0, -70); });
+    await ad.waitForTimeout(300);
+    await shot(ad, '04-trinh-soan');
     await ad.click('#btnSave');
     await ad.waitForSelector('text=Đã lưu đề', { timeout: 15000 }).catch(() => {});
     await settle(ad);
@@ -276,7 +277,7 @@ async function runNew(browser) {
       else if (q.loai === 'DS') { const tf = normTF(q.dapAn).split(''); let k = 0; for (let j = 0; j < 4; j++) { const b = await qEls[i].$(`[data-tf="${j}:${tf[j]}"]`); if (b) { await b.click(); k++; } } if (k === 4) filled++; }
       else { const inp = await qEls[i].$('input'); if (inp) { await inp.fill(String(q.dapAn).split('|')[0]); filled++; } }
     }
-    await shot(st, '06-hoc-sinh-lam-bai');
+    await shot(st, '05-hoc-sinh-lam-bai');
     const tBeforeSubmit = Date.now();
     const storage = await st.evaluate(() => JSON.stringify(Object.assign({}, localStorage)) + JSON.stringify(Object.assign({}, sessionStorage)));
     await st.click('#btnSubmit');
@@ -326,7 +327,7 @@ async function runCompat(browser) {
     const txt = await ad.$eval('main', (e) => e.textContent.replace(/\s+/g, ' '));
     const noTools = !(await ad.$('#bkMatrix')) && !(await ad.$('#cartMake'));
     verdict('TC-2.14', /Cần cập nhật máy chủ/.test(txt) && noTools, `tab Ngân hàng: "${txt.slice(0, 120)}"; không có nút Ma trận/Tạo đề: ${noTools}`);
-    await shot(ad, '07-may-chu-cu');
+    await shot(ad, '06-may-chu-cu');
     const tabs = ['home', 'exams', 'students', 'results', 'gradebook', 'settings'];
     const tabRes = [];
     for (const tb of tabs) {
@@ -339,7 +340,7 @@ async function runCompat(browser) {
     const setTxt = await ad.$eval('main', (e) => e.textContent);
     verdict('TC-2.14', tabRes.every((x) => /ok$/.test(x)) && !/KHO_CAU_HOI_ID|Kho câu hỏi/.test(setTxt), `6 tab khác: ${tabRes.join(' ')}; Cài đặt không có ô kho: ${!/KHO_CAU_HOI_ID|Kho câu hỏi/.test(setTxt)}`);
     // Đề mẫu vẫn mở/sửa được, trình soạn không lỗi
-    await ad.goto(B + '/admin.html#/de-thi/DEMAU');
+    await ad.goto(B + '/admin.html#/de-thi/sua/DEMAU');
     await ad.waitForTimeout(LAT + 1200);
     const nq = await ad.$$eval('.qedit', (e) => e.length);
     verdict('TC-2.14', nq === 6, `máy chủ 1.0.0: trình soạn đề mẫu ${nq} câu`);
