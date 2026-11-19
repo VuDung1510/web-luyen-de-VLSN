@@ -152,3 +152,8 @@ Số lần đọc Sheet giảm từ khoảng 100 xuống tối đa 12–15, đ�
 **Test vòng 3**: `pha4.test.js` 22/22; `pha4-kiem-thu.test.js` 33/33 (không sửa); `pha4.e2e.js`, `pha4-kiem-thu.e2e.js` 22/22 nhóm (máy chủ mới, tắt luyện tập, 1.0.0); test cũ đạt (`backend`, `importer`, `bank`, `pha1/2/3-kiem-thu`, `cache`, `common-cache`, `docx`, `e2e.js` và `bank.e2e.js` hai chế độ).
 
 **Rủi ro thêm**: V2-3 — câu bị ẩn lời giải (đang nằm trong đề chưa kết thúc) vẫn hiện nhãn đúng/sai và điểm của câu, nên với câu Phần I học sinh có thể suy ra đáp án nếu đã chọn đúng. Học sinh đã làm câu đó trước khi câu vào đề. Khi học sinh có rất nhiều bài luyện rải khắp trang, mỗi lần đọc vùng gộp lớn hơn (số ô gần bằng cả trang), nhưng chỉ ≤ 10 lần đọc.
+
+## Ghi chú của điều phối khi gộp (19/11/2026)
+- Vòng 1: soát code CHƯA ĐẠT (R-1 Nặng), kiểm thử CHƯA ĐẠT (K-1 trùng R-1). Kiến trúc sư bổ sung đặc tả: câu chỉ vào luyện tập khi đề đã đóng và cho xem lời giải (ghi cả vào file quyết định chung, mục 5).
+- Vòng 2: soát ĐẠT, kiểm thử ĐẠT (14/14 TC, 3 chế độ). Vòng 3 (V2-1 hiệu năng, test TC-4.6 chập chờn): điều phối tự soát diff `3237484..12fc0b0` và chạy lại test — đạt (TC-4.6 chạy riêng 5 lần liền đạt).
+- Code.gs **1.4.0**. Còn để Pha 6: đo trên Apps Script thật số lần đọc/thời gian của trang Luyện tập khi KetQuaLuyenTap lớn; V2-3 (câu bị ẩn lời giải vẫn hiện đúng/sai) đã chấp nhận.
