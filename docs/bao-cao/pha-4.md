@@ -94,3 +94,36 @@ Thời gian trên Apps Script thật chưa đo được (mạng chặn script.go
 - `practiceUsage_` (số lượt làm ở tab Pool) đọc toàn bộ KetQuaLuyenTap; chậm dần khi nhiều bài luyện.
 - `bank.e2e.js` chỉ đạt khi chạy trên dev-server **mới khởi động** (chạy sau `e2e.js` trên cùng dev-server thì không đạt; trên `main` cũng vậy — lỗi sẵn có của bài test, không do pha này).
 - Giới hạn lượt luyện/ngày và thống kê theo chương/bài: hoãn theo đặc tả.
+
+---
+
+## Vòng 2 (người làm)
+
+Sửa theo `docs/bao-cao/pha-4-soat.md`, `docs/bao-cao/pha-4-kiem-thu.md` và đặc tả bổ sung ngày 19/11/2026 (mục "Chặn câu đang thi", TC-4.13).
+
+| Mã | Mức | Đã sửa |
+|---|---|---|
+| R-1 / K-1 | Nặng | `examLocked_`: câu chỉ vào luyện tập khi đề **đã đóng** (giáo viên đóng hoặc hết hạn) **và** `canReveal_` = true. Chặn đề NHAP, đề chưa tới giờ mở, đề đang mở ở **mọi** chế độ hiện lời giải (kể cả "Ngay sau khi nộp"), đề "Không hiện". Đệm `blockedBankIds_` hết hạn đúng mốc mở/đóng gần nhất. `practiceMeta` không đếm câu bị chặn, tab Pool gắn nhãn "đang thi"; chữ trên trang quản trị đổi thành "đề chưa đóng". "Luyện câu đã sai" chỉ lấy câu của đề đã đóng. |
+| R-2 / K-2 | Vừa | `buildPracticeView_` (xem lại bài luyện cũ và kết quả ngay khi nộp): câu có mã kho đang bị chặn **lúc xem**, hoặc câu lấy từ đề chưa đóng, thì học sinh chỉ thấy đề bài và câu trả lời của mình, kèm dòng "Câu này đang nằm trong một đề thi chưa kết thúc. Đáp án và lời giải sẽ hiện khi đề thi đó kết thúc." Điểm vẫn chấm bình thường. Giáo viên vẫn thấy lời giải. Câu bị tắt hoặc bị "thay" khỏi pool vẫn hiện lời giải (TC-4.9 giữ nguyên). |
+| R-3 | Vừa | Không còn đọc cả trang KetQua / KetQuaLuyenTap. `rowsWhere_` chỉ đọc cột "Mã HS" (hoặc "Mã bài"), rồi đọc riêng các hàng khớp. Khi nộp không đọc lại trang để dựng kết quả. Tab Pool đếm lượt làm chỉ đọc cột "Chi tiết". |
+| R-5 | Nhẹ | Nộp lại: tìm bài theo mã bài **và** mã học sinh; mã bài dùng 12 ký tự của mã lượt (trước 6). |
+| R-6 | Nhẹ | Giới hạn 3 000 câu áp cho **tổng** câu đang bật sau mỗi lần "Thêm". Vượt thì báo lỗi rõ (số câu sau lần này, cách xử lý) và không ghi gì. |
+| N-1 | — | Gửi cả `chuong` và `bai` thì lấy **giao** (bài thuộc chương đó). |
+| N-2 | — | Máy chủ không chặn `myResults loai:"luyen"` / `getResult LT…` khi tắt luyện tập. Giao diện: nếu cấu hình máy chủ về sau lần vẽ đầu, trang Lịch sử tự vẽ lại để có bộ lọc "Đề thi / Luyện tập". E2E thêm bước: tắt luyện tập, vẫn mở được bài luyện cũ có lời giải. |
+| R-4 / N-3 | — | Chấp nhận, không sửa. |
+
+### Số đo R-3 (gas-shim, KetQuaLuyenTap 5 001 hàng × 20 cột; trang có KetQua mẫu)
+| Lời gọi | Trước (e2ae46a) | Sau (vòng 2) |
+|---|---|---|
+| `practiceMeta` | KetQuaLuyenTap 1 lần cả trang (100 040 ô) + KetQua 1 lần cả trang | 0 lần cả trang; 5 041 ô (cột Mã HS + hàng của em) |
+| `practiceStart` | 1 lần cả trang (100 040 ô) | 0 lần cả trang; 5 041 ô |
+| `submitExam` (token `p`) | 2 lần cả trang (210 162 ô) | 0 lần cả trang; 10 082 ô (cột Mã HS + cột Mã bài kiểm trùng trong khóa) |
+
+### Test
+- `tests/pha4.test.js` 22/22. Sửa test cũ của tôi theo đặc tả mới: TC-4.6 và TC-4.14 đóng đề trước khi xét "Luyện câu đã sai"; TC-4.13 thêm đề NGAY đang mở, đề hết hạn, đề đã đóng nhưng "Không hiện", mốc hết hạn của đệm, và xem lại bài cũ (học sinh không thấy lời giải, giáo viên vẫn thấy, đóng đề thì hiện lại). Thêm 5 mục "Vòng 2" (R-3 đo ô, R-2 khi nộp, N-1, R-6, R-5/N-2).
+- `tests/pha4-kiem-thu.test.js` của người kiểm thử: 26/26 (không sửa file). `tests/pha4-kiem-thu.e2e.js` 20/20.
+- `tests/pha4.e2e.js` đạt ở máy chủ mới và 1.0.0. Test cũ (`backend`, `importer`, `bank`, `pha1/2/3-kiem-thu`, `cache`, `common-cache`, `docx`, `e2e.js` và `bank.e2e.js` hai chế độ) đều đạt.
+
+### Rủi ro còn lại (cập nhật)
+- Đề không có giờ đóng thì câu bị chặn khỏi luyện tập cho tới khi giáo viên đóng đề (đúng đặc tả bổ sung). Giáo viên xem nhãn "đang thi" ở tab Pool.
+- Nộp bài luyện vẫn đọc 2 cột của KetQuaLuyenTap (tỉ lệ với số hàng); chưa đo trên Apps Script thật.

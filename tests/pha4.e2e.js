@@ -297,6 +297,14 @@ async function runNew(browser) {
     await p2.goto(B + '/#/luyen-tap');
     await p2.waitForSelector('#practiceOff');
     check('CHO_LUYEN_TAP=KHONG: vào thẳng #/luyen-tap thấy thông báo tắt', true);
+    // N-2: tắt luyện tập vẫn xem lại được bài luyện cũ
+    await p2.goto(B + '/#/lich-su');
+    await p2.waitForSelector('#histSeg');
+    await p2.click('#histSeg [data-h="luyen"]');
+    await p2.waitForSelector('table tbody tr');
+    await p2.click('table tbody tr:first-child a');
+    await p2.waitForSelector('#practiceBadge');
+    check('CHO_LUYEN_TAP=KHONG: Lịch sử vẫn xem lại được bài luyện cũ', !!(await p2.$('#rvDetail .solution')));
     await api(B, 'adminSaveSettings', { token: tTok, settings: { CHO_LUYEN_TAP: 'CO' } });
 
     check('Không lỗi JS', errors.length === 0, errors.join(' | ').slice(0, 500));

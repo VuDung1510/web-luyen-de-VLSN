@@ -411,6 +411,11 @@
     if (it.go) {
       // bài luyện tập: câu đã bị xóa khỏi pool / đề nguồn đã sửa (Pha 4)
       body = `<div class="notice warn q-gone">Câu đã bị gỡ khỏi ngân hàng.</div><div class="muted small" style="margin-top:6px">Bạn trả lời: <b>${esc(it.loai === 'DS' ? String(it.answer || '').replace(/D/g, 'Đ') : it.answer || '(bỏ trống)')}</b></div>`;
+    } else if (it.an) {
+      // câu đang nằm trong đề thi chưa kết thúc: không có đáp án / lời giải (Pha 4, R-2)
+      if (it.loai !== 'TL') body += '<div>' + ['A', 'B', 'C', 'D'].map((k, i) => `<div class="small"><b>${it.loai === 'DS' ? 'abcd'[i] + ')' : k + '.'}</b> ${rich(it[k])}</div>`).join('') + '</div>';
+      body += `<div class="small" style="margin-top:6px">Bạn trả lời: <b>${esc(it.loai === 'DS' ? String(it.answer || '').replace(/D/g, 'Đ') : it.answer || '(bỏ trống)')}</b></div>
+        <div class="notice q-hidden" style="margin-top:6px">${esc(it.anNote || 'Đáp án và lời giải sẽ hiện khi đề thi chứa câu này kết thúc.')}</div>`;
     } else if (it.loai === 'TN') {
       body += '<div class="opts">' + ['A', 'B', 'C', 'D'].map((k) => {
         const cls = k === it.dapAn ? 'right' : (k === it.answer ? 'wrong' : '');

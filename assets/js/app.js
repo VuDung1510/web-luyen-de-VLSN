@@ -35,7 +35,11 @@
   function applyPub(p) {
     const featuresChanged = JSON.stringify((pub && pub.features) || null) !== JSON.stringify(p.features || null);
     pub = p;
-    if (featuresChanged && user) renderUserBox();
+    if (featuresChanged && user) {
+      renderUserBox();
+      // N-2: cấu hình máy chủ về sau lần vẽ đầu → vẽ lại Lịch sử để có bộ lọc "Đề thi / Luyện tập"
+      if (/^#\/lich-su/.test(location.hash) && !document.getElementById('histSeg') && App.has('practice')) { App.newView(); viewHistory(); }
+    }
     document.getElementById('appName').textContent = p.appName;
     document.title = p.appName;
     document.getElementById('navBoard').classList.toggle('hidden', !p.showLeaderboard);

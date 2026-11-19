@@ -243,6 +243,7 @@ t('TC-4.6 CAU_SAI: có X (đề đã cho xem lời giải) và Y (bài luyện);
   const X = pool[3];
   const eX = saveExam(w, { trangThai: 'MO', hienLoiGiai: 'NGAY' }, [X, MANUAL(1)]);
   doExam(w, eX, {}); // sai cả X và câu nhập tay
+  saveExam(w, { trangThai: 'DONG', hienLoiGiai: 'NGAY' }, [X, MANUAL(1)], eX); // vòng 2: chỉ đề ĐÃ ĐÓNG mới cho câu vào luyện tập
   const eZ = saveExam(w, { trangThai: 'MO', hienLoiGiai: 'SAU_HAN', ketThuc: inHour() }, [MANUAL(9)]);
   doExam(w, eZ, {});
   // Y: sai ở bài luyện
@@ -428,8 +429,8 @@ t('TC-4.12 Sheet cũ không có LuyenTap/KetQuaLuyenTap: practiceMeta rỗng, kh
   assert(ok(w.g.call('practiceMeta', { token: w.sTok })).soCauSai >= 1);
 });
 
-t('TC-4.13 câu X trong pool và trong đề SAU_HAN đang mở / đề NHAP: 50 lần practiceStart (mọi kiểu) không có X; đóng đề thì X xuất hiện lại', () => {
-  for (const kind of ['SAU_HAN', 'NHAP']) {
+t('TC-4.13 câu X trong pool và trong đề đang mở (SAU_HAN, NGAY) / đề NHAP: 50 lần practiceStart (mọi kiểu) không có X; đóng đề thì X xuất hiện lại', () => {
+  for (const kind of ['SAU_HAN', 'NGAY', 'NHAP']) {
     const w = world();
     const meta0 = ok(w.g.call('practiceMeta', { token: w.sTok }));
     const thin = meta0.cay.find((x) => /Bài 11/.test(x.bai)); // 3 câu Phần I
@@ -438,7 +439,14 @@ t('TC-4.13 câu X trong pool và trong đề SAU_HAN đang mở / đề NHAP: 50
     const s0 = ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'TU_TAO', bai: [thin.bai], so: { TN: 5, DS: 0, TL: 0 }, phut: 5 }));
     assert(payload(s0.attemptToken).qids.includes(X));
     ok(w.g.call('submitExam', { token: w.sTok, attemptToken: s0.attemptToken, answers: {} }));
-    const eid = saveExam(w, kind === 'NHAP' ? { trangThai: 'NHAP' } : { trangThai: 'MO', hienLoiGiai: 'SAU_HAN', ketThuc: inHour() }, [X]);
+    const eid = saveExam(w, kind === 'NHAP' ? { trangThai: 'NHAP' } : { trangThai: 'MO', hienLoiGiai: kind, ketThuc: inHour() }, [X]);
+    // R-2: xem lại bài luyện cũ (có X) lúc X đang bị chặn → không có đáp án/lời giải của X; giáo viên vẫn thấy
+    const old = ok(w.g.call('getResult', { token: w.sTok, resultId: ok(w.g.call('myResults', { token: w.sTok, loai: 'luyen' }))[0].id }));
+    const xi = old.items.find((it) => it.noiDung === String(w.byMa[X][col('Nội dung câu hỏi')]));
+    assert(xi && xi.an && !xi.dapAn && !xi.loiGiai && /chưa kết thúc/.test(xi.anNote), kind + ': xem lại lộ đáp án X');
+    assert(old.items.filter((it) => it !== xi).every((it) => it.loiGiai), 'câu khác vẫn có lời giải');
+    const oldT = ok(w.g.call('getResult', { token: w.tTok, resultId: old.id }));
+    assert(oldT.items.find((it) => it.stt === xi.stt).loiGiai, 'giáo viên vẫn thấy lời giải');
     const meta = ok(w.g.call('practiceMeta', { token: w.sTok }));
     assert.strictEqual(meta.cay.find((x) => x.bai === thin.bai).dem.TN, 2, 'practiceMeta không đếm X');
     const kinds = ['TU_TAO', 'CAU_SAI', 'NHANH'];
@@ -450,7 +458,9 @@ t('TC-4.13 câu X trong pool và trong đề SAU_HAN đang mở / đề NHAP: 50
     }
     // câu trong pool bị chặn cũng không lộ qua kết quả xem lại? (bài s0 làm trước khi chặn: vẫn là câu luyện tập đã nộp → được xem)
     // đóng đề → X xuất hiện lại
-    saveExam(w, { trangThai: 'DONG', hienLoiGiai: 'SAU_HAN' }, [X], eid);
+    saveExam(w, { trangThai: 'DONG', hienLoiGiai: kind === 'NGAY' ? 'NGAY' : 'SAU_HAN' }, [X], eid);
+    const back = ok(w.g.call('getResult', { token: w.sTok, resultId: old.id }));
+    assert(back.items.every((it) => it.loiGiai && !it.an), 'đóng đề → lời giải hiện lại');
     assert.strictEqual(ok(w.g.call('practiceMeta', { token: w.sTok })).cay.find((x) => x.bai === thin.bai).dem.TN, 3);
     const s = ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'TU_TAO', bai: [thin.bai], so: { TN: 5, DS: 0, TL: 0 }, phut: 5 }));
     assert(payload(s.attemptToken).qids.includes(X), 'X xuất hiện lại');
@@ -466,7 +476,19 @@ t('TC-4.13 câu X trong pool và trong đề SAU_HAN đang mở / đề NHAP: 50
   assert(w.g.blockedBankIds_()[X], 'đề không công bố lời giải');
   saveExam(w, { trangThai: 'MO', hienLoiGiai: 'NGAY', batDau: hourAgo() }, [X], e1);
   w.g.__MEMO();
-  assert(!w.g.blockedBankIds_()[X], 'đề công bố lời giải ngay: không chặn');
+  assert(w.g.blockedBankIds_()[X], 'vòng 2: đề NGAY đang mở vẫn chặn');
+  saveExam(w, { trangThai: 'MO', hienLoiGiai: 'NGAY', batDau: hourAgo(), ketThuc: hourAgo() }, [X], e1);
+  w.g.__MEMO();
+  assert(!w.g.blockedBankIds_()[X], 'đề NGAY đã hết hạn: không chặn');
+  saveExam(w, { trangThai: 'DONG', hienLoiGiai: 'KHONG' }, [X], e1);
+  w.g.__MEMO();
+  assert(w.g.blockedBankIds_()[X], 'đề đã đóng nhưng không công bố lời giải: vẫn chặn');
+  // đệm hết hạn đúng mốc đóng đề: đề NGAY đóng sau 2 giây
+  saveExam(w, { trangThai: 'MO', hienLoiGiai: 'NGAY', ketThuc: inHour() }, [X], e1);
+  w.g.__MEMO();
+  assert(w.g.blockedBankIds_()[X]);
+  const blkKey = Object.keys(w.g._cache).find((k) => /^blk_/.test(k));
+  assert(JSON.parse(w.g._cache[blkKey].v).until <= Date.now() + 3600e3 + 60e3, 'đệm sống tới mốc đóng đề');
 });
 
 t('TC-4.14 sửa đề sau khi học sinh làm (chèn câu lên đầu): câu nhập tay lệch bị bỏ khỏi CAU_SAI; câu có maKho vẫn đúng', () => {
@@ -476,10 +498,11 @@ t('TC-4.14 sửa đề sau khi học sinh làm (chèn câu lên đầu): câu nh
   const M = MANUAL(1);
   const eid = saveExam(w, { trangThai: 'MO', hienLoiGiai: 'NGAY' }, [M, X]);
   doExam(w, eid, {});
+  saveExam(w, { trangThai: 'DONG', hienLoiGiai: 'NGAY' }, [M, X], eid);
   let set = payload(ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'CAU_SAI' })).attemptToken).qids;
   assert.deepStrictEqual(set.sort(), [eid + '#1', eid + '#2'].sort());
   // giáo viên chèn câu mới lên đầu, đánh số lại
-  saveExam(w, { trangThai: 'MO', hienLoiGiai: 'NGAY' }, [MANUAL(0), M, X], eid);
+  saveExam(w, { trangThai: 'DONG', hienLoiGiai: 'NGAY' }, [MANUAL(0), M, X], eid);
   set = payload(ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'CAU_SAI' })).attemptToken).qids;
   assert(!set.includes(eid + '#1'), 'ô #1 nay là câu khác → bỏ');
   assert(!set.includes(eid + '#2'), 'không đoán theo vị trí mới cho câu nhập tay');
@@ -489,14 +512,17 @@ t('TC-4.14 sửa đề sau khi học sinh làm (chèn câu lên đầu): câu nh
   w2.sync({ maKho: [w2.k.rows[0][0]] });
   const e2 = saveExam(w2, { trangThai: 'MO', hienLoiGiai: 'NGAY' }, [MANUAL(5)]);
   doExam(w2, e2, {});
+  saveExam(w2, { trangThai: 'DONG', hienLoiGiai: 'NGAY' }, [MANUAL(5)], e2);
   assert.strictEqual(ok(w2.g.call('practiceMeta', { token: w2.sTok })).soCauSai, 1);
-  saveExam(w2, { trangThai: 'MO', hienLoiGiai: 'NGAY' }, [Object.assign(MANUAL(5), { noiDung: 'Nội dung đã sửa.' })], e2);
+  saveExam(w2, { trangThai: 'DONG', hienLoiGiai: 'NGAY' }, [Object.assign(MANUAL(5), { noiDung: 'Nội dung đã sửa.' })], e2);
   assert.strictEqual(ok(w2.g.call('practiceMeta', { token: w2.sTok })).soCauSai, 0);
   // câu lấy từ đề thi trong bài luyện: chiTiet q = examId#stt, xem lại có lời giải
   const w3 = world({ sync: false });
   w3.sync({ maKho: [w3.k.rows[0][0]] });
   const e3 = saveExam(w3, { trangThai: 'MO', hienLoiGiai: 'NGAY' }, [MANUAL(7)]);
   doExam(w3, e3, {});
+  assert.strictEqual(ok(w3.g.call('practiceMeta', { token: w3.sTok })).soCauSai, 0, 'đề còn mở: câu chưa vào tập câu sai');
+  saveExam(w3, { trangThai: 'DONG', hienLoiGiai: 'NGAY' }, [MANUAL(7)], e3);
   const s = ok(w3.g.call('practiceStart', { token: w3.sTok, kieu: 'CAU_SAI' }));
   assert(!/Giải 7|"dapAn"/.test(JSON.stringify(s.questions)));
   const v = ok(w3.g.call('submitExam', { token: w3.sTok, attemptToken: s.attemptToken, answers: { 1: 'A' } }));
@@ -545,6 +571,98 @@ t('R-12 ô "Hình vẽ" có nhiều hình: nhận đủ tên; chép đủ hình,
   assert(/!\[\]\(https:\/\/lh3\.googleusercontent\.com\/d\/[^)]+\)$/.test(q.noiDung), q.noiDung);
   assert.deepStrictEqual(plain(out.thieuHinh), []);
   assert.strictEqual(w.g._stats.makeCopy, 2);
+});
+
+/** Thêm n bài luyện giả của học sinh khác vào KetQuaLuyenTap (đo hiệu năng R-3). */
+function fillPracticeRows(w, n) {
+  const sh = w.g._sheets.KetQuaLuyenTap._data();
+  const hd = sh[0];
+  const det = JSON.stringify(Array.from({ length: 15 }, (_, i) => ({ s: i + 1, l: 'TN', a: 'A', sc: 0, m: 0.25, c: 0, cd: 'Chủ đề mẫu', md: 'NB', p: 1, q: 'L12C1B01-P1-' + String(i).padStart(5, '0'), h: 'abcdef12', k: 'L12C1B01-P1-' + String(i).padStart(5, '0') })));
+  for (let i = 0; i < n; i++) {
+    const o = { 'Mã bài': 'LTGIA' + i, 'Mã HS': 'HSX' + (i % 300), 'Điểm (thang 10)': 5, 'Chi tiết (JSON)': det, 'Họ tên': 'Học sinh giả', 'Nộp lúc': '01/11/2026 10:00:00', 'Kiểu': 'TU_TAO' };
+    sh.push(hd.map((h) => (h in o ? o[h] : '')));
+  }
+}
+module.exports.measure = (w) => {
+  const m = {};
+  const run = (name, fn) => { clearCache(w.g); w.g._resetStats(); fn(); m[name] = { cells: w.g._stats.cells.KetQuaLuyenTap || 0, full: w.g._stats.reads.KetQuaLuyenTap || 0, fullKQ: w.g._stats.reads.KetQua || 0 }; };
+  let s;
+  run('practiceMeta', () => ok(w.g.call('practiceMeta', { token: w.sTok })));
+  run('practiceStart', () => { s = ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'TU_TAO', so: { TN: 5 }, phut: 5 })); });
+  run('submitExam', () => ok(w.g.call('submitExam', { token: w.sTok, attemptToken: s.attemptToken, answers: {} })));
+  run('myResults luyen', () => ok(w.g.call('myResults', { token: w.sTok, loai: 'luyen' })));
+  return m;
+};
+
+t('Vòng 2 R-3: 5 000 bài luyện của học sinh khác — mở Luyện tập / bắt đầu / nộp không đọc cả trang KetQuaLuyenTap, KetQua', () => {
+  const w = world();
+  const s0 = ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'TU_TAO', so: { TN: 5 }, phut: 5 }));
+  ok(w.g.call('submitExam', { token: w.sTok, attemptToken: s0.attemptToken, answers: {} }));
+  fillPracticeRows(w, 5000);
+  const m = module.exports.measure(w);
+  Object.keys(m).forEach((k) => {
+    assert.strictEqual(m[k].full, 0, k + ': đọc cả trang KetQuaLuyenTap');
+    assert.strictEqual(m[k].fullKQ, 0, k + ': đọc cả trang KetQua');
+    assert(m[k].cells <= (k === 'submitExam' ? 2 : 1) * 5002 + 3 * 20 + 40, k + ': ' + m[k].cells + ' ô'); // nộp: cột Mã HS + cột Mã bài (kiểm trùng trong khóa)
+  });
+  console.log('    số đo (ô đọc trên KetQuaLuyenTap, 5 001 hàng): ' + Object.keys(m).map((k) => `${k} ${m[k].cells}`).join(' · '));
+  module.exports.r3 = m;
+});
+
+t('Vòng 2 R-2: bắt đầu bài luyện có X, giáo viên đưa X vào đề đang mở, nộp → kết quả không có đáp án/lời giải của X; điểm vẫn chấm', () => {
+  const w = world();
+  const s = ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'TU_TAO', so: { TN: 5 }, phut: 5 }));
+  const qids = payload(s.attemptToken).qids;
+  const X = qids[0];
+  saveExam(w, { trangThai: 'MO', hienLoiGiai: 'NGAY' }, [X]);
+  const v = ok(w.g.call('submitExam', { token: w.sTok, attemptToken: s.attemptToken, answers: w.answersFor(s.attemptToken, (q) => w.right(q)) }));
+  assert.strictEqual(v.diem, 10, 'điểm vẫn chấm đủ');
+  assert(v.items[0].an && !v.items[0].dapAn && !v.items[0].loiGiai, 'lộ đáp án X');
+  assert(v.items.slice(1).every((it) => it.loiGiai), 'câu khác có lời giải');
+});
+
+t('Vòng 2 N-1: gửi cả chương và bài → lấy giao (chỉ bài thuộc chương)', () => {
+  const w = world(BIG());
+  const meta = ok(w.g.call('practiceMeta', { token: w.sTok }));
+  const a = meta.cay.find((x) => /Chương II/.test(x.chuong));
+  const s = ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'TU_TAO', chuong: [a.chuong], bai: [a.bai], so: { TN: 10 }, phut: 10 }));
+  payload(s.attemptToken).qids.forEach((q) => assert.strictEqual(w.byMa[q][col('Bài')], a.bai, 'ngoài bài đã chọn: ' + q));
+  // bài không thuộc chương → không có câu
+  const other = meta.cay.find((x) => x.chuong !== a.chuong);
+  assert(!w.g.call('practiceStart', { token: w.sTok, kieu: 'TU_TAO', chuong: [a.chuong], bai: [other.bai], so: { TN: 5 }, phut: 10 }).ok);
+});
+
+t('Vòng 2 R-6: tổng pool đang bật quá 3 000 câu sau "Thêm" → báo lỗi rõ, không ghi', () => {
+  const w = world({ kho: { rows: K.bigRows(3010), missingImages: 0 }, sync: false });
+  const codes = w.k.rows.map((r) => r[0]);
+  w.sync({ maKho: codes.slice(0, 2995) });
+  const n0 = w.g._sheets.LuyenTap._data().length;
+  const r = w.g.call('adminPracticeSync', { token: w.tTok, maKho: codes.slice(2995, 3010), mode: 'them' });
+  assert(!r.ok && /tối đa 3000 câu đang bật/.test(r.error) && /3010/.test(r.error), r.error);
+  assert.strictEqual(w.g._sheets.LuyenTap._data().length, n0, 'không ghi');
+  // tắt bớt rồi thêm: được
+  ok(w.g.call('adminPracticeToggle', { token: w.tTok, maKho: codes.slice(0, 20), bat: 'KHONG' }));
+  assert.strictEqual(w.sync({ maKho: codes.slice(2995, 3010) }).them, 15);
+  // "thay" bằng 10 câu: được
+  assert(w.sync({ maKho: codes.slice(0, 10), mode: 'thay' }).tat > 0);
+});
+
+t('Vòng 2 R-5 / N-2: nộp lại tìm bài theo mã bài + mã học sinh; tắt luyện tập vẫn xem được lịch sử và bài luyện cũ', () => {
+  const w = world();
+  const s = ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'TU_TAO', so: { TN: 5 }, phut: 5 }));
+  const v = ok(w.g.call('submitExam', { token: w.sTok, attemptToken: s.attemptToken, answers: {} }));
+  assert(/^LT\d{12}[0-9A-F]{12}$/.test(v.id), v.id);
+  // giả lập hàng trùng mã bài của học sinh khác (đổi Mã HS): nộp lại không trả bài của người khác
+  const d = w.g._sheets.KetQuaLuyenTap._data();
+  d[1][d[0].indexOf('Mã HS')] = 'HS9999';
+  clearCache(w.g);
+  const r = w.g.call('submitExam', { token: w.sTok, attemptToken: s.attemptToken, answers: {} });
+  assert(!r.ok || r.data.studentId === 'HS0001', 'trả bài của học sinh khác');
+  d[1][d[0].indexOf('Mã HS')] = 'HS0001';
+  clearCache(w.g);
+  K.setSetting(w.g, { CHO_LUYEN_TAP: 'KHONG' });
+  assert.strictEqual(ok(w.g.call('myResults', { token: w.sTok, loai: 'luyen' })).length, 1);
+  assert(ok(w.g.call('getResult', { token: w.sTok, resultId: v.id })).items.length);
 });
 
 console.log(`\n${passed} kiểm thử đạt${failed ? ', ' + failed + ' KHÔNG ĐẠT' : '.'}`);

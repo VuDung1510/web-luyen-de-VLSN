@@ -990,7 +990,7 @@
     if (!c.items.length) return;
     const view = App.currentView();
     const mode = await modal(`<h2>Đưa ${c.items.length} câu vào luyện tập</h2>
-      <p>Học sinh sẽ luyện được các câu này (đúng khối lớp). Câu đang nằm trong đề thi chưa công bố lời giải sẽ <b>tạm ẩn</b> với học sinh cho tới khi đề công bố lời giải.</p>
+      <p>Học sinh sẽ luyện được các câu này (đúng khối lớp). Câu đang nằm trong một đề thi <b>chưa đóng</b> (nháp, chưa mở, đang mở) hoặc không công bố lời giải sẽ <b>tạm ẩn</b> với học sinh cho tới khi đề đóng và công bố lời giải.</p>
       <div class="modal-actions"><button class="btn" data-close="">Hủy</button>
         <button class="btn" data-close="thay" id="ptReplace" title="Các câu khác trong pool được tắt (không xóa)">Thay pool bằng giỏ</button>
         <button class="btn btn-primary" data-close="them" id="ptAdd">Thêm vào pool</button></div>`);
@@ -1018,7 +1018,7 @@
       await modal(`<h2>Đã cập nhật pool luyện tập</h2>
         <p id="ptResult">Thêm mới <b>${r.them}</b> · cập nhật ${r.capNhat} · tắt ${r.tat} câu.</p>
         ${bq.khongDapAn || bq.tuLuan || bq.khac || bq.khongCo ? `<p class="muted small">Bỏ qua: ${bq.khongDapAn || 0} câu chưa có đáp án hợp lệ, ${bq.tuLuan || 0} câu tự luận${bq.khac ? ', ' + bq.khac + ' câu lỗi định dạng' : ''}${bq.khongCo ? ', ' + bq.khongCo + ' mã không có trong kho' : ''}.</p>` : ''}
-        ${(r.dangThi || []).length ? `<div class="notice warn" id="ptDangThi"><b>${r.dangThi.length} câu đang thi</b> (nằm trong đề chưa công bố lời giải): đã thêm nhưng học sinh chưa thấy cho tới khi đề công bố lời giải.<br><span class="small">${r.dangThi.slice(0, 30).map(esc).join(', ')}${r.dangThi.length > 30 ? ', …' : ''}</span></div>` : ''}
+        ${(r.dangThi || []).length ? `<div class="notice warn" id="ptDangThi"><b>${r.dangThi.length} câu đang thi</b> (nằm trong đề chưa đóng hoặc không công bố lời giải): đã thêm nhưng học sinh chưa thấy cho tới khi đề đóng và công bố lời giải.<br><span class="small">${r.dangThi.slice(0, 30).map(esc).join(', ')}${r.dangThi.length > 30 ? ', …' : ''}</span></div>` : ''}
         ${[...new Set(canhBao)].slice(0, 20).map((x) => `<div class="notice warn small">${esc(x)}</div>`).join('')}
         <div class="modal-actions"><a class="btn" href="#/ngan-hang/pool" data-close="">Xem pool luyện tập</a><button class="btn btn-primary" data-close="">Đóng</button></div>`, { wide: true });
     } catch (err) {
@@ -1052,7 +1052,7 @@
       const pages = Math.max(1, Math.ceil(r.tong / r.size));
       const chs = [...new Set(r.cay.map((x) => x.chuong))];
       box.innerHTML = `${r.choLuyenTap ? '' : '<div class="notice warn" id="poolOff" style="margin-bottom:10px">Mục Luyện tập đang <b>tắt</b> với học sinh. Bật ở <a href="#/cai-dat">Cài đặt</a> → "Mục Luyện tập cho học sinh".</div>'}
-        <div class="muted small" style="margin-bottom:10px">Pool có <b>${r.dem.tong}</b> câu · đang bật ${r.dem.bat} · <span class="badge badge-exam">đang thi</span> ${r.dem.dangThi} (học sinh chưa thấy cho tới khi đề công bố lời giải).
+        <div class="muted small" style="margin-bottom:10px">Pool có <b>${r.dem.tong}</b> câu · đang bật ${r.dem.bat} · <span class="badge badge-exam">đang thi</span> ${r.dem.dangThi} (câu trong đề chưa đóng: học sinh chưa thấy cho tới khi đề đóng và công bố lời giải).
           Thêm câu: tab Kho câu hỏi → chọn câu vào giỏ → "Đưa vào luyện tập".</div>
         <div class="card"><div class="row pool-filters">
           <select id="plLop"><option value="">Mọi lớp</option>${r.lop.map((l) => `<option value="${l}" ${String(l) === String(f.lop) ? 'selected' : ''}>Lớp ${l}</option>`).join('')}</select>
@@ -1065,7 +1065,7 @@
           <div id="plList">${r.items.length ? r.items.map((x) => `<div class="pool-item ${x.bat ? '' : 'off'}" data-ma="${esc(x.maKho)}">
             <div class="row"><label class="chk"><input type="checkbox" class="pl-sel" value="${esc(x.maKho)}"></label>
               <span class="badge badge-primary">${PART_SHORT[x.phan] || ''} · ${App.TYPES[x.loai] || x.loai}</span>${x.mucDo ? `<span class="badge">${App.LEVELS[x.mucDo] || esc(x.mucDo)}</span>` : ''}
-              ${x.dangThi ? '<span class="badge badge-exam" title="Câu nằm trong đề chưa công bố lời giải: học sinh chưa thấy">đang thi</span>' : ''}
+              ${x.dangThi ? '<span class="badge badge-exam" title="Câu nằm trong đề chưa đóng hoặc không công bố lời giải: học sinh chưa thấy">đang thi</span>' : ''}
               <span class="badge">${x.soLuot} lượt làm</span>${x.coHinh ? '<span class="badge">có hình</span>' : ''}
               <span class="spacer"></span><button class="btn btn-sm ${x.bat ? '' : 'btn-primary'}" data-toggle="${esc(x.maKho)}" data-to="${x.bat ? 'KHONG' : 'CO'}">${x.bat ? 'Tắt' : 'Bật'}</button></div>
             <div class="bank-tom">${rich(x.tom)}</div>

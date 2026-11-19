@@ -559,7 +559,7 @@ function apiSubmitExam_(req) {
 function apiMyResults_(req) {
   var st = requireStudent_(req);
   if (req.loai === 'luyen') {
-    return readTable_('KetQuaLuyenTap').filter(function (r) { return r.studentId === st.id; })
+    return rowsWhere_('KetQuaLuyenTap', 'studentId', st.id)
       .map(function (r) { return Object.assign(resultSummary_(r), { kieu: r.kieu, luyenTap: true }); }).reverse();
   }
   return readTable_('KetQua').filter(function (r) { return r.studentId === st.id; }).map(resultSummary_).reverse();
@@ -568,7 +568,7 @@ function apiMyResults_(req) {
 function apiGetResult_(req) {
   var u = requireUser_(req);
   if (/^LT/.test(str_(req.resultId))) {
-    var lt = readTable_('KetQuaLuyenTap').filter(function (x) { return x.id === str_(req.resultId); })[0];
+    var lt = rowsWhere_('KetQuaLuyenTap', 'id', req.resultId)[0];
     if (!lt) throw new Error('Không tìm thấy bài làm.');
     if (u.role === 'student' && lt.studentId !== u.student.id) throw new Error('Bạn không xem được bài làm này.');
     return buildPracticeView_(lt, u.role);
@@ -1974,13 +1974,16 @@ function timeOf_(v) { var d = parseDate_(v); return d ? d.getTime() : 0; }
 
 /* ---------- chặn câu đang thi ---------- */
 
-/** Đề mà câu của nó chưa được công khai: bản nháp, chưa mở, hoặc chưa công bố lời giải (canReveal_ = false). */
+/** Đề mà câu của nó chưa được công khai: mọi đề chưa đóng (nháp, chưa mở, đang mở) hoặc không công bố lời giải. */
 function examLocked_(e, now) {
   if (!e || !e.id) return false;
-  if (e.trangThai === 'NHAP' || !e.trangThai) return true;
+  // Vòng 2 (R-1): câu chỉ vào luyện tập khi đề ĐÃ ĐÓNG (giáo viên đóng / hết hạn) VÀ canReveal_ = true.
+  // Đề NHAP, chưa tới giờ mở, đang mở (mọi chế độ hiện lời giải, kể cả NGAY), đề KHONG: chặn.
   if (!canReveal_(e)) return true;
-  var s = parseDate_(e.batDau);
-  return !!(s && (now || Date.now()) < s.getTime());
+  if (e.trangThai === 'DONG') return false;
+  var t = parseDate_(e.ketThuc);
+  if (e.trangThai === 'MO' && t && (now || Date.now()) > t.getTime()) return false;
+  return true;
 }
 
 /**
@@ -2020,23 +2023,55 @@ function toSet_(a) { var m = {}; a.forEach(function (k) { m[k] = 1; }); return m
 
 /* ---------- pool: chỉ mục + đọc theo hàng ---------- */
 
-/** { sh, col:{khóa: số cột}, lastRow, lastCol } của trang LuyenTap; chưa có trang → null. Chỉ ĐỌC. */
-function poolSheetInfo_() {
-  if (MEMO_.__poolSh !== undefined) return MEMO_.__poolSh;
-  var sh = ss_().getSheetByName('LuyenTap');
-  if (!sh) return (MEMO_.__poolSh = null);
+/** { sh, col:{khóa: số cột}, lastRow, lastCol } của một trang trong SCHEMA; chưa có trang → null. Chỉ ĐỌC (nhớ trong 1 request). */
+function sheetInfo_(name) {
+  var k = '__si_' + name;
+  if (MEMO_[k] !== undefined) return MEMO_[k];
+  var sh = ss_().getSheetByName(name);
+  if (!sh) return (MEMO_[k] = null);
   var lastCol = sh.getLastColumn(), lastRow = sh.getLastRow();
   var header = lastCol ? sh.getRange(1, 1, 1, lastCol).getValues()[0].map(str_) : [];
   var col = {};
-  SCHEMA.LuyenTap.forEach(function (d) { var i = header.indexOf(d[1]); if (i >= 0) col[d[0]] = i + 1; });
-  return (MEMO_.__poolSh = { sh: sh, col: col, lastRow: lastRow, lastCol: lastCol });
+  SCHEMA[name].forEach(function (d) { var i = header.indexOf(d[1]); if (i >= 0) col[d[0]] = i + 1; });
+  return (MEMO_[k] = { sh: sh, col: col, lastRow: lastRow, lastCol: lastCol });
+}
+
+function poolSheetInfo_() { return sheetInfo_('LuyenTap'); }
+
+/**
+ * Các hàng của trang `name` có ô `key` = value (vd mọi bài của MỘT học sinh): đọc riêng cột khóa,
+ * rồi chỉ đọc những hàng khớp (R-3: không đọc cả trang KetQua / KetQuaLuyenTap). Nhớ trong 1 request.
+ */
+function rowsWhere_(name, key, value) {
+  value = str_(value);
+  var mk = '__rw_' + name + '\u0001' + key + '\u0001' + value;
+  if (MEMO_[mk]) return copyRows_(MEMO_[mk]);
+  var rows;
+  if (MEMO_[name]) rows = readTable_(name).filter(function (r) { return str_(r[key]) === value; }); // bảng đã có trong bộ nhớ
+  else {
+    var info = sheetInfo_(name);
+    rows = [];
+    if (info && info.col[key] && info.lastRow >= 2 && value) {
+      var vals = info.sh.getRange(2, info.col[key], info.lastRow - 1, 1).getValues();
+      var nums = [];
+      vals.forEach(function (r, i) { if (str_(cell_(r[0])) === value) nums.push(i + 2); });
+      var got = readRowRuns_(info, nums);
+      rows = nums.map(function (n) {
+        var o = got[n] || { _row: n };
+        SCHEMA[name].forEach(function (d) { if (!(d[0] in o)) o[d[0]] = ''; });
+        return o;
+      });
+    }
+  }
+  MEMO_[mk] = rows;
+  return copyRows_(rows);
 }
 
 /** Chỉ mục pool { rows:[{maKho,hang,lop,chuong,bai,loai,mucDo,bat}], byMa }. Đệm theo thế hệ LuyenTap. */
 function poolIndex_(opts) {
   var refresh = !!(opts && opts.refresh);
   if (!refresh && MEMO_.__pool) return MEMO_.__pool;
-  if (refresh) delete MEMO_.__poolSh;
+  if (refresh) delete MEMO_.__si_LuyenTap;
   var cache = scriptCache_(), key = null;
   if (cache) { var gen = readGen_(cache, 'LuyenTap'); if (gen) key = 'pl_' + gen; }
   if (key && !refresh) {
@@ -2181,15 +2216,13 @@ function practiceDone_(rows) {
  */
 function wrongList_(st) {
   var events = [];
-  readTable_('KetQua').forEach(function (r) {
-    if (r.studentId !== st.id) return;
+  rowsWhere_('KetQua', 'studentId', st.id).forEach(function (r) {
     var t = timeOf_(r.nopLuc);
     parseJson_(r.chiTiet, []).forEach(function (d) {
       events.push({ t: t, key: d.k || (r.examId + '#' + d.s), wrong: num_(d.sc) < num_(d.m) - 1e-9, ex: r.examId, s: num_(d.s), k: d.k || '', h: d.h || '' });
     });
   });
-  readTable_('KetQuaLuyenTap').forEach(function (r) {
-    if (r.studentId !== st.id) return;
+  rowsWhere_('KetQuaLuyenTap', 'studentId', st.id).forEach(function (r) {
     var t = timeOf_(r.nopLuc);
     parseJson_(r.chiTiet, []).forEach(function (d) {
       if (!d.q || d.gone) return;
@@ -2254,7 +2287,7 @@ function apiPracticeMeta_(req) {
     if (!tree[k]) { tree[k] = { chuong: x.chuong, bai: x.bai, dem: { TN: 0, DS: 0, TL: 0 } }; order.push(k); }
     tree[k].dem[x.loai]++;
   });
-  var mine = readTable_('KetQuaLuyenTap').filter(function (r) { return r.studentId === st.id; });
+  var mine = rowsWhere_('KetQuaLuyenTap', 'studentId', st.id);
   var scores = mine.map(function (r) { return num_(r.diem); });
   var cay = order.map(function (k) { return tree[k]; }).sort(function (a, b) {
     return (topicNo_(a.chuong) - topicNo_(b.chuong)) || sortVi_(a.chuong, b.chuong) || (topicNo_(a.bai) - topicNo_(b.bai)) || sortVi_(a.bai, b.bai);
@@ -2314,10 +2347,11 @@ function apiPracticeStart_(req) {
       if (tong < PRACTICE_MIN_Q || tong > PRACTICE_MAX_Q) throw new Error('Tổng số câu phải từ ' + PRACTICE_MIN_Q + ' đến ' + PRACTICE_MAX_Q + '.');
       phut = Math.floor(num_(req.phut)) || 45;
     }
+    // N-1: gửi cả chương và bài thì lấy giao (bài thuộc chương đó)
     var scope = cand.filter(function (x) {
-      return (!chuong.length && !bai.length) || chuong.indexOf(x.chuong) >= 0 || bai.indexOf(x.bai) >= 0;
+      return (!chuong.length || chuong.indexOf(x.chuong) >= 0) && (!bai.length || bai.indexOf(x.bai) >= 0);
     });
-    var done = practiceDone_(readTable_('KetQuaLuyenTap').filter(function (r) { return r.studentId === st.id; }));
+    var done = practiceDone_(rowsWhere_('KetQuaLuyenTap', 'studentId', st.id));
     var taken = {};
     var got = pickPractice_(scope, want, done, taken);
     if (kieu === 'NHANH') {
@@ -2370,17 +2404,15 @@ function apiPracticeStart_(req) {
 
 /** Mã bài luyện tập: cố định theo lượt (token) → nộp lại cùng token không ghi thêm hàng. */
 function practiceResultId_(p) {
-  return 'LT' + Utilities.formatDate(new Date(p.st), TZ, 'yyMMddHHmmss') + String(p.pid).replace(/[^0-9a-f]/gi, '').slice(0, 6).toUpperCase();
+  return 'LT' + Utilities.formatDate(new Date(p.st), TZ, 'yyMMddHHmmss') + String(p.pid).replace(/[^0-9a-f]/gi, '').slice(0, 12).toUpperCase();
 }
 
-/** Mã bài đã có trong KetQuaLuyenTap? Đọc thẳng cột "Mã bài" của Sheet (không qua đệm). */
+/** Mã bài đã có trong KetQuaLuyenTap? Đọc thẳng cột "Mã bài" của Sheet (không qua đệm, gọi trong khóa). */
 function practiceResultExists_(id) {
-  var sh = ss_().getSheetByName('KetQuaLuyenTap');
-  if (!sh || sh.getLastRow() < 2) return false;
-  var header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(str_);
-  var c = header.indexOf(labelOf_('KetQuaLuyenTap', 'id')) + 1;
-  if (c < 1) return false;
-  return sh.getRange(2, c, sh.getLastRow() - 1, 1).getValues().some(function (r) { return str_(r[0]) === id; });
+  delete MEMO_.__si_KetQuaLuyenTap;
+  var info = sheetInfo_('KetQuaLuyenTap');
+  if (!info || !info.col.id || info.lastRow < 2) return false;
+  return info.sh.getRange(2, info.col.id, info.lastRow - 1, 1).getValues().some(function (r) { return str_(r[0]) === id; });
 }
 
 function practiceSubmit_(st, p, req) {
@@ -2390,11 +2422,13 @@ function practiceSubmit_(st, p, req) {
   var cache = CacheService.getScriptCache();
   var doneKey = 'patt_' + p.pid;
   var view = function () {
-    var r = readTable_('KetQuaLuyenTap', { fresh: true }).filter(function (x) { return x.id === id; })[0];
-    if (!r) throw new Error('Không tìm thấy bài làm.');
+    // R-5: tìm theo mã bài VÀ mã học sinh
+    Object.keys(MEMO_).forEach(function (k) { if (k.indexOf('__rw_KetQuaLuyenTap') === 0 || k === '__si_KetQuaLuyenTap') delete MEMO_[k]; });
+    var r = rowsWhere_('KetQuaLuyenTap', 'id', id).filter(function (x) { return x.studentId === st.id; })[0];
+    if (!r) throw new Error('Lượt làm bài không hợp lệ hoặc đã quá hạn.');
     return buildPracticeView_(r, 'student');
   };
-  if (cache.get(doneKey) || practiceResultExists_(id)) return view();
+  if (cache.get(doneKey)) return view();
   var map = practiceQuestions_(p.qids);
   var qs = [];
   p.qids.forEach(function (qid, i) { if (map[qid]) qs.push(Object.assign({}, map[qid], { stt: i + 1, _qid: qid })); });
@@ -2403,7 +2437,9 @@ function practiceSubmit_(st, p, req) {
   var now = Date.now();
   var usedSec = Math.max(0, Math.round((now - p.st) / 1000));
   var late = usedSec > p.dur + GRACE_SECONDS;
-  var prevAll = readTable_('KetQuaLuyenTap').filter(function (r) { return r.studentId === st.id; }).map(function (r) { return num_(r.diem); });
+  var mine = rowsWhere_('KetQuaLuyenTap', 'studentId', st.id);
+  if (mine.some(function (r) { return r.id === id; })) return buildPracticeView_(mine.filter(function (r) { return r.id === id; })[0], 'student');
+  var prevAll = mine.map(function (r) { return num_(r.diem); });
   var goal = p.goal == null ? null : num_(p.goal);
   var fb = buildFeedback_(qs, graded, { usedSec: usedSec, limitSec: p.dur, prevAll: prevAll, goal: goal });
   var result = {
@@ -2427,16 +2463,21 @@ function practiceSubmit_(st, p, req) {
   });
   cache.put(doneKey, id, 21600);
   if (!wrote) return view();
-  var saved = readTable_('KetQuaLuyenTap').filter(function (r) { return r.id === id; })[0];
-  return buildPracticeView_(saved || result, 'student');
+  return buildPracticeView_(result, 'student'); // không đọc lại trang (R-3)
 }
 
-/** Kết quả bài luyện kèm lời giải; lấy câu theo q, câu không còn thì "Câu đã bị gỡ khỏi ngân hàng". */
+/**
+ * Kết quả bài luyện kèm lời giải; lấy câu theo q, câu không còn thì "Câu đã bị gỡ khỏi ngân hàng".
+ * R-2: câu đang bị chặn TẠI THỜI ĐIỂM XEM (nằm trong đề chưa đóng / chưa công bố lời giải) thì học sinh chỉ thấy
+ * đề bài và câu trả lời của mình, không có đáp án + lời giải. Điểm vẫn chấm bình thường.
+ */
+var PRACTICE_HIDDEN_NOTE = 'Câu này đang nằm trong một đề thi chưa kết thúc. Đáp án và lời giải sẽ hiện khi đề thi đó kết thúc.';
 function buildPracticeView_(r, role) {
   var details = parseJson_(r.chiTiet, []);
   var map = practiceQuestions_(details.map(function (d) { return d.q; }).filter(Boolean));
   var exams = {};
   var now = Date.now();
+  var blocked = role === 'teacher' ? {} : blockedBankIds_();
   var goal = null;
   if (r.mucTieu !== '' && r.mucTieu != null) {
     var g = num_(r.mucTieu), d10 = num_(r.diem);
@@ -2448,15 +2489,20 @@ function buildPracticeView_(r, role) {
     items: details.map(function (d) {
       var it = { stt: d.s, loai: d.l, phan: d.p, chuDe: d.cd, mucDo: d.md, answer: d.a, score: d.sc, max: d.m, nCorrect: d.n, correct: !!d.c };
       var q = d.q ? map[d.q] : null;
+      var hide = false;
       if (q && d.q.indexOf('#') > 0) {
-        // câu lấy từ đề thi: chỉ hiện khi đề còn công bố lời giải và câu chưa bị sửa
+        // câu lấy từ đề thi: câu đã bị sửa → coi như gỡ; đề chưa đóng / không công bố lời giải → ẩn lời giải
         var eid = d.q.slice(0, d.q.lastIndexOf('#'));
         var e = exams[eid] !== undefined ? exams[eid] : (exams[eid] = findExam_(eid));
-        if (!e || examLocked_(e, now) || (d.h && contentHash_(q) !== d.h)) q = null;
+        if (!e || (d.h && contentHash_(q) !== d.h)) q = null;
+        else if (role !== 'teacher' && examLocked_(e, now)) hide = true;
       }
+      var k = (q && q.maKho) || d.k;
+      if (q && k && blocked[k]) hide = true;
       if (q) {
         it.noiDung = q.noiDung; it.hinhAnh = q.hinhAnh; it.A = q.A; it.B = q.B; it.C = q.C; it.D = q.D;
-        it.dapAn = q.dapAn; it.loiGiai = q.loiGiai;
+        if (hide) { it.an = true; it.anNote = PRACTICE_HIDDEN_NOTE; }
+        else { it.dapAn = q.dapAn; it.loiGiai = q.loiGiai; }
       } else {
         it.go = true;
         it.noiDung = 'Câu đã bị gỡ khỏi ngân hàng.';
@@ -2550,6 +2596,9 @@ function poolWrite_(qs, mode) {
       if (m && !want[m] && yes_(row[cBat])) { row[cBat] = 'KHONG'; row[cCap] = now; changed[i] = 1; tat++; }
     });
   }
+  // R-6: giới hạn cho TỔNG pool đang bật sau lần ghi này
+  var active = add.length + values.filter(function (row) { return yes_(row[cBat]); }).length;
+  if (active > POOL_MAX) throw new Error('Pool luyện tập tối đa ' + POOL_MAX + ' câu đang bật; sau lần này sẽ có ' + active + ' câu. Hãy tắt bớt câu ở tab Pool luyện tập hoặc dùng "Thay pool bằng giỏ". Chưa ghi gì.');
   writeRowRuns_(sh, values, Object.keys(changed).map(Number), n);
   if (add.length) sh.getRange(Math.max(sh.getLastRow(), 1) + 1, 1, add.length, n).setValues(add);
   if (them || capNhat || tat) afterWrite_('LuyenTap');
@@ -2575,8 +2624,11 @@ function writeRowRuns_(sh, values, idx, n) {
 /** Số lượt làm mỗi câu (theo q) trong mọi bài luyện. */
 function practiceUsage_() {
   var m = {};
-  readTable_('KetQuaLuyenTap').forEach(function (r) {
-    parseJson_(r.chiTiet, []).forEach(function (d) { if (d.q) m[d.q] = (m[d.q] || 0) + 1; });
+  var info = sheetInfo_('KetQuaLuyenTap');
+  if (!info || !info.col.chiTiet || info.lastRow < 2) return m;
+  // chỉ đọc cột "Chi tiết (JSON)" (R-3)
+  info.sh.getRange(2, info.col.chiTiet, info.lastRow - 1, 1).getValues().forEach(function (r) {
+    parseJson_(r[0], []).forEach(function (d) { if (d.q) m[d.q] = (m[d.q] || 0) + 1; });
   });
   return m;
 }
@@ -2926,6 +2978,7 @@ function verifyRow_(sh, name, header, rowNum, keyField, keyValue) {
 function afterWrite_(name) {
   try { SpreadsheetApp.flush(); } catch (e) { /* bỏ qua */ }
   delete MEMO_[name];
+  Object.keys(MEMO_).forEach(function (k) { if (k === '__si_' + name || k.indexOf('__rw_' + name + '\u0001') === 0) delete MEMO_[k]; });
   bumpGen_(name);
 }
 
