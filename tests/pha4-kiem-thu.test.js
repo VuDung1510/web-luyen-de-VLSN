@@ -255,9 +255,10 @@ t('TC-4.3 practiceStart TU_TAO 10–2–3 trong một bài: đúng 15 câu, đú
   const s = ok(practice(w, null, { kieu: 'TU_TAO', chuong: [ch], bai: [bai], so: { TN: 10, DS: 2, TL: 3 }, phut: 20 }));
   const tp = decodeTok(s.attemptToken).p;
   info(`5 lần: 15 câu (10-2-3), 1200 s; khóa trong token: ${Object.keys(tp).join(',')} (qids = mã kho, chỉ mã hóa base64)`);
-  // chương + bài cùng gửi: máy chủ lấy HỢP (cả chương) — ghi nhận, e2e kiểm giao diện gửi gì khi chọn 1 bài
+  // chương + bài cùng gửi: vòng 2 (N-1) lấy GIAO — xem mục Vòng 2
   const su = ok(practice(w, null, { kieu: 'TU_TAO', chuong: [ch], bai: [bai], so: { TN: 10, DS: 2, TL: 3 }, phut: 20 }));
-  info('gửi chuong=[Chương I] + bai=[Bài 1]: ' + su.questions.filter((q) => by.get(q.noiDung).bai !== bai).length + '/15 câu thuộc bài khác của chương (ngữ nghĩa HỢP)');
+  const outside = su.questions.filter((q) => by.get(q.noiDung).bai !== bai).length;
+  info('gửi chuong=[Chương I] + bai=[Bài 1]: ' + outside + '/15 câu thuộc bài khác của chương');
   // chỉ chọn chương
   const s2 = ok(practice(w, null, { kieu: 'TU_TAO', chuong: [ch], bai: [], so: { TN: 8, DS: 0, TL: 0 }, phut: 10 }));
   assert(s2.questions.every((q) => by.get(q.noiDung).chuong === ch));
@@ -739,6 +740,130 @@ t('TC-4.14 Sửa đề sau khi HS làm (chèn câu lên đầu): câu nhập tay
   setExam(w2, e2, { trangThai: 'DONG' }, (qs) => qs.map((q, i) => (i === 0 ? Object.assign({}, q, { noiDung: 'Câu tay P đã sửa đề bài (tự soạn).' }) : q)));
   const a2 = contents(ok(practice(w2, null, { kieu: 'CAU_SAI' })));
   assert.deepStrictEqual(a2, ['Câu tay Q (tự soạn).'], 'sửa chữ câu tay: ' + JSON.stringify(a2));
+});
+
+
+// ======================= Vòng 2 (f228081) =======================
+console.log('\nVòng 2:');
+const MSG_HIDE = /Đáp án và lời giải sẽ hiện khi đề thi đó kết thúc/;
+t('V2 Xem lại bài luyện có câu đang bị chặn: HS thấy dòng "…sẽ hiện khi đề thi đó kết thúc", điểm giữ nguyên; GV vẫn thấy lời giải; đóng đề thì hiện lại', () => {
+  const w = world({ rows: rowsBai14(5) });
+  const X = pool(w)[0];
+  const s = ok(practice(w, null, { kieu: 'TU_TAO', chuong: [], bai: [], so: { TN: 5 }, phut: 10 }));
+  const r = ok(w.S(null, 'submitExam', { attemptToken: s.attemptToken, answers: answer(w, s, (q) => q.noiDung !== X.noiDung) }));
+  const eid = saveExam(w, { tieuDe: 'Đề NGAY đang mở chứa X', trangThai: 'MO', hienLoiGiai: 'NGAY' }, toQuestions(w, [X.maKho]));
+  const v = ok(w.S(null, 'getResult', { resultId: r.id }));
+  const it = v.items.find((x) => x.noiDung === X.noiDung);
+  assert(it, 'không còn đề bài của X');
+  assert(!it.loiGiai && (it.dapAn == null || it.dapAn === ''), 'HS vẫn thấy đáp án/lời giải X');
+  assert(MSG_HIDE.test(JSON.stringify(it)), 'thiếu dòng báo: ' + JSON.stringify(it).slice(0, 200));
+  assert(it.answer != null && it.answer !== '', 'mất câu trả lời của HS');
+  assert.strictEqual(v.diem, r.diem); assert.strictEqual(v.soCauDung, r.soCauDung);
+  const others = v.items.filter((x) => x !== it);
+  assert(others.every((x) => x.loiGiai), 'câu khác mất lời giải');
+  const vt = ok(w.A('getResult', { resultId: r.id }));
+  const itT = vt.items.find((x) => x.noiDung === X.noiDung);
+  assert(itT && itT.loiGiai && itT.dapAn, 'GV không thấy lời giải');
+  setExam(w, eid, { trangThai: 'DONG' });
+  const v2 = ok(w.S(null, 'getResult', { resultId: r.id }));
+  const it2 = v2.items.find((x) => x.noiDung === X.noiDung);
+  assert(it2.loiGiai && it2.dapAn && !MSG_HIDE.test(JSON.stringify(it2)), 'đóng đề mà chưa hiện lại lời giải');
+  info(`HS: "${(JSON.stringify(it).match(/[^"]*kết thúc[^"]*/) || [''])[0]}"; điểm ${v.diem} = ${r.diem}; GV thấy lời giải; đóng đề → HS thấy lời giải`);
+});
+
+t('V2 "Luyện câu đã sai" chỉ lấy câu của đề đã đóng (NGAY đang mở: không; hết hạn hoặc đóng: có)', () => {
+  const w = world({ rows: K.bigRows(30) });
+  const eOpen = saveExam(w, { tieuDe: 'Đề NGAY mở', trangThai: 'MO', hienLoiGiai: 'NGAY' }, [manual('Câu tay đề mở (tự soạn).')]);
+  const eExp = saveExam(w, { tieuDe: 'Đề sẽ hết hạn', trangThai: 'MO', hienLoiGiai: 'SAU_HAN' }, [manual('Câu tay đề hết hạn (tự soạn).')]);
+  doExam(w, null, eOpen, () => true); doExam(w, null, eExp, () => true);
+  const r0 = practice(w, null, { kieu: 'CAU_SAI' });
+  const set0 = r0.ok ? contents(r0.data) : [];
+  assert(!set0.includes('Câu tay đề mở (tự soạn).') && !set0.includes('Câu tay đề hết hạn (tự soạn).'), 'có câu của đề chưa đóng: ' + set0);
+  setExam(w, eExp, { ketThuc: new Date(Date.now() - 60e3).toISOString() });
+  setExam(w, eOpen, { trangThai: 'DONG' });
+  const set1 = contents(ok(practice(w, null, { kieu: 'CAU_SAI' })));
+  assert(set1.includes('Câu tay đề mở (tự soạn).') && set1.includes('Câu tay đề hết hạn (tự soạn).'), 'đề đã đóng/hết hạn mà chưa có câu: ' + set1);
+  info(`đang mở: ${r0.ok ? set0.length + ' câu' : '"' + r0.error + '"'}; sau khi đóng + hết hạn: ${set1.length} câu`);
+});
+
+t('V2 (N-1) Chọn cả chương và bài → lấy GIAO', () => {
+  const w = world({ rows: K.bigRows(300) });
+  const by = new Map(pool(w).map((p) => [p.noiDung, p]));
+  const s = ok(practice(w, null, { kieu: 'TU_TAO', chuong: ['Chương I. Vật lí nhiệt'], bai: ['Bài 1. Cấu trúc của chất. Sự chuyển thể'], so: { TN: 10, DS: 2, TL: 3 }, phut: 20 }));
+  assert(s.questions.every((q) => by.get(q.noiDung).bai === 'Bài 1. Cấu trúc của chất. Sự chuyển thể'), 'có câu ngoài bài');
+  const x = practice(w, null, { kieu: 'TU_TAO', chuong: ['Chương II. Khí lí tưởng'], bai: ['Bài 1. Cấu trúc của chất. Sự chuyển thể'], so: { TN: 5 }, phut: 10 });
+  info('chương II + bài thuộc chương I: ' + (x.ok ? x.data.questions.length + ' câu' : '"' + x.error + '"'));
+  assert(!x.ok || x.data.questions.length === 0, 'giao rỗng mà vẫn ra câu');
+});
+
+t('V2 (N-2) Tắt luyện tập vẫn xem được bài luyện cũ (myResults luyen + getResult LT)', () => {
+  const w = world();
+  const s = ok(practice(w, null, { kieu: 'TU_TAO', chuong: [], bai: [], so: { TN: 5 }, phut: 10 }));
+  const r = ok(w.S(null, 'submitExam', { attemptToken: s.attemptToken, answers: answer(w, s) }));
+  K.setSetting(w.g, { CHO_LUYEN_TAP: 'KHONG' });
+  const l = ok(w.S(null, 'myResults', { loai: 'luyen' }));
+  const v = ok(w.S(null, 'getResult', { resultId: r.id }));
+  assert(l.some((x) => x.id === r.id) && v.items.every((x) => x.loiGiai));
+  assert(OFF_MSG.test(w.S(null, 'practiceMeta').error));
+});
+
+t('V2 (R-6) Pool vượt 3 000 câu đang bật bị từ chối, không ghi gì', () => {
+  const w = world({ rows: K.bigRows(3010), sync: false });
+  const ms = w.kho.rows.map((r) => r[0]);
+  w.g._resetStats();
+  const r1 = w.A('adminPracticeSync', { filter: {}, mode: 'them' });
+  const wr1 = w.g._stats.writes.LuyenTap || 0;
+  assert(!r1.ok, '3 010 câu được nhận'); assert.strictEqual(wr1, 0, 'đã ghi ' + wr1 + ' lần'); assert.strictEqual(w.g._sheets.LuyenTap.getLastRow(), 1);
+  info('3 010 câu: "' + r1.error + '"');
+  sync(w, { maKho: ms.slice(0, 2990), mode: 'them' });
+  assert.strictEqual(pool(w).length, 2990);
+  w.g._resetStats();
+  const r2 = w.A('adminPracticeSync', { maKho: ms.slice(2990, 3010), mode: 'them' });
+  assert(!r2.ok, '2 990 + 20 được nhận'); assert.strictEqual(w.g._stats.writes.LuyenTap || 0, 0); assert.strictEqual(pool(w).length, 2990);
+  // tắt 30 câu rồi thêm 20 → 2 980 bật → được
+  ok(w.A('adminPracticeToggle', { maKho: ms.slice(0, 30), bat: 'KHONG' }));
+  const r3 = sync(w, { maKho: ms.slice(2990, 3010), mode: 'them' });
+  assert.strictEqual(r3.them, 20); assert.strictEqual(pool(w).filter((p) => p.bat === 'CO').length, 2980);
+  // "thay" bằng đúng 3 000 câu → được
+  const r4 = w.A('adminPracticeSync', { maKho: ms.slice(0, 3000), mode: 'thay' });
+  info(`2 990 + 20: "${r2.error}"; tắt 30 rồi thêm 20: them=${r3.them}; "thay" 3 000 câu: ${r4.ok ? 'được' : '"' + r4.error + '"'}`);
+});
+
+t('V2 (R-5) Nộp lại cùng token không thêm hàng; HS khác nộp token không ghi', () => {
+  const w = world({ classes: ['12A2'] });
+  const s = ok(practice(w, null, { kieu: 'TU_TAO', chuong: [], bai: [], so: { TN: 5 }, phut: 10 }));
+  const a = ok(w.S(null, 'submitExam', { attemptToken: s.attemptToken, answers: answer(w, s) }));
+  const n = KQLT(w);
+  for (let i = 0; i < 3; i++) { const b = w.S(null, 'submitExam', { attemptToken: s.attemptToken, answers: {} }); if (b.ok) assert.strictEqual(b.data.id, a.id); }
+  assert(!w.S('12A2', 'submitExam', { attemptToken: s.attemptToken, answers: {} }).ok);
+  assert.strictEqual(KQLT(w), n); assert(a.id.length > 20, 'mã bài ' + a.id);
+  info('mã bài mới: ' + a.id + ' (' + a.id.length + ' ký tự)');
+});
+
+t('V2 Mã bài cũ (6 ký tự): bài luyện và bài thi dạng cũ vẫn mở được', () => {
+  const w = world();
+  // bài luyện: đổi mã bài trong sheet về dạng cũ LT + yyMMddHHmmss + 6 ký tự
+  const s = ok(practice(w, null, { kieu: 'TU_TAO', chuong: [], bai: [], so: { TN: 5 }, phut: 10 }));
+  const r = ok(w.S(null, 'submitExam', { attemptToken: s.attemptToken, answers: answer(w, s) }));
+  const d = w.g._sheets.KetQuaLuyenTap._data(); const ci = d[0].indexOf('Mã bài');
+  const oldId = 'LT261119140624' + '4C9BC4';
+  d[d.length - 1][ci] = oldId;
+  const v = ok(w.S(null, 'getResult', { resultId: oldId }), 'getResult bài luyện mã cũ');
+  assert.strictEqual(v.items.length, 5); assert(v.items.every((x) => x.loiGiai));
+  assert(ok(w.S(null, 'myResults', { loai: 'luyen' })).some((x) => x.id === oldId));
+  // bài thi do máy chủ 1.0.0 ghi (mã cũ, KetQua thiếu cột Mục tiêu)
+  const path = require('path');
+  const old = createContext({ quiet: true, codePath: path.join(__dirname, 'fixtures', 'Code-1.0.0.gs') }); old.setup();
+  const ot = ok(old.call('loginPin', { studentId: 'HS0001', pin: '0101' })).token;
+  const os = ok(old.call('startExam', { token: ot, examId: 'DEMAU' }));
+  const orr = ok(old.call('submitExam', { token: ot, attemptToken: os.attemptToken, answers: { 1: 'C' } }));
+  const g2 = createContext({ quiet: true }); g2.setup();
+  g2._sheets.KetQua._setData(old._sheets.KetQua._data());
+  const t2 = ok(g2.call('loginPin', { studentId: 'HS0001', pin: '0101' })).token;
+  const ov = ok(g2.call('getResult', { token: t2, resultId: orr.id }), 'getResult bài thi 1.0.0');
+  assert.strictEqual(ov.diem, orr.diem);
+  assert(ok(g2.call('myResults', { token: t2 })).some((x) => x.id === orr.id));
+  info(`bài luyện mã cũ ${oldId}: mở được, 5 câu có lời giải; bài thi 1.0.0 ${orr.id}: mở được, điểm ${ov.diem}`);
 });
 
 // ---------- tổng ----------

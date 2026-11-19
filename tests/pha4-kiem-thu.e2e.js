@@ -199,6 +199,7 @@ async function runNew(browser) {
     const resText = await mainText(st);
     const nLG = (resText.match(/Lời giải mẫu/g) || []).length;
     const hash = await st.evaluate(() => location.hash);
+    const firstResultId = hash.replace('#/ket-qua/', '');
     verdict('TC-4.4 (giao diện)', f.filled === 10 && score === expectTxt && /#\/ket-qua\/LT/.test(hash) && /Luyện tập/.test(resText) && /không tính vào bảng xếp hạng/.test(resText),
       `điền ${f.filled}/10; điểm "${score}" (tính tay ${f.goc}/${f.max} → ${expectTxt}); ${hash}; nhãn "Luyện tập · … không tính vào bảng xếp hạng"`);
     // Xem lời giải: mở các câu (bấm "Câu cần xem lại" nếu cần) → đếm lời giải hiển thị
@@ -278,9 +279,21 @@ async function runNew(browser) {
     const ad = await actx.newPage(); watchErrors(ad, errors, 'admin'); await routeCdn(ad);
     const dialogs = []; ad.on('dialog', (d) => { dialogs.push(d.message()); d.accept(); });
     // Đề SAU_HAN đang mở chứa X (một câu trong pool)
-    const X = 'L12C3B01-P1-00008';
+    // X = một câu P1 của bài luyện đầu tiên (để thử luôn xem lại bài cũ khi X đang thi — vòng 2)
+    const X = BY_ND.get(s1.questions.find((q) => q.loai === 'TN').noiDung)[0];
+    const xText = s1.questions.find((q) => q.loai === 'TN').noiDung;
     const xq = (await api(B, 'adminBankToQuestions', { token: tTok, maKho: [X] })).questions;
     await api(B, 'adminSaveExam', { token: tTok, exam: { tieuDe: 'Đề đang thi có X', lop: '', thoiGian: 15, trangThai: 'MO', hienLoiGiai: 'SAU_HAN' }, questions: xq });
+    // Vòng 2: HS mở lại bài luyện đầu tiên trong lúc X đang thi
+    await st.goto(B + '/#/ket-qua/' + firstResultId); await st.waitForSelector('.score-ring'); await st.waitForTimeout(LAT + 600);
+    const rvTxt = await mainText(st);
+    const rvScore = await st.$eval('.score-ring b', (e) => e.textContent.trim());
+    await st.evaluate(() => { const x = [...document.querySelectorAll('main *')].find((e) => /sẽ hiện khi đề thi đó kết thúc/.test(e.textContent) && e.children.length < 4); if (x) x.scrollIntoView({ block: 'center' }); });
+    await shot(st, '18-xem-lai-cau-dang-thi');
+    const nLGrv = (rvTxt.match(/Lời giải mẫu/g) || []).length;
+    verdict('V2 xem lại câu đang thi (giao diện)', /Đáp án và lời giải sẽ hiện khi đề thi đó kết thúc/.test(rvTxt) && rvScore === expectTxt && nLGrv === 9,
+      `bài luyện cũ khi X đang thi: có dòng "…sẽ hiện khi đề thi đó kết thúc": ${/sẽ hiện khi đề thi đó kết thúc/.test(rvTxt)}; điểm "${rvScore}" (lúc nộp ${expectTxt}); ${nLGrv}/10 lời giải hiện`);
+    void xText;
     const meta1 = await api(B, 'practiceMeta', { token: sTok });
     const n1 = meta1.cay.reduce((s, c) => s + c.dem.TN + c.dem.DS + c.dem.TL, 0);
     await adminLogin(ad, B, srv.pw);
@@ -330,6 +343,9 @@ async function runNew(browser) {
     await api(B, 'adminSaveExam', { token: tTok, exam: Object.assign({}, full.exam, { trangThai: 'DONG' }), questions: full.questions });
     const n5 = (await api(B, 'practiceMeta', { token: sTok })).cay.reduce((s, c) => s + c.dem.TN + c.dem.DS + c.dem.TL, 0);
     verdict('TC-4.13 (giao diện)', n5 === n2 + 1, `đóng đề → HS thấy ${n5} câu (X trở lại)`);
+    await st.goto(B + '/#/'); await st.goto(B + '/#/ket-qua/' + firstResultId); await st.waitForSelector('.score-ring'); await st.waitForTimeout(LAT + 600);
+    const rv2 = await mainText(st);
+    verdict('V2 xem lại câu đang thi (giao diện)', !/sẽ hiện khi đề thi đó kết thúc/.test(rv2) && (rv2.match(/Lời giải mẫu/g) || []).length === 10, `đóng đề → mở lại bài: ${(rv2.match(/Lời giải mẫu/g) || []).length}/10 lời giải, không còn dòng báo`);
     await actx.close();
     verdict('Không lỗi JS', errors.length === 0, errors.length ? errors.join(' | ').slice(0, 500) : 'không có pageerror / console error (HS + GV)');
     void tBefore;
@@ -343,6 +359,13 @@ async function runOff(browser) {
   const srv = await startServer(PORT_OFF, { LATENCY_MS: String(LAT), PRACTICE: '0' });
   try {
     const B = srv.base;
+    // Vòng 2 (N-2): có sẵn 1 bài luyện làm khi còn bật, rồi giáo viên tắt
+    const tTok = (await api(B, 'loginAdminPassword', { password: srv.pw })).token;
+    await api(B, 'adminSaveSettings', { token: tTok, settings: { CHO_LUYEN_TAP: 'CO' } });
+    const sTok = (await api(B, 'loginPin', { studentId: 'HS0001', pin: '0101' })).token;
+    const ps = await api(B, 'practiceStart', { token: sTok, kieu: 'TU_TAO', bai: [], so: { TN: 5 }, phut: 10 });
+    const pr = await api(B, 'submitExam', { token: sTok, attemptToken: ps.attemptToken, answers: {} });
+    await api(B, 'adminSaveSettings', { token: tTok, settings: { CHO_LUYEN_TAP: 'KHONG' } });
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
     const st = await ctx.newPage(); watchErrors(st, errors, 'hs-off'); await routeCdn(st);
     const log = netLog(st);
@@ -360,8 +383,17 @@ async function runOff(browser) {
     const pages = ['#/', '#/lich-su', '#/thong-ke', '#/bang-xep-hang'];
     const res = [];
     for (const h of pages) { const e0 = errors.length; await st.goto(B + '/' + h); await st.waitForTimeout(LAT + 700); res.push(h + ':' + (errors.length === e0 && (await mainText(st)).length > 20 ? 'ok' : 'LỖI')); }
-    const hist = !!(await st.$('#histSeg'));
-    verdict('TC-4.10 (giao diện)', res.every((x) => /ok$/.test(x)), `các trang khác: ${res.join(' ')}; Lịch sử có bộ lọc Đề thi/Luyện tập: ${hist}`);
+    verdict('TC-4.10 (giao diện)', res.every((x) => /ok$/.test(x)), `các trang khác: ${res.join(' ')}`);
+    await st.goto(B + '/#/lich-su'); await st.waitForTimeout(LAT + 800);
+    const histSegOff = !!(await st.$('#histSeg [data-h="luyen"]'));
+    let oldOk = false; let oldTxt = '';
+    if (await st.$('#histSeg [data-h="luyen"]')) {
+      await st.click('#histSeg [data-h="luyen"]'); await st.waitForTimeout(LAT + 700);
+      await shot(st, '19-tat-luyen-tap-lich-su');
+      const link = await st.$(`a[href="#/ket-qua/${pr.id}"]`);
+      if (link) { await link.click(); await st.waitForSelector('.score-ring'); await st.waitForTimeout(LAT + 500); oldTxt = await mainText(st); oldOk = (oldTxt.match(/Lời giải mẫu/g) || []).length === 5; }
+    }
+    verdict('V2 tắt luyện tập vẫn xem bài cũ (giao diện)', histSegOff && oldOk, `Lịch sử có bộ lọc Đề thi/Luyện tập: ${histSegOff}; mở bài luyện cũ ${pr.id} từ Lịch sử → ${(oldTxt.match(/Lời giải mẫu/g) || []).length}/5 lời giải`);
     const ad = await ctx.newPage(); watchErrors(ad, errors, 'admin-off'); await routeCdn(ad);
     await adminLogin(ad, B, srv.pw);
     await ad.click('a[data-nav="bank"]'); await ad.waitForTimeout(LAT + 900);

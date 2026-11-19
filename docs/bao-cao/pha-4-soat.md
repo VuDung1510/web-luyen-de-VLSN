@@ -128,3 +128,63 @@ Có 1 phát hiện **Nặng** (R-1). R-1 do đặc tả chưa nói rõ trường
 2. Sửa R-2; thêm test xem lại bài luyện cũ khi câu đang bị chặn.
 3. R-3: đọc theo học sinh hoặc đệm theo học sinh, hoặc ít nhất đo và ghi rủi ro.
 4. R-5 (một dòng). R-4 và R-6 tùy chọn.
+
+---
+
+## Vòng 2
+
+Diff soát: `git diff 39eff7f..f228081` (commit `f228081`). Đặc tả bổ sung ở `46739d8`: câu chỉ vào luyện tập khi đề **đã đóng** và `canReveal_` = true; khi xem lại bài luyện thì ẩn lời giải của câu đang bị chặn. Ngày: 19/11/2026.
+
+### Tóm tắt cho giáo viên (vòng 2)
+- Đã sửa lỗ hổng chính. Câu của đề còn mở (kể cả đề để "Hiện lời giải ngay") không còn xuất hiện trong Luyện tập. Học sinh xem lại bài luyện cũ cũng không thấy đáp án của câu đang nằm trong đề chưa đóng.
+- Đề không đặt giờ đóng thì câu của đề sẽ ẩn khỏi Luyện tập cho tới khi thầy bấm đóng đề. Tab Pool có nhãn "đang thi" để thầy biết.
+- Còn một điểm nên theo dõi khi phát hành: học sinh đã làm rất nhiều bài luyện thì trang Luyện tập có thể mở chậm hơn. Điểm này cần đo trên máy chủ thật ở Pha 6.
+
+### Kết luận vòng 2: **ĐẠT**
+Không còn phát hiện Nặng. Có 1 phát hiện Vừa mới (V2-1, hiệu năng, cần đo ở Pha 6) và 2 phát hiện Nhẹ.
+
+### Đã kiểm lại
+- **Chạy lại `scratchpad/soat4/repro.js`**:
+  - A: đề "NGAY" đang mở → `blocked[X] = true`; X xuất hiện **0/30** lần.
+  - B: xem lại bài luyện cũ khi X nằm trong đề SAU_HAN đang mở → không có `dapAn`, không có `loiGiai`.
+  - C: `practiceMeta`, `practiceStart`, nộp bài không còn đọc cả trang `KetQuaLuyenTap` hay `KetQua`.
+- **Test**:
+  - Đạt: `pha4` 22/22; `pha4-kiem-thu.test.js` 26/26 (file của người kiểm thử, chỉ chạy, không sửa); `backend` 13/13, `importer`, `bank` 30/30, `cache` 17/17, `pha1-kiem-thu` 29/29, `pha2-kiem-thu` 31/31, `common-cache` 5/5.
+  - `pha4.e2e.js` (cổng 8795, ảnh lưu vào thư mục nháp): đạt cả máy chủ mới và 1.0.0.
+  - `pha4.test.js` chập chờn ở TC-4.6: 1 lần trượt trong 16 lần chạy (V2-2).
+
+| Mã | Trạng thái | Ghi chú |
+|---|---|---|
+| R-1 / K-1 (Nặng) | **Đã sửa** | `examLocked_` (`Code.gs` 1978–1987): chỉ mở khi `canReveal_` **và** (`DONG` hoặc `MO` đã quá `ketThuc`). Đề NHAP, không có trạng thái, chưa mở, đang mở (mọi chế độ), "Không hiện" đều chặn. Đệm `blockedBankIds_` vẫn hết hạn ở mốc `batDau`/`ketThuc` gần nhất, đủ cho trường hợp đề hết hạn. CAU_SAI (`open()`) và `buildPracticeView_` dùng cùng hàm này. Đúng đặc tả bổ sung. |
+| R-2 / K-2 (Vừa) | **Đã sửa** | `buildPracticeView_`: với học sinh, câu có mã kho đang bị chặn **lúc xem**, hoặc câu đề thi của đề còn khóa, thì đặt `an = true` và không gửi `dapAn`/`loiGiai`. Giáo viên vẫn thấy. Kết quả trả về ngay khi nộp cũng đi qua hàm này. `common.js` hiện ghi chú qua `esc()`, phương án qua `rich()`. Học sinh vẫn biết mình đúng hay sai qua điểm từng câu, điều này đúng đặc tả ("điểm vẫn chấm"). |
+| R-3 (Vừa) | **Đã sửa, kèm V2-1** | `rowsWhere_` đọc cột khóa rồi chỉ đọc các hàng khớp. Đã so trên shim: kết quả **trùng hoàn toàn** với `readTable_(…,{fresh:true}).filter(...)` (102 hàng xen kẽ trong 3 000 hàng). Hàm này chỉ đọc, không dùng ở đường ghi theo số hàng. `afterWrite_` xóa bộ nhớ `__si_`/`__rw_` của trang vừa ghi. `practiceResultExists_` bỏ `__si_` và đọc lại `lastRow` trong khóa nên kiểm trùng vẫn đúng. `practiceUsage_` chỉ đọc cột Chi tiết. |
+| R-4 (Nhẹ) | Chấp nhận | Không đổi. |
+| R-5 (Nhẹ) | **Đã sửa** | `view()` lọc theo mã bài **và** `studentId`; mã bài dùng 12 ký tự hex. Kết quả cũ không bị ảnh hưởng: `getResult` nhận mọi mã `^LT` và tìm theo đúng chuỗi mã. Mã chỉ được tạo lúc nộp, và vòng 1 chưa từng chạy trên máy chủ thật (phát hành ở Pha 6), nên không có mã độ dài cũ nào trên Sheet. Trường hợp lý thuyết token nộp trước và sau khi đổi mã thì `view()` báo "Lượt làm bài không hợp lệ" chứ không ghi trùng. |
+| R-6 (Nhẹ) | **Đã sửa** | `poolWrite_` đếm tổng câu đang bật sau lần ghi và báo lỗi khi vượt 3 000. Lỗi được báo trong khóa, trước mọi lần ghi, nên không ghi dở. |
+| N-1 | Đúng | Gửi cả chương và bài thì lấy giao. Giao diện chỉ gửi `bai`, NHANH đặt `chuong = []`, nên không đổi hành vi. |
+| N-2 | Đúng | Vẽ lại Lịch sử khi `features` về sau lần vẽ đầu. `myResults` và `getResult LT` không bị chặn khi tắt luyện tập, đúng đặc tả. |
+
+### Phát hiện mới
+
+#### V2-1 — **Vừa** — `rowsWhere_` đổi một lần đọc lớn thành nhiều lần `getValues`, không còn dùng đệm
+- **Vị trí**: `Code.gs` 2045–2068 (`rowsWhere_`) và `readRowRuns_` (2117): mỗi khối hàng liền nhau là 1 lần `getRange().getValues()`.
+- **Mô tả**:
+  - Bài của một học sinh nằm rải rác giữa bài của các em khác, nên gần như **mỗi bài là một lần gọi**. Đo trên shim (`scratchpad/soat4/calls.js`, 3 000 hàng, HS0001 có 101–102 bài xen kẽ): `practiceMeta`, `practiceStart` mỗi lời gọi tốn 102 lần `getValues` trên KetQuaLuyenTap, nộp bài 105 lần, `myResults luyen` 103 lần.
+  - `practiceMeta` và CAU_SAI còn đọc `KetQua` theo cách này.
+  - Trên Apps Script, mỗi lần `getValues` mất khoảng vài chục ms. Một em luyện nhiều (khoảng 100 bài) có thể phải chờ vài giây cho mỗi thao tác. Trước vòng 2, bảng dưới 900 KB nằm trong đệm 60 giây, bảng lớn hơn thì 1 lần đọc cả trang.
+  - Số ô đọc đã giảm (đúng mục tiêu R-3), nhưng số lần gọi máy chủ tăng theo số bài của em đó. Báo cáo người làm chỉ đo số ô.
+- **Đề xuất**:
+  - Khi số khối hàng vượt một ngưỡng (ví dụ 10), đọc một lần từ hàng khớp đầu tiên tới hàng khớp cuối cùng hoặc cả vùng.
+  - Hoặc đệm kết quả `rowsWhere_` theo học sinh với khóa thế hệ của trang.
+  - Tối thiểu: đưa "số lần `getValues`" vào bảng số đo và danh sách đo Pha 6.
+  - Không chặn gộp pha.
+
+#### V2-2 — Nhẹ — TC-4.6 trong `tests/pha4.test.js` chập chờn
+- **Vị trí**: `tests/pha4.test.js` 250–257.
+- **Mô tả**: bài TU_TAO lấy ngẫu nhiên 5 câu Phần I từ toàn pool, nên có thể bốc trúng X. Học sinh lại trả lời **đúng** mọi câu trừ Y, nên X bị rút khỏi tập câu sai và dòng `assert(set.includes(X))` trượt. Đã gặp 1/16 lần (`có X: L12C2B02-P1-00001,DE…#2`). Đây là lỗi của bài test, không phải lỗi mã.
+- **Đề xuất**: trả lời sai cả X (`q === Y || q === X ? w.wrong(q) : w.right(q)`), hoặc chọn bài không chứa X.
+
+#### V2-3 — Nhẹ — Học sinh suy ra được đáp án câu bị ẩn qua cờ đúng/sai
+- **Vị trí**: `buildPracticeView_` vẫn gửi `correct`, `score`, `nCorrect` cho câu có `an = true`.
+- **Mô tả**: với câu Phần I, em chọn A và được "✓ Đúng" thì biết đáp án là A. Mức lộ này nhỏ: em đã làm câu đó, và đặc tả chọn "điểm vẫn chấm".
+- **Đề xuất**: chấp nhận. Nếu muốn chặt hơn thì ẩn cả nhãn đúng/sai của câu `an` (điểm tổng vẫn giữ).
