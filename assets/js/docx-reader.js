@@ -801,7 +801,26 @@
     stats.imagesUsed = Object.keys(used).length;
     stats.paths = {};
     Object.keys(used).forEach((n) => { stats.paths[used[n].path] = 1; });
-    return { questions: parsed.questions, warnings: warnings.concat(qwarn, parsed.warnings), stats, images: Object.keys(used).map((n) => used[n]) };
+    // đề không kèm đáp án (thường gặp): gộp các dòng "chưa tìm thấy đáp án" thành một dòng
+    const noKey = parsed.warnings.filter((w) => /chưa tìm thấy đáp án/.test(w));
+    let pw = parsed.warnings;
+    if (noKey.length > 3) {
+      const nums = noKey.map((w) => +(w.match(/^Câu (\d+)/) || [])[1]).filter(Boolean);
+      pw = pw.filter((w) => noKey.indexOf(w) < 0).concat(['Chưa có đáp án ở ' + noKey.length + ' câu (' + ranges(nums) + '). Thêm vào đề rồi chọn đáp án trong trình soạn.']);
+    }
+    stats.noKey = noKey.length;
+    return { questions: parsed.questions, warnings: warnings.concat(qwarn, pw), stats, images: Object.keys(used).map((n) => used[n]) };
+  }
+
+  function ranges(nums) { // [1,2,3,5] → "câu 1–3, 5"
+    const out = [];
+    for (let i = 0; i < nums.length; i++) {
+      let j = i;
+      while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++;
+      out.push(j > i ? nums[i] + '–' + nums[j] : String(nums[i]));
+      i = j;
+    }
+    return 'câu ' + out.join(', ');
   }
 
   /** urls: { n: url | null }. Hình đầu tiên trong nội dung → cột hinhAnh; các hình khác → ![](url) tại chỗ. Trả số hình hỏng. */
