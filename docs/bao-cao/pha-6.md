@@ -147,7 +147,23 @@ Chạy trên nhánh `pha-6-phat-hanh` (commit có Code.gs 1.5.0), ngày 20/11/20
 3. `setup` vẫn in mật khẩu (giữ hành vi 1.0.0 để thầy lấy mật khẩu lần đầu); giảm rủi ro bằng lời nhắc trong tài liệu.
 
 ### Kết quả test vòng 2
-KẾT_QUẢ_VÒNG_2
+Nhánh `pha-6-phat-hanh` sau mọi sửa vòng 2, ngày 21/11/2026. Ảnh của e2e ghi ra thư mục nháp.
+
+| Lệnh | Kết quả |
+|---|---|
+| `backend` · `importer` · `bank` · `cache` · `common-cache` | 13/13 · đạt · 30/30 · 17/17 · 5/5 |
+| `cache.test.js` chạy 30 lần liền (N-1) | 30/30 lần đạt |
+| `docx.test.js` | 29/29 |
+| `pha1/2/3/4/5-kiem-thu.test.js` | 29/29 · 31/31 · 17/17 nhóm · 33/33 · 27/27 |
+| `pha4.test.js` · `pha5.test.js` · `pha6.test.js` | 22/22 · 11/11 · **10/10** |
+| `pha6-kiem-thu.test.js` (của kiểm thử, không sửa) | 91/93 — 2 mục kiểm câu chữ cũ đã sửa (chỗ lệch vòng 2, mục 1) |
+| `scan-secrets.js` | sạch, 0 phát hiện (gồm `pha-6-soat.md`, `pha-6-kiem-thu.md`) |
+| `e2e.js` · `bank.e2e.js` · `docx.e2e.js` · `pha1-r1.e2e.js` | đạt ở máy chủ mới và `SERVER_COMPAT=1.0.0` |
+| `pha1-kiem-thu.e2e.js all` | 57 ✓, 0 ✗ (cả hai chế độ) |
+| `pha2-kiem-thu.e2e.js all` · `pha3-kiem-thu.e2e.js all` | 16/16 · 23/23 nhóm |
+| `pha4-kiem-thu.e2e.js all` · `pha4.e2e.js all` | 22/22 nhóm · tất cả đạt |
+| `pha5.e2e.js all` · `pha5-kiem-thu.e2e.js all` (`MAIN_DIR`) | tất cả đạt · 17/17 nhóm |
+| `pha6-kiem-thu.e2e.js` (của kiểm thử) | **34/34 đạt** (gồm K-2 "F5 một lần" và K-3 "Pool luyện tập có ngay sau Lưu cài đặt") |
 
 ### Rủi ro còn lại (bổ sung)
 - **R-5**: cột riêng của giáo viên có thể đổi cách hiển thị sau `setup`.
