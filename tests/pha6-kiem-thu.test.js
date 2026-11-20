@@ -528,6 +528,7 @@ console.log('\n=== TC-6.5 — quét bí mật ===');
       const v = x.val;
       if (v === '0101') return 'ok: PIN học sinh mẫu do setup tạo (công khai trong README)';
       if (v === '0000') return 'ok: ví dụ PIN dễ đoán bị chặn';
+      if (/-soat\.md$/.test(x.file) && /Bỏ sót|bỏ sót|PIN\[/.test(x.ln)) return 'ok: chuỗi GIẢ người soát dùng để thử script quét';
       if (v.length === 4 && new RegExp(v.slice(0, 2) + '/' + v.slice(2)).test(x.ln)) return 'ok: ví dụ tính PIN từ ngày sinh ghi cùng dòng';
       if (x.file.startsWith('tests/')) return 'ok: PIN học sinh giả trong test';
       return 'XEM';
