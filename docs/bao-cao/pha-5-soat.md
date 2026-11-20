@@ -81,3 +81,48 @@ Không có phát hiện Nặng hay Vừa. Có 4 phát hiện Nhẹ (R-1 … R-4)
 ## Ghi chú cho điều phối
 - Bản sao `docs/QUYET-DINH.md` trên nhánh được chép từ Drive ở đầu pha. Tôi đối chiếu mục 6 và mục 9 với đặc tả và thấy thống nhất. Tôi không đọc lại bản trên Drive.
 - Đề nghị ghi R-1 và R-3 vào danh sách Pha 6.
+
+---
+
+## Vòng 2 (soát `git diff d390b00..91cf25f`, bỏ qua ảnh) — 20/11/2026
+
+### Tóm tắt cho giáo viên
+- Các chỗ sửa ở vòng 2 đều đúng. Phông chữ không còn làm trang đứng chờ khi mạng chậm: tôi giả lập mạng treo 3 giây thì trang vẫn hiện sau khoảng 0,1 giây.
+- Viên "Đang cập nhật…" nay nằm ngay dưới thanh đầu trang, giữa màn hình. Viên này không còn che nút "Làm lại" hay nút nào khác, ở cả chế độ sáng lẫn tối.
+- Không có lỗi phải sửa thêm.
+
+### Kết luận vòng 2: **ĐẠT**
+Không có phát hiện Nặng hay Vừa. Vòng này thêm 3 phát hiện Nhẹ (R-5 … R-7), không cần sửa trước khi gộp. R-1 và R-2 đã sửa. R-3 vẫn để kiểm trên điện thoại thật ở Pha 6. R-4 đã được chấp nhận.
+
+### Đã kiểm
+- **Phạm vi diff**:
+  - `index.html` và `admin.html`: chỉ đổi dòng link phông.
+  - `style.css`: thêm 2 quy tắc.
+  - `common.js`: đổi 1 dòng (chỗ gắn viên chỉ báo).
+  - Test, `bo-cuc-*.json` và báo cáo.
+  - `apps-script/` không đổi.
+- **R-1, link phông `media="print" onload="this.media='all'"`** (`index.html:14`, `admin.html:14`). Tôi tự thử bằng script riêng ở cổng 8795:
+  - CSS phông tải được: `media` chuyển thành `all`, phông được áp.
+  - Request phông bị từ chối: `media` giữ `print`, trang dùng phông dự phòng, không lỗi JS.
+  - Request phông treo 3 s: trang hiện sau 90–120 ms. Trước vòng 2 là 3,36 s.
+  - **CSP**: repo không đặt CSP (không có thẻ `meta http-equiv`, trang tĩnh). Tôi thử thêm CSP chặt (`script-src` không có `'unsafe-inline'`): trình duyệt chặn `onload`, link giữ `media=print`, trang vẫn chạy bằng phông dự phòng. Lỗi này nhẹ và không làm hỏng trang (R-5). JS sẵn có cũng đã dùng `onclick=` trong HTML sinh ra (6 chỗ, ví dụ nút In phiếu), nên đây không phải ràng buộc mới.
+  - **Không có JavaScript**: phông không được áp, nhưng toàn bộ trang cũng không chạy nếu không có JS, nên bỏ `<noscript>` là hợp lý. Tôi chấp nhận lý do người làm đưa ra cho việc không dùng `preload` + `<noscript>`.
+- **K-1 của Pha 1, viên "Đang cập nhật…"** (`common.js:185`, `style.css:316–317`): viên nay gắn vào `.topbar`. `.topbar` có `position: sticky` nên tạo khối chứa cho phần tử `absolute`; viên treo ngay dưới thanh đầu trang và đứng giữa màn hình. Tôi giả lập API chậm 2,5 s để viên hiện, rồi dò bằng `elementsFromPoint` và chụp ảnh. Kết quả đo:
+  - Đã kiểm trang chủ, Lịch sử, Thống kê của học sinh và Đề thi, Tổng quan của quản trị; khổ 390 và 1280; chế độ sáng và tối.
+  - Khi trang chưa cuộn: viên nằm gọn trong khoảng đệm trên của `main` (390: y=141, cao 18). Không che nút, chữ hay ô nào.
+  - Ở chế độ tối, viên nền `--surface`, chữ `--muted`, đọc rõ.
+  - Không có lỗi JS.
+  - Màn làm bài ẩn `#topbar`, nên viên cũng ẩn theo. Màn làm bài không dùng `cached()`, nên không mất chỉ báo nào.
+- **K-1 của kiểm thử, `.card-title h1 { font-size: 1.2rem }` ở khổ ≤ 640 px** (`style.css:235`): quy tắc chỉ áp cho tiêu đề có nút bên phải (13 chỗ dùng `.card-title`) và chỉ ở khổ hẹp. Đây là cách giảm hợp lý để nút không rơi xuống dòng khi có Montserrat. TC-5.8 vẫn đạt (xem R-7).
+- **R-2**: trường `phong` trong `bo-cuc-truoc.json` đã sửa thành `daTai: []`, kèm ghi chú. Số đo `layout` không đổi.
+- **Test chạy lại** (cổng 8795, ảnh ghi vào thư mục nháp):
+  - `node tests/pha5.test.js`: 11/11.
+  - `tests/pha5.e2e.js all`: tất cả đạt ở cả máy chủ mới và `SERVER_COMPAT=1.0.0`. Gồm mục mới "R-1 phông treo 3 s" và TC-5.8 cho 12 màn × khổ.
+  - Không chạy `pha1-kiem-thu.e2e.js` vì test này cố định cổng khác. Tôi dựa vào kết quả người làm đã ghi (57 ✓).
+
+### Phát hiện vòng 2
+| Mã | Mức | Vị trí | Vấn đề | Đề xuất |
+|---|---|---|---|---|
+| R-5 | Nhẹ | `index.html:14`, `admin.html:14` | `onload` viết thẳng trong HTML. Nếu sau này máy chủ đặt CSP không cho `'unsafe-inline'`, phông web sẽ không bao giờ được áp. Trang không hỏng mà chỉ dùng phông dự phòng. Hiện chưa có CSP. | Không sửa. Nếu Pha 6 thêm CSP thì thêm `'unsafe-hashes'` + hash của handler, hoặc chuyển sang gắn bằng JS (`common.js`). |
+| R-6 | Nhẹ | `style.css:317` | Khi đã cuộn xuống, viên "Đang cập nhật…" treo dưới thanh đầu trang (vẫn dính trên cùng) và đè lên một dải nội dung cao 18 px trong lúc tải. Ví dụ: trang chủ 390 cuộn 187 px thì viên đè lên số liệu của thẻ thống kê. Viên có `pointer-events: none`, chỉ hiện vài giây và có viền, bóng rõ, nên không chặn bấm. Mức này nhẹ hơn vị trí cũ (góc dưới trái). | Chấp nhận. Nếu muốn, có thể làm viên trong suốt một phần khi trang đã cuộn. Không cần làm ở Pha 5. |
+| R-7 | Nhẹ | `style.css:235` | `.card-title h1` ở khổ hẹp nhỏ hơn `main` (1.2rem so với 1.35rem). Khi Montserrat tải được thì độ rộng tiêu đề tương đương bản cũ. Khi phông bị chặn (phông dự phòng) thì tiêu đề nhỏ hơn bản cũ một chút. TC-5.8 cho phép phần chênh do tiêu đề. | Chấp nhận. Gộp vào việc xem trên điện thoại thật ở Pha 6 (cùng R-3). |

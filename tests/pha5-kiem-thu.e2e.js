@@ -149,13 +149,25 @@ async function measure(page) {
     for (const s of SINGLE) { const e = [...document.querySelectorAll(s)].find(vis); if (e) rec(s, e); }
     const main = document.querySelector('main');
     if (main) [...main.children].filter(vis).forEach((e, i) => rec(`main>*[${i}]`, e));
+    // Miễn trừ N-1 (đặc tả vòng 2): dòng gợi ý dưới ô "Tên giáo viên" ở Cài đặt. Đo đúng phần cao nó chiếm: ẩn tạm rồi đo lại.
+    let hint = null;
+    const hel = [...document.querySelectorAll('main *')].find((e) => e.children.length === 0 && /Không hiển thị trên trang học sinh \(chỉ dùng nội bộ\)/.test(e.textContent) && vis(e));
+    if (hel) {
+      const card = hel.closest('.card') || hel.parentElement;
+      const h0 = card.getBoundingClientRect().height; const top = hel.getBoundingClientRect().top + scrollY;
+      const old = hel.style.display; hel.style.display = 'none';
+      const h1 = card.getBoundingClientRect().height; hel.style.display = old;
+      hint = { extra: Math.round(h0 - h1), top: Math.round(top) };
+      // khối chứa dòng gợi ý (cao thêm) và khối nằm dưới nó (dời xuống)
+      for (const v of Object.values(out)) { v.hintIn = v.y <= hint.top && v.y + v.h >= hint.top; v.hintBelow = v.y > hint.top; }
+    }
     const fonts = [];
     try { document.fonts.forEach((f) => { if (f.status === 'loaded') fonts.push(f.family.replace(/"/g, '') + ' ' + f.weight); }); } catch (e) { /* */ }
-    return { rects: out, fonts: [...new Set(fonts)], sw: document.documentElement.scrollWidth, iw: innerWidth };
+    return { rects: out, hint, fonts: [...new Set(fonts)], sw: document.documentElement.scrollWidth, iw: innerWidth };
   }, SINGLE);
 }
 function compareLayout(before, after, label) {
-  const bad = []; let n = 0; const notes = [];
+  const bad = []; let n = 0; const notes = []; const exempt = [];
   for (const scr of Object.keys(before)) {
     if (!after[scr]) { bad.push(`${scr}: thiếu màn`); continue; }
     const A = before[scr].rects; const B = after[scr].rects;
@@ -165,6 +177,10 @@ function compareLayout(before, after, label) {
       n++;
       const tolY = 4 + Math.abs(b.hb - a.hb); const tolH = 4 + Math.abs(b.hi - a.hi);
       const d = { x: b.x - a.x, w: b.w - a.w, y: b.y - a.y, h: b.h - a.h };
+      // N-1: chỉ trừ đúng phần cao của dòng gợi ý (nhánh có gợi ý, main không có)
+      const ex = after[scr].hint && !before[scr].hint ? after[scr].hint.extra : 0;
+      if (ex && b.hintIn) { d.h -= ex; exempt.push(`${scr} ${k}: h ${a.h}→${b.h} (miễn trừ ${ex} px gợi ý)`); }
+      else if (ex && b.hintBelow && !b.hintIn) { d.y -= ex; exempt.push(`${scr} ${k}: y ${a.y}→${b.y} (dời ${ex} px theo gợi ý)`); }
       const fails = [];
       if (Math.abs(d.x) > 4) fails.push(`x ${a.x}→${b.x}`);
       if (Math.abs(d.w) > 4) fails.push(`w ${a.w}→${b.w}`);
@@ -178,7 +194,7 @@ function compareLayout(before, after, label) {
     const sameRow = (R2) => R2['#userBox'] && R2['.brand'] ? Math.abs((R2['#userBox'].y + R2['#userBox'].h / 2) - (R2['.brand'].y + R2['.brand'].h / 2)) < R2['.brand'].h / 2 : null;
     if (sameRow(A) !== sameRow(B)) bad.push(`${scr}: #userBox cùng hàng .brand trên main ${sameRow(A)}, trên nhánh ${sameRow(B)}`);
   }
-  return { bad, n, notes, label };
+  return { bad, n, notes, label, exempt };
 }
 
 // ---------- màu ----------
@@ -484,7 +500,7 @@ async function runLayout(browser, branchLight) {
       saveLayout(`kt-bo-cuc-sau-${vtag}-${fm}.json`, after);
       const c = compareLayout(before, after, `${vtag} ${fm}`);
       const fB = [...new Set(Object.values(before).flatMap((m) => m.fonts))]; const fA = [...new Set(Object.values(after).flatMap((m) => m.fonts))];
-      verdict('TC-5.8', c.bad.length === 0, `${vtag}, phông ${fm === 'chan' ? 'bị chặn (rơi về system-ui)' : 'cục bộ @fontsource'}: so ${c.n} khối ở ${Object.keys(before).length} màn; phông tải được main [${fB.join(', ') || 'không'}], nhánh [${fA.join(', ') || 'không'}]; ${c.bad.length ? 'LỆCH: ' + c.bad.slice(0, 12).join(' | ') : 'mọi khối trong dung sai'}${c.notes.length ? '; ghi chú: ' + c.notes.slice(0, 6).join(' | ') : ''}`);
+      verdict('TC-5.8', c.bad.length === 0, `${vtag}, phông ${fm === 'chan' ? 'bị chặn (rơi về system-ui)' : 'cục bộ @fontsource'}: so ${c.n} khối ở ${Object.keys(before).length} màn; phông tải được main [${fB.join(', ') || 'không'}], nhánh [${fA.join(', ') || 'không'}]; ${c.bad.length ? 'LỆCH: ' + c.bad.slice(0, 12).join(' | ') : 'mọi khối trong dung sai'}${c.exempt.length ? `; miễn trừ N-1: ${[...new Set(c.exempt.map((x) => x.split(':')[0]))].length} khối ở Cài đặt (gợi ý cao ${(after['qt-cai-dat'].hint || {}).extra} px)` : ''}${c.notes.length ? '; ghi chú: ' + c.notes.slice(0, 6).join(' | ') : ''}`);
       if (WIDE_DIR && fm === 'chan') {
         const wide = (await layoutRun(browser, WIDE_DIR, PORT_WIDE, vp, fm, `logo ngang ${vtag}`, 'logo-ngang-' + vtag)).L;
         saveLayout(`kt-bo-cuc-logo-ngang-${vtag}.json`, wide);
@@ -495,6 +511,65 @@ async function runLayout(browser, branchLight) {
     }
   }
 }
+// R-1 (vòng 2): request Google Fonts treo 3 s → trang vẫn hiện ngay
+async function fontHang(browser, root, port, tag) {
+  const s = await startServer(port, { LATENCY_MS: '0' }, root);
+  const res = [];
+  try {
+    for (const [url, sel] of [['/', '#selClass'], ['/admin.html', '#pw']]) {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } }); const p = await ctx.newPage();
+      await routeCdn(p, 'chan');
+      await p.route(/fonts\.googleapis\.com/, async (r) => { await new Promise((z) => setTimeout(z, 3000)); r.fulfill({ status: 200, contentType: 'text/css', body: '' }).catch(() => {}); });
+      const t0 = Date.now();
+      await p.goto(s.base + url, { waitUntil: 'commit' });
+      await p.waitForSelector(sel, { state: 'visible', timeout: 15000 });
+      const tVis = Date.now() - t0;
+      const fcp = await p.evaluate(() => new Promise((ok) => { const e = performance.getEntriesByName('first-contentful-paint')[0]; if (e) return ok(Math.round(e.startTime)); new PerformanceObserver((l) => ok(Math.round(l.getEntries()[0].startTime))).observe({ type: 'paint', buffered: true }); setTimeout(() => ok(null), 5000); }));
+      res.push({ url, tVis, fcp });
+      await ctx.close();
+    }
+  } finally { await stop(s); }
+  return res;
+}
+// Vòng 2: viên "Đang cập nhật" (máy chủ chậm) không che nút/liên kết/ô nhập, ở 390 và 1280
+async function pillCheck(browser) {
+  const s = await startServer(PORT_NEW, { LATENCY_MS: '2500' });
+  try {
+    await seed(s.base, s.pw);
+    for (const vp of [[390, 844], [1280, 800]]) {
+      const ctx = await browser.newContext({ viewport: { width: vp[0], height: vp[1] } }); const p = await ctx.newPage();
+      await routeCdn(p, 'chan');
+      await p.goto(s.base + '/');
+      await p.waitForSelector('#selClass option[value="12A1"]', { state: 'attached', timeout: 20000 });
+      await p.selectOption('#selClass', '12A1');
+      await p.waitForSelector('#selStudent option[value="HS0001"]', { state: 'attached', timeout: 20000 });
+      await p.selectOption('#selStudent', 'HS0001'); await p.fill('#pin', '0101'); await p.click('#btnLogin');
+      await p.waitForSelector('a[href="#/lich-su"]', { timeout: 30000 }); await p.waitForTimeout(3500);
+      const found = [];
+      for (const h of ['#/lich-su', '#/', '#/thong-ke', '#/lich-su', '#/']) {
+        await p.click(`#nav a[href="${h}"]`).catch(() => p.evaluate((x) => { location.hash = x; }, h));
+        // trong lúc làm mới nền: lấy mẫu vài lần
+        for (let i = 0; i < 8; i++) {
+          await p.waitForTimeout(150);
+          const r = await p.evaluate(() => {
+            const pill = [...document.querySelectorAll('body *')].find((e) => e.children.length < 3 && /Đang cập nhật/.test(e.textContent) && e.getBoundingClientRect().height > 0 && getComputedStyle(e).visibility !== 'hidden' && getComputedStyle(e).opacity !== '0');
+            if (!pill) return null;
+            const pr = pill.getBoundingClientRect();
+            const hits = [...document.querySelectorAll('button, a, input, select, textarea, label, [data-opt], [data-tf]')].filter((e) => !pill.contains(e) && !e.contains(pill) && e.getBoundingClientRect().width > 0).filter((e) => { const q = e.getBoundingClientRect(); return q.left < pr.right && q.right > pr.left && q.top < pr.bottom && q.bottom > pr.top; }).map((e) => (e.id ? '#' + e.id : e.tagName.toLowerCase()) + ' "' + e.textContent.trim().slice(0, 20) + '"');
+            return { cls: String(pill.className), rect: [Math.round(pr.left), Math.round(pr.top), Math.round(pr.width), Math.round(pr.height)], hits, hash: location.hash };
+          });
+          if (r) { found.push(r); if (vp[0] === 390 && found.length === 1) await shot(p, 'v2-dang-cap-nhat-390'); }
+        }
+        await p.waitForTimeout(2800);
+      }
+      const hits = [...new Set(found.flatMap((f) => f.hits))];
+      verdict('Vòng 2: viên "Đang cập nhật" không che', found.length > 0 && hits.length === 0,
+        `${vp[0]}: thấy viên ${found.length} lần (${[...new Set(found.map((f) => f.hash))].join(' ')}), lớp "${found[0] ? found[0].cls : '—'}", vị trí ${found[0] ? JSON.stringify(found[0].rect) : '—'}; phần tử bấm được bị đè: ${hits.join(', ') || 'không'}`);
+      await ctx.close();
+    }
+  } finally { await stop(s); }
+}
+
 // Ảnh phóng to đầu trang (logo tạm)
 async function zoomShot(browser) {
   const s = await startServer(PORT_NEW, { LATENCY_MS: String(LAT) });
@@ -517,6 +592,14 @@ async function zoomShot(browser) {
     if (MODE === 'nhanh' || MODE === 'all') { br = await runBranch(browser); await zoomShot(browser); }
     if (MODE === 'compat' || MODE === 'all') await runCompat(browser);
     if (MODE === 'bocuc' || MODE === 'all') await runLayout(browser, br);
+    if (MODE === 'vong2' || MODE === 'all') {
+      console.log('— Vòng 2: phông treo 3 s, viên "Đang cập nhật" —');
+      const nb = await fontHang(browser, ROOT, PORT_NEW, 'nhánh');
+      const mb = MAIN_DIR ? await fontHang(browser, MAIN_DIR, PORT_MAIN, 'main') : [];
+      verdict('Vòng 2: phông treo 3 s', nb.every((x) => x.tVis < 1500),
+        `Google Fonts treo 3 s: nhánh ${nb.map((x) => `${x.url} hiện sau ${x.tVis} ms (FCP ${x.fcp} ms)`).join('; ')}${mb.length ? ` · đối chứng main: ${mb.map((x) => `${x.url} ${x.tVis} ms (FCP ${x.fcp} ms)`).join('; ')}` : ''}`);
+      await pillCheck(browser);
+    }
   } catch (e) {
     console.error('LỖI KỊCH BẢN:', e.stack || e); process.exitCode = 1;
   } finally {
