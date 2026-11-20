@@ -651,12 +651,15 @@ function apiMyResults_(req) {
 function apiGetResult_(req) {
   var u = requireUser_(req);
   if (/^LT/.test(str_(req.resultId))) {
-    var lt = rowsWhere_('KetQuaLuyenTap', 'id', req.resultId)[0];
+    // N-1 (Pha 6): học sinh thì ưu tiên hàng của chính mình khi (hiếm) có hai hàng cùng mã bài
+    var lts = rowsWhere_('KetQuaLuyenTap', 'id', req.resultId);
+    var lt = (u.role === 'student' ? lts.filter(function (x) { return x.studentId === u.student.id; })[0] : null) || lts[0];
     if (!lt) throw new Error('Không tìm thấy bài làm.');
     if (u.role === 'student' && lt.studentId !== u.student.id) throw new Error('Bạn không xem được bài làm này.');
     return buildPracticeView_(lt, u.role);
   }
-  var r = readTable_('KetQua').filter(function (x) { return x.id === str_(req.resultId); })[0];
+  var rs = readTable_('KetQua').filter(function (x) { return x.id === str_(req.resultId); });
+  var r = (u.role === 'student' ? rs.filter(function (x) { return x.studentId === u.student.id; })[0] : null) || rs[0];
   if (!r) throw new Error('Không tìm thấy bài làm.');
   if (u.role === 'student' && r.studentId !== u.student.id) throw new Error('Bạn không xem được bài làm này.');
   return buildResultView_(r, findExam_(r.examId), u.role);

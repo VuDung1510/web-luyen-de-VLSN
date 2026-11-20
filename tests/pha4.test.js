@@ -660,7 +660,8 @@ t('Vòng 2 R-5 / N-2: nộp lại tìm bài theo mã bài + mã học sinh; tắ
   clearCache(w.g);
   const r = w.g.call('submitExam', { token: w.sTok, attemptToken: s.attemptToken, answers: {} });
   assert(!r.ok || r.data.studentId === 'HS0001', 'trả bài của học sinh khác');
-  d[1][d[0].indexOf('Mã HS')] = 'HS0001';
+  // Pha 6 (N-1): kiểm trùng theo mã bài + mã HS → hàng của "học sinh khác" giữ nguyên, bài của HS0001 được ghi riêng
+  assert.strictEqual(d[1][d[0].indexOf('Mã HS')], 'HS9999');
   clearCache(w.g);
   K.setSetting(w.g, { CHO_LUYEN_TAP: 'KHONG' });
   assert.strictEqual(ok(w.g.call('myResults', { token: w.sTok, loai: 'luyen' })).length, 1);
