@@ -38,7 +38,7 @@ Máy chủ mới: **Code.gs 1.5.0** (gồm toàn bộ thay đổi máy chủ c�
 - ☐ Trong Apps Script, chọn hàm **`kiemTraSauTrienKhai`**, bấm ▶ **Chạy** (hàm này chỉ đọc, không sửa dữ liệu).
 - ☐ Xem **Nhật ký thực thi**: mọi dòng ✅ là ổn; dòng ⚠️ là lưu ý; dòng ❌ là lỗi cần sửa (dòng đó ghi cách sửa).
 - ☐ Chụp màn hình nhật ký, gửi cho Claude.
-- ☐ Mở trang quản trị, đăng nhập, vào **Cài đặt**: dòng "Phiên bản máy chủ" phải là **1.5.0**. Nếu vẫn số cũ: làm lại A5 (quên chọn "Phiên bản mới").
+- ☐ Mở trang quản trị, đăng nhập, vào **Cài đặt**, kéo xuống khung **Dữ liệu** (cuối trang): dòng "Phiên bản máy chủ" phải là **1.5.0** (xem ảnh `docs/bao-cao/anh/pha-6/01-cai-dat-phien-ban-1280.png`). Nếu vẫn số cũ: làm lại A5 (quên chọn "Phiên bản mới").
 - ☐ Trên máy đã từng mở web, bấm tải lại trang (F5) một lần để nút Đổi PIN và ô Mục tiêu điểm hiện ra.
 - ☐ Thử nhanh: đăng nhập 1 học sinh mẫu; tab **Ngân hàng** → Ma trận 1 chạm lớp 12 → Tạo đề → xem hình có hiện → Lưu (để Bản nháp) → xóa đề thử.
 
