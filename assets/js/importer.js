@@ -121,23 +121,38 @@
       if (line) cur.loiGiai += (cur.loiGiai && !cur.loiGiai.endsWith('\n') ? '\n' : '') + line;
     };
 
+    // Pha 6b: mốc hình {{HINH:n}} đứng ĐẦU dòng (hình neo/nổi hoặc hình inline đặt trước chữ trong đoạn Word)
+    // không được che nhãn "Câu n", "A.", "a)", "PHẦN …", "Đáp án:", "Lời giải:". Tách mốc ra (lead), nhận nhãn
+    // trên phần chữ còn lại, rồi gắn mốc vào chỗ hợp lý: dòng "Câu n" → nội dung câu n; dòng phương án / ý a–d →
+    // nội dung câu đang đọc (hình của câu, không vào ô phương án); dòng tiêu đề (PHẦN …) → giữ lại cho câu kế
+    // tiếp. Dòng không có nhãn thì giữ nguyên mốc tại chỗ như trước.
+    const LEAD_RE = /^(?:\s*\{\{HINH:\d+\}\})+\s*/;
+    let pendingImg = '';
+    const addImg = (q, m) => { if (m) q.noiDung += (q.noiDung ? '\n' : '') + m; };
+
     for (let raw of lines) {
       const line = raw.replace(/ /g, ' ').trimEnd();
-      const t = line.trim();
+      let t = line.trim();
       if (!t) { if (cur && mode === 'sol') cur.loiGiai += '\n'; continue; }
+      let lead = '';
+      const lm1 = t.match(LEAD_RE);
+      if (lm1 && lm1[0].length < t.length) { lead = lm1[0].replace(/\s+/g, ''); t = t.slice(lm1[0].length); }
+      const keepLead = () => { if (lead) { pendingImg += lead; lead = ''; } };
+      const restoreLead = () => { if (lead) { t = lead + t; lead = ''; } };
 
       // dòng để học sinh tự ghi đáp án (Phần III của mẫu VLSN) — không phải đáp án
-      if (/^Đ[áa]p\s*[áa]n\s+c[ủu]a\s+em\b/i.test(t)) continue;
+      if (/^Đ[áa]p\s*[áa]n\s+c[ủu]a\s+em\b/i.test(t)) { if (lead && cur) addImg(cur, lead); continue; }
       // "---------- HẾT ----------": hết phần đề
-      if (/^[-–—_=.*\s]*H[ẾE]T[-–—_=.*\s]*$/i.test(t) && /[-–—_=.*]/.test(t)) { push(); ended = true; solPart = 0; solIdx = -1; mode = 'body'; continue; }
+      if (/^[-–—_=.*\s]*H[ẾE]T[-–—_=.*\s]*$/i.test(t) && /[-–—_=.*]/.test(t)) { if (lead && cur) addImg(cur, lead); push(); ended = true; solPart = 0; solIdx = -1; mode = 'body'; continue; }
       // "HƯỚNG DẪN GIẢI" / "LỜI GIẢI CHI TIẾT" (dòng riêng, sau phần đề): các "Câu n" tiếp theo là lời giải
       if (qs.length + (cur ? 1 : 0) > 0 && /^(H[ƯU][ỚO]NG\s+D[ẪA]N(\s+GI[ẢA]I)?|L[ỜO]I\s+GI[ẢA]I(\s+CHI\s+TI[ẾE]T)?|Đ[ÁA]P\s+[ÁA]N\s+V[ÀA]\s+H[ƯU][ỚO]NG\s+D[ẪA]N(\s+GI[ẢA]I)?)\s*:?\s*$/i.test(t) && t === t.toUpperCase()) {
-        push(); inKey = false; ended = true; solPart = 0; solIdx = -1; mode = 'body'; continue;
+        if (lead && cur) addImg(cur, lead); push(); inKey = false; ended = true; solPart = 0; solIdx = -1; mode = 'body'; continue;
       }
-      if (/^(B[ẢA]NG\s+)?Đ[ÁA]P\s+[ÁA]N\s*:?\s*$/i.test(t) || /^B[ẢA]NG\s+Đ[ÁA]P\s+[ÁA]N/i.test(t)) { push(); inKey = true; keyPart = part; }
+      if (/^(B[ẢA]NG\s+)?Đ[ÁA]P\s+[ÁA]N\s*:?\s*$/i.test(t) || /^B[ẢA]NG\s+Đ[ÁA]P\s+[ÁA]N/i.test(t)) { if (lead && cur) addImg(cur, lead); lead = ''; push(); inKey = true; keyPart = part; }
       const p = partOf(t);
-      if (p) { if (inKey) keyPart = p; else if (ended) { push(); solPart = p; solIdx = -1; } else { push(); part = p; if (p === 4) sawP4 = true; } continue; }
+      if (p) { keepLead(); if (inKey) keyPart = p; else if (ended) { push(); solPart = p; solIdx = -1; } else { push(); part = p; if (p === 4) sawP4 = true; } continue; }
       if (inKey) {
+        lead = '';
         const re = /(?:C[âa]u\s*)?(\d+)\s*[.:)\-]\s*([ĐDSABCđds]{1,4}(?=\s|$|[,;|])|[-+]?\d+(?:[.,]\d+)?)/g;
         let m;
         while ((m = re.exec(t))) keyMap[(keyPart || 0) + ':' + m[1]] = m[2];
@@ -147,6 +162,8 @@
       const qm = t.match(/^C[âa]u\s*(\d+)\s*[.:)]?\s*(?:\((?:[^)]*)\)\s*)?(.*)$/i);
       if (qm) {
         push();
+        const img = pendingImg + lead;
+        pendingImg = ''; lead = '';
         if (ended) {
           // sau "HẾT": phần hướng dẫn giải, "Câu n" là lời giải của câu n đã đọc
           // có "PHẦN …" trong phần lời giải: khớp (phần, số câu). Không có: ghép theo thứ tự — câu đầu tiên có số n
@@ -161,6 +178,7 @@
             // N-3 (Pha 6): phần cùng dòng "Câu 1. Lời giải: Chọn B." xử lý như các dòng lời giải sau đó
             const rest = (qm[2] || '').replace(LEVEL_RE, '').trim();
             if (rest) solLine(rest);
+            if (img) solLine(img);
           }
           continue;
         }
@@ -168,11 +186,12 @@
         const lm0 = body.match(LEVEL_RE);
         if (lm0) { lv = LEVEL[lm0[1].toUpperCase()]; body = body.slice(lm0[0].length); }
         cur = { num: +qm[1], phan: part || 0, noiDung: body, A: '', B: '', C: '', D: '', dapAn: '', loiGiai: '', mucDo: lv, _ds: false, _tn: false };
+        addImg(cur, img);
         mode = 'body';
         continue;
       }
-      if (!cur) continue;
-      if (cur._old && mode === 'sol') { solLine(t); continue; }
+      if (!cur) continue; // trước câu đầu tiên (khung đầu đề, logo): bỏ như cũ
+      if (cur._old && mode === 'sol') { restoreLead(); solLine(t); continue; }
 
       // "Chọn" chỉ là đáp án khi theo sau là đúng một chữ A–D (tránh nhầm câu dẫn "Chọn phát biểu đúng…")
       // "Chọn B" / "Chọn: B." (có thể kèm "Lời giải: …" phía sau); "Chọn câu đúng." là câu dẫn, giữ trong nội dung
@@ -182,14 +201,16 @@
         if (cm0 && (!cm0[3] || /^(L[ờo]i\s*gi[ảa]i|HD|Gi[ảa]i)\b/i.test(cm0[3]))) am = [t, cm0[1], cm0[2] + (cm0[3] ? ' ' + cm0[3] : '')];
       }
       if (am && mode !== 'sol') {
+        addImg(cur, lead); lead = '';
         cur.dapAn = am[2].trim().replace(/[.。]$/, '');
         const sm = cur.dapAn.match(/^(\S+)\s*[.;]?\s*(L[ờo]i\s*gi[ảa]i|HD|Gi[ảa]i)\s*[:.]?\s*(.*)$/i);
         if (sm) { cur.dapAn = sm[1]; cur.loiGiai = sm[3]; mode = 'sol'; }
         continue;
       }
       const lm = t.match(/^(L[ờo]i\s*gi[ảa]i|H[ưu][ớo]ng\s*d[ẫa]n(\s*gi[ảa]i)?|HDG|HD|Gi[ảa]i)\s*[:.]\s*(.*)$/i);
-      if (lm) { mode = 'sol'; cur.loiGiai = (cur.loiGiai ? cur.loiGiai + '\n' : '') + lm[3]; continue; }
+      if (lm) { addImg(cur, lead); lead = ''; mode = 'sol'; cur.loiGiai = (cur.loiGiai ? cur.loiGiai + '\n' : '') + lm[3]; continue; }
       if (mode === 'sol') {
+        restoreLead();
         // "Đáp số: 0,5 Hz" / "Đáp án: B" nằm trong lời giải: ghi đáp án (nếu chưa có), vẫn giữ trong lời giải
         const am3 = t.match(/^(Đ[áa]p\s*[áa]n|ĐA|Đ[áa]p\s*s[ốo])\s*[:.]\s*(.+)$/i);
         if (am3 && !cur.dapAn) cur.dapAn = am3[2].trim().replace(/[.。]$/, '');
@@ -200,6 +221,7 @@
       const dm = t.match(/^([a-d])\s*[).]\s*(.*)$/);
       if (dm && (dm[1] === 'a' || cur._ds)) {
         cur._ds = true;
+        addImg(cur, lead); lead = '';
         cur[dm[1].toUpperCase()] = dm[2].trim().replace(LEVEL_RE, '');
         continue;
       }
@@ -207,10 +229,12 @@
       const opts = splitOptions(t);
       if (opts) {
         cur._tn = true;
+        addImg(cur, lead); lead = '';
         opts.forEach((o) => { cur[o.k] = o.v; if (o.star) cur.dapAn = o.k; });
         continue;
       }
       // dòng tiếp theo của nội dung / phương án cuối cùng
+      restoreLead();
       if (cur._ds) { const last = ['D', 'C', 'B', 'A'].find((k) => cur[k]); if (last) cur[last] += ' ' + t; }
       else if (cur._tn) { const last = ['D', 'C', 'B', 'A'].find((k) => cur[k]); if (last) cur[last] += ' ' + t; }
       else cur.noiDung += (cur.noiDung ? '\n' : '') + t;
@@ -285,7 +309,8 @@
 
   /** "A. 1 m/s  B. 2 m/s  C. 3 m/s  D. 4 m/s" → [{k:'A',v:'1 m/s'}, …] (chỉ khi phương án theo đúng thứ tự) */
   function splitOptions(t) {
-    const re = /(^|\s)(\*?)([A-D])\s*[.)]\s+/g;
+    // nhãn đứng sau khoảng trắng hoặc ngay sau mốc hình "{{HINH:n}}" (hình chen giữa hai phương án, không có dấu cách)
+    const re = /(^|\s|\}\})(\*?)([A-D])\s*[.)]\s+/g;
     const marks = [];
     let m;
     while ((m = re.exec(t))) marks.push({ k: m[3], star: !!m[2], start: m.index + m[1].length, end: re.lastIndex });

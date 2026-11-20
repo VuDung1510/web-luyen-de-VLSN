@@ -250,6 +250,52 @@ const strip = (q) => { const o = Object.assign({}, q); delete o.hinhAnh; return 
   const tsvOf = (rows) => rows.map((r) => r.map((c) => (/[\t\n"]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c)).join('\t')).join('\n');
   const csvOf = (rows, sep) => '\uFEFF' + rows.map((r) => r.map((c) => (/[,;\n"]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c)).join(sep)).join('\r\n');
   const xlsxOf = (rows) => { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Câu hỏi'); return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }); };
+  await test('Pha 6b: hình neo/nổi và inline ở ĐẦU đoạn "Câu n:", phương án "A.", ý "a." không phá nhãn; hình thuộc đúng câu', async () => {
+    const media = {};
+    for (let k = 1; k <= 9; k++) media['rId' + k] = { name: 'image' + k + '.png', data: png([20 * k, 0, 0]) };
+    const A = (k) => M.img('rId' + k, { anchor: true }), N = (k) => M.img('rId' + k);
+    const r = await readDocx([M.p('PHẦN I'),
+      M.p('Câu 1. Hỏi một?'), M.p('A. 1\tB. 2\tC. 3\tD. 4'),
+      M.p([A(1), 'Câu 2: Hỏi hai?']), M.p('A. 1\tB. 2\tC. 3\tD. 4'),
+      M.p([N(2), 'Câu 3. Hỏi ba?']), M.p([A(3), 'A. 1']), M.p('B. 2'), M.p('C. 3'), M.p('D. 4'),
+      M.p([N(4), A(5), 'Câu 4. Hỏi ', 'bốn?']), M.p(['A. 1', N(6), 'B. 2\tC. 3\tD. 4']),
+      M.p([A(9), 'PHẦN II']),
+      M.p('Câu 1. Dẫn một.'), M.p([A(7), 'a. ý một (Đ)']), M.p('b. ý hai (S)'), M.p('c. ý ba (S)'), M.p('d. ý bốn (Đ)'),
+      M.p([N(8), 'Câu 2: Dẫn hai.']), M.p('a) x (Đ)'), M.p('b) y (Đ)'), M.p('c) z (S)'), M.p('d) t (S)')
+    ], { media });
+    const qs = r.questions;
+    assert.deepStrictEqual(qs.map((q) => q.loai + q.phan + '-' + q.num), ['TN1-1', 'TN1-2', 'TN1-3', 'TN1-4', 'DS2-1', 'DS2-2']);
+    assert.ok(qs.every((q) => ['A', 'B', 'C', 'D'].every((k) => String(q[k]).trim())), JSON.stringify(qs));
+    const urls = {};
+    r.images.forEach((im) => { urls[im.n] = 'https://lh3.googleusercontent.com/d/HINH' + im.n; });
+    assert.strictEqual(r.images.length, 9);
+    assert.deepStrictEqual(R.attachImages(qs, urls), []);
+    const u = (k) => urls[r.images.find((im) => im.name === 'image' + k + '.png').n]; // mốc đánh số theo thứ tự xuất hiện
+    assert.ok(!qs[0].hinhAnh && qs[0].noiDung === 'Hỏi một?' && qs[0].D === '4');
+    assert.strictEqual(qs[1].hinhAnh, u(1));
+    assert.strictEqual(qs[1].noiDung, 'Hỏi hai?');
+    assert.strictEqual(qs[2].hinhAnh, u(2));
+    assert.strictEqual(qs[2].noiDung, 'Hỏi ba?\n![](' + u(3) + ')');
+    assert.deepStrictEqual([qs[2].A, qs[2].B, qs[2].C, qs[2].D], ['1', '2', '3', '4']);
+    assert.strictEqual(qs[3].hinhAnh, u(4));
+    assert.strictEqual(qs[3].noiDung, 'Hỏi bốn?\n![](' + u(5) + ')');
+    assert.deepStrictEqual([qs[3].A, qs[3].B, qs[3].C, qs[3].D], ['1![](' + u(6) + ')', '2', '3', '4']);
+    // hình ở đoạn "PHẦN II" → câu kế tiếp; hình ở đoạn ý "a." → hình của câu Đúng/Sai, ý a giữ nguyên
+    assert.strictEqual(qs[4].hinhAnh, u(9));
+    assert.strictEqual(qs[4].noiDung, 'Dẫn một.\n![](' + u(7) + ')');
+    assert.deepStrictEqual([qs[4].A, qs[4].B, qs[4].C, qs[4].D, qs[4].dapAn], ['ý một', 'ý hai', 'ý ba', 'ý bốn', 'ĐSSĐ']);
+    assert.strictEqual(qs[5].hinhAnh, u(8));
+    assert.strictEqual(qs[5].noiDung, 'Dẫn hai.');
+    assert.strictEqual(qs[5].dapAn, 'ĐĐSS');
+    // dán văn bản có mốc đầu dòng: "Đáp án:" / "Lời giải:" vẫn nhận; dòng chỉ có mốc giữ nguyên chỗ cũ
+    const t = I.fromText('Câu 1. Hỏi?\n{{HINH:1}}A. 1\tB. 2\tC. 3\tD. 4\n{{HINH:2}} Đáp án: C\n{{HINH:3}}Lời giải: vì thế\nCâu 2. Hai?\n{{HINH:4}}\nA. 5\tB. 6\tC. 7\tD. 8');
+    assert.strictEqual(t.questions[0].noiDung, 'Hỏi?\n{{HINH:1}}\n{{HINH:2}}\n{{HINH:3}}');
+    assert.strictEqual(t.questions[0].dapAn, 'C');
+    assert.strictEqual(t.questions[0].loiGiai, 'vì thế');
+    assert.strictEqual(t.questions[1].noiDung, 'Hai?\n{{HINH:4}}');
+    assert.strictEqual(t.questions[1].A, '5');
+  });
+
   await test('TC-3.8 .xlsx có và không có hàng tiêu đề → giống dán TSV', async () => {
     for (const rows of [rowsNoHead, [head].concat(rowsNoHead), [head].concat([['TN', 'Dòng 1\nDòng 2', '1', '2', '3', '4', 'B', 'Cơ', 'TH']])]) {
       const r = await R.readFile('de.xlsx', xlsxOf(rows), libs);

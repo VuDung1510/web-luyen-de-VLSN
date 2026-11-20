@@ -29,3 +29,21 @@ Lượt đo: đăng nhập học sinh → Lịch sử → Thống kê → Xếp 
 - So với A0: số lời gọi mỗi lượt **8 → 5**; thời gian trung bình mỗi lời gọi **3,0–4,4 s → 1,6–2,2 s**; cả lượt 20–35 s → 18–23 s.
 - Giáo viên thấy viên "Đang cập nhật" khi chuyển tab (đúng thiết kế Pha 1: hiện dữ liệu đã lưu rồi cập nhật ngầm; lần đầu trong cửa sổ ẩn danh chưa có dữ liệu lưu nên phải chờ). Rời trang > 60 s rồi quay lại thì lời gọi chậm hơn: hết đệm máy chủ 60 s và Apps Script "ngủ" (đã chốt không làm hẹn giờ giữ ấm).
 - Nút Đổi PIN đã hiện cho học sinh.
+
+## Sửa lỗi hình đặt nổi trong file Word (Người làm)
+**Lỗi.** Giáo viên tải một đề Word thật: trang chỉ nhận 15 câu Phần I (đúng là 18), 4 câu Phần II, 6 câu Phần III; Phần II câu 3 có ô a)–d) trống. Nguyên nhân: hình đặt nổi/neo (`wp:anchor`) nằm trong chính đoạn "Câu 6: …" (và câu 13, 16; Phần II câu 3 ở đoạn ý "a. …"). Bộ đọc Word đặt mốc `{{HINH:n}}` ở vị trí của hình trong đoạn — tức là ĐẦU dòng ("{{HINH:1}}Câu 6: …") — nên `Importer.fromText` không nhận ra nhãn "Câu n" / ý "a." → câu bị gộp vào câu trước, các ý dồn vào phần dẫn.
+
+**Cách sửa** (chỉ `assets/js/importer.js`, không đổi `docx-reader.js`, không đổi `Code.gs`):
+- `fromText`: mốc hình đứng đầu dòng (một hoặc nhiều, có/không dấu cách) được tách ra trước khi nhận nhãn, rồi gắn vào chỗ hợp lý:
+  dòng "Câu n" → nội dung câu n (sau phần chữ của dòng); dòng phương án "A. …" / ý "a. …", "Đáp án:", "Lời giải:" → nội dung câu đang đọc
+  (hình của câu: hình đầu tiên vào ô `hinhAnh`, ý/phương án giữ nguyên); dòng "PHẦN …" → giữ lại cho câu kế tiếp;
+  trước câu đầu tiên (khung đầu đề, logo) → bỏ như cũ. Dòng không có nhãn, dòng chỉ có mốc, phần lời giải → giữ mốc tại chỗ như trước.
+- `splitOptions`: nhãn phương án đứng ngay sau mốc hình không có dấu cách ("A. 1{{HINH:6}}B. 2") vẫn được nhận (hình thuộc phương án đứng trước).
+- Lý do chọn sửa ở importer: áp dụng cho mọi nguồn (file Word và văn bản dán có mốc), không dời vị trí hình trong đoạn nên các file Word đã thử ở Pha 3 cho kết quả giống hệt từng ký tự; sửa ở docx-reader (dời mốc ra cuối đoạn) sẽ đưa hình ở đoạn ý "a." vào ô ý a thay vì hình của câu.
+
+**Test.** Thêm ca "Pha 6b: hình neo/nổi và inline ở ĐẦU đoạn…" vào `tests/docx.test.js` (fixture tự sinh): hình neo đầu "Câu 2:", hình inline đầu "Câu 3.", hình neo đầu phương án "A.", hai hình (inline + neo) đầu "Câu 4.", hình chen giữa "A. 1" và "B. 2", hình neo đầu "PHẦN II", hình neo đầu ý "a.", hình inline đầu "Câu 2:" Phần II; kèm văn bản dán có mốc trước "Đáp án:", "Lời giải:". Ca mới hỏng với importer cũ, đạt với bản sửa.
+- `docx.test.js` 30/30; `importer.test.js` đạt; `pha3-kiem-thu.test.js` 17/17; `docx.e2e.js` máy chủ mới ĐẠT, máy chủ 1.0.0 ĐẠT (cổng 8781/8782); `pha3-kiem-thu.e2e.js` mới 23/23, 1.0.0 22/22 (PORT_NEW=8783, PORT_OLD=8784); `scan-secrets.js` sạch.
+
+**Kết quả trên file thật** (file không đưa vào repo):
+- Đề giáo viên gặp lỗi: 25 câu (15–4–6) → **28 câu (18–4–6)**; câu 6, 13, 16 Phần I có hình; Phần II câu 3 có đủ 4 ý và có hình; mọi câu trắc nghiệm đủ 4 phương án, mọi câu Đúng/Sai đủ 4 ý.
+- 4 file Word Pha 3: vẫn 28/44/22/28 câu, 525/525 công thức; danh sách câu hỏi giống hệt trước khi sửa (so băm toàn bộ kết quả).
