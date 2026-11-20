@@ -4,7 +4,7 @@ Trang web luyện đề trực tuyến cho học sinh, chạy **miễn phí** tr
 
 **Học sinh** đăng nhập bằng mã PIN (ngày + tháng sinh) hoặc tài khoản Google, làm bài có **tính giờ**, nộp xong thấy ngay **điểm, nhận xét tự động, đáp án và lời giải**. Học sinh cũng xem được **lịch sử làm bài**, **thống kê theo chủ đề** và **bảng xếp hạng**.
 
-**Giáo viên** dùng trang quản trị (`admin.html`) để soạn đề (gõ tay hoặc dán từ Word/Excel), quản lý học sinh và xem kết quả.
+**Giáo viên** dùng trang quản trị (`admin.html`) để soạn đề (gõ tay, dán hoặc tải file Word/Excel, lấy câu từ ngân hàng câu hỏi), mở mục **Luyện tập** cho học sinh, quản lý học sinh và xem kết quả.
 Mỗi bài nộp tự ghi một dòng **Họ tên – Lớp – Đề – Điểm – Thời gian – Nhận xét** vào Google Sheet. Trang quản trị có thống kê từng đề, bảng điểm theo lớp, xuất Excel, và tùy chọn gửi email mỗi khi có bài nộp.
 
 Cấu trúc đề theo mẫu thi tốt nghiệp THPT từ 2025, gồm 3 phần:
@@ -26,8 +26,15 @@ Học sinh / Giáo viên ──► Trang web (GitHub Pages) ──► Máy chủ
 ```
 
 - Đáp án **chỉ nằm trong Google Sheet**. Trang web không bao giờ nhận đáp án trước khi học sinh nộp bài, và việc chấm điểm chạy trên máy chủ, nên học sinh không thể xem trộm hay sửa điểm.
-- File Google Sheet có 5 trang tính: `HocSinh`, `DeThi`, `CauHoi`, `KetQua`, `CaiDat`. Thầy/cô mở trực tiếp để xem, lọc hay tải về Excel bất cứ lúc nào.
-- **Nhớ tạm để chạy nhanh:** máy chủ nhớ tạm dữ liệu trang tính tối đa **60 giây**; trang web hiện ngay dữ liệu đã lưu trên máy rồi cập nhật ngầm. Mọi thao tác trên web (nộp bài, lưu đề, sửa học sinh…) hiện kết quả mới ngay. Sửa **ô** trực tiếp trên Google Sheet thì hàm `onEdit` báo máy chủ bỏ bản nhớ tạm, nên thường thấy ngay ở lần mở tiếp theo (**chưa được kiểm chứng trên Apps Script thật** — nếu `onEdit` không chạy thì chậm tối đa 1 phút); riêng **chèn / xóa / sắp xếp hàng** hoặc sửa qua công cụ khác thì có thể chậm tối đa 1 phút. Trang web luôn hiện bản đã lưu trên máy trước rồi mới cập nhật. Việc ghi của web luôn đọc lại Sheet nên không bao giờ ghi nhầm hàng.
+- File Google Sheet có 7 trang tính: `HocSinh`, `DeThi`, `CauHoi`, `KetQua`, `CaiDat`, `LuyenTap` (câu cho học sinh luyện tập), `KetQuaLuyenTap` (bài luyện đã nộp). Thầy/cô mở trực tiếp để xem, lọc hay tải về Excel bất cứ lúc nào. Không đổi tên trang tính, hàng tiêu đề, cột Mã HS / Mã đề.
+- Ngân hàng câu hỏi nằm ở một file Google Sheet **riêng** ("KHO CÂU HỎI VẬT LÝ"). Máy chủ chỉ **đọc** kho khi giáo viên tạo đề; học sinh không đọc kho.
+
+### Hiệu năng (nhớ tạm 60 giây)
+
+- Máy chủ nhớ tạm dữ liệu trang tính tối đa **60 giây**. Trang web hiện ngay dữ liệu đã lưu trên máy (chuyển trang gần như tức thì), rồi cập nhật ngầm; lần đầu mở trang thì hiện khung xám trong lúc tải.
+- Mọi thao tác trên web (nộp bài, lưu đề, sửa học sinh…) hiện kết quả mới ngay.
+- Sửa **trực tiếp trên Google Sheet** thì web thấy sau **tối đa 60 giây**. Sửa **ô** thì thường thấy ngay ở lần mở tiếp theo (hàm `onEdit` báo máy chủ bỏ bản nhớ tạm — chưa kiểm chứng trên Apps Script thật). **Chèn / xóa / sắp xếp hàng** thì luôn có thể chậm tối đa 60 giây.
+- Việc ghi của web luôn đọc lại Sheet nên không bao giờ ghi nhầm hàng.
 
 ---
 
@@ -48,7 +55,18 @@ Học sinh / Giáo viên ──► Trang web (GitHub Pages) ──► Máy chủ
    - **Người có quyền truy cập:** *Bất kỳ ai* (**bắt buộc** chọn mục này để học sinh dùng được)
    - Bấm **Triển khai**, rồi **sao chép "URL ứng dụng web"** (dạng `https://script.google.com/macros/s/…/exec`).
 
-> **Khi cập nhật Code.gs sau này:** dán code mới, chạy lại `setup` (dữ liệu cũ không bị mất), rồi vào **Triển khai → Quản lý các bản triển khai → ✏ Chỉnh sửa → Phiên bản: Phiên bản mới → Triển khai**. Làm theo cách này thì URL giữ nguyên.
+6. (Tùy chọn) Chọn hàm **`kiemTraSauTrienKhai`** rồi bấm ▶ **Chạy**, xem **Nhật ký thực thi**: mọi dòng ✅ là ổn. Hàm này chỉ đọc, không sửa dữ liệu.
+
+### Khi cập nhật Code.gs
+
+Danh sách từng bước có ô đánh dấu: [`docs/VIEC-GIAO-VIEN.md`](docs/VIEC-GIAO-VIEN.md). Tóm tắt:
+
+1. Sao lưu: trong Google Sheet, **Tệp → Tạo bản sao**.
+2. Mở **Tiện ích mở rộng → Apps Script**, xóa hết `Code.gs` cũ, dán **toàn bộ** `apps-script/Code.gs` mới, bấm 💾 **Lưu**.
+3. Chạy hàm **`setup`** một lần. Dữ liệu cũ giữ nguyên; `setup` chỉ **thêm** trang tính, cột và dòng cài đặt còn thiếu. Chạy lại nhiều lần cũng không trùng. Nếu Google hỏi quyền mới (đọc file khác, Drive): **Nâng cao → Đi tới … (không an toàn) → Cho phép**.
+4. **Triển khai → Quản lý các bản triển khai → ✏ Chỉnh sửa → Phiên bản: Phiên bản mới → Triển khai.** URL giữ nguyên, không sửa `config.js`. Quên chọn "Phiên bản mới" thì học sinh vẫn dùng máy chủ cũ.
+5. Chạy hàm **`kiemTraSauTrienKhai`**, rồi mở trang quản trị → **Cài đặt**: dòng "Phiên bản máy chủ" phải là số mới (hiện là **1.5.0**).
+6. Hỏng thì quay về: **Triển khai → Quản lý các bản triển khai → ✏ → Phiên bản:** chọn số phiên bản cũ → **Triển khai**. Giao diện web vẫn chạy được với máy chủ cũ (tự ẩn nút cần máy chủ mới).
 
 ### Bước 2. Nối trang web với máy chủ
 
@@ -114,7 +132,7 @@ Vào **Học sinh** trong trang quản trị:
 
 ### Soạn đề
 
-Vào **Đề thi → + Tạo đề mới**. Có 3 cách nhập câu hỏi:
+Vào **Đề thi → + Tạo đề mới**. Có các cách nhập câu hỏi sau (có thể kết hợp):
 
 1. **Gõ trực tiếp** trên trang. Bấm vào nút để chọn đáp án, và **Tải ảnh** để thêm hình (ảnh được lưu vào Google Drive của thầy/cô).
 2. **Dán văn bản từ Word** (nút *Nhập nhanh*), theo mẫu:
@@ -142,12 +160,17 @@ Vào **Đề thi → + Tạo đề mới**. Có 3 cách nhập câu hỏi:
 
    Công thức trong Word nên chuyển sang dạng LaTeX, ví dụ `$v = \sqrt{2gh}$`, `$2.10^5$ Pa`. Dấu phẩy thập phân viết bình thường: `$2,67.10^5$`.
 3. **Dán từ Excel hoặc Google Sheets** theo cột: *Loại | Nội dung | A | B | C | D | Đáp án | Chủ đề | Mức độ | Lời giải | Điểm | Sai số | Hình ảnh*.
+4. **Tải file lên** (*Nhập nhanh từ Word / Excel → Tải file lên*): kéo thả hoặc chọn file Word (`.docx`), Excel (`.xlsx`), `.csv` hoặc `.txt`, tối đa 10 MB.
+   - File Word theo mẫu VLSN: công thức gõ bằng **Equation** của Word được đổi sang LaTeX; hình trong file được tải lên Drive khi bấm thêm; khung đầu đề, "Đáp án của em", "HẾT" không lẫn vào câu. Lời giải sau "HẾT" ("Câu 1. Lời giải: Chọn B.") được gắn vào đúng câu và lấy đáp án.
+   - Web cho **xem trước** số câu từng phần và các cảnh báo (công thức chưa đổi được, hình cần chụp lại, câu chưa có đáp án) rồi mới **Thêm vào đề** hoặc **Thay toàn bộ câu hiện có**. Câu còn công thức cần gõ lại (⟦…⟧) được tô vàng trong trình soạn; câu có hình cần chụp lại có nhãn riêng.
+   - Không đọc được file `.doc` (Word 97–2003), PDF, chữ trong Text Box, công thức MathType: web báo rõ; khi đó mở bằng Word, lưu lại dạng `.docx` hoặc dán văn bản.
+   - Thư viện đọc file tải từ cdnjs (dự phòng jsdelivr). Không tải được thì vẫn dán văn bản như cách 2.
 
 Nên ghi **Chủ đề** và **Mức độ** (NB/TH/VD/VDC) cho mỗi câu. Phần nhận xét tự động và thống kê dựa vào hai thông tin này.
 
 **Tùy chọn của mỗi đề:** thời gian làm bài, dành cho lớp nào, giờ mở/đóng, số lần làm tối đa, trộn thứ tự câu, và thời điểm hiện đáp án (ngay sau khi nộp / sau khi đề đóng / không hiện).
 
-### Tạo đề từ Ngân hàng câu hỏi (cần máy chủ từ 1.3.0)
+### Tạo đề từ Ngân hàng câu hỏi (cần máy chủ mới)
 
 Ngân hàng là file Google Sheet riêng **"KHO CÂU HỎI VẬT LÝ"**. Web chỉ **đọc** kho (không bao giờ sửa kho), rồi chép các câu được chọn sang trang tính `CauHoi` của đề.
 
@@ -158,7 +181,15 @@ Ngân hàng là file Google Sheet riêng **"KHO CÂU HỎI VẬT LÝ"**. Web ch�
    - **Lấy đề gốc**: chọn một Nguồn, web nạp các câu có đáp án theo đúng thứ tự trong đề gốc và báo câu thiếu / câu chưa có đáp án.
 4. Bấm **Tạo đề**: web chép hình của các câu sang thư mục hình của web (file gốc giữ nguyên quyền), rồi mở trình soạn đề với các câu đã nạp. Kiểm tra, đặt tên rồi bấm **Lưu đề**.
 
-Sửa kho (thêm đáp án, thêm câu) xong thì bấm **↻ Đọc lại kho** (web nhớ kho 10 phút).
+Sửa kho (thêm đáp án, thêm câu) xong thì bấm **↻ Đọc lại kho** (web nhớ kho 10 phút). Đầu tab Ngân hàng ghi số câu của kho, số câu có đáp án và số câu **dùng được**; câu thiếu đáp án hoặc đáp án Phần III không phải số thì không dùng được — sửa trong kho rồi Đọc lại kho.
+
+### Luyện tập cho học sinh (cần máy chủ mới)
+
+1. Tab **Ngân hàng**: lọc, cho câu vào giỏ → **Đưa vào luyện tập**. Câu được chép sang trang tính `LuyenTap` (tối đa 3 000 câu đang bật).
+2. Tab **Pool luyện tập**: xem, **Tắt/Bật** từng câu. Không xóa hàng trong `LuyenTap` (bài luyện cũ sẽ báo "câu đã bị gỡ"); muốn bỏ câu thì bấm Tắt.
+3. **Cài đặt → Mục Luyện tập cho học sinh = Bật** (`CHO_LUYEN_TAP` = `CO`). Mặc định là Tắt. "Đề nhanh theo bài" mặc định `7,1,2,10` (số câu Phần I, II, III, số phút).
+4. Học sinh vào **🎯 Luyện tập**: tự tạo đề theo bài, **luyện lại câu đã sai**, hoặc **đề nhanh** theo bài. Nộp xong có đáp án và lời giải ngay. Bài luyện ghi vào `KetQuaLuyenTap`, **không** tính vào bảng xếp hạng hay bảng điểm.
+5. Câu đang nằm trong một **đề thi chưa đóng** (hoặc đề không cho xem lời giải) không xuất hiện trong luyện tập; tab Pool gắn nhãn "đang thi". Câu chỉ vào luyện tập khi đề đó đã đóng và cho xem lời giải.
 
 ### Mục tiêu điểm
 
@@ -189,6 +220,12 @@ Nhận xét được lưu vào cột *Nhận xét* trong trang tính `KetQua`.
   - **Bảng điểm:** bảng học sinh × đề (điểm cao nhất mỗi đề), xuất được ra Excel.
 - **Email:** trong **Cài đặt**, bật *Gửi email cho giáo viên mỗi khi có bài nộp* (giới hạn khoảng 100 email/ngày với tài khoản Gmail thường).
 
+### Giao diện: màu và logo
+
+- Màu chủ đạo xanh VLSN **#1D6B3E**; có chế độ tối theo cài đặt của máy. Tiêu đề phông Montserrat đậm.
+- Chân trang: "HỆ THỐNG GIÁO DỤC VẬT LÝ SIÊU NHẨM", hotline và slogan. Tên giáo viên (`TEN_GIAO_VIEN`) không hiện trên trang học sinh.
+- **Thay logo:** thay đúng file [`assets/img/logo-vlsn.png`](assets/img/logo-vlsn.png), **giữ nguyên tên file**, không cần sửa code. Ảnh PNG nền trong suốt, vuông hoặc ngang đều vừa, nên ≤ 200 KB. Logo này cũng là biểu tượng trên tab trình duyệt. (Logo hiện tại là logo **tạm**.)
+
 ---
 
 ## Cấu trúc thư mục
@@ -202,7 +239,10 @@ assets/js/common.js   Hàm dùng chung (gọi máy chủ, hiển thị kết qu�
 assets/js/app.js      Logic trang học sinh
 assets/js/admin.js    Logic trang quản trị
 assets/js/importer.js Đọc đề dán từ Word / Excel
+assets/js/docx-reader.js Đọc file Word / Excel tải lên
+assets/img/logo-vlsn.png Logo (thay file này để đổi logo)
 apps-script/Code.gs   Máy chủ: dán vào Google Apps Script
+docs/                 Quyết định, đặc tả, báo cáo từng pha, việc giáo viên cần làm
 tests/                Kiểm thử (dành cho lập trình viên)
 ```
 
@@ -220,7 +260,14 @@ node tests/common-cache.test.js   # kiểm thử bộ đệm trình duyệt (Pha
 PORT=8787 ADMIN_PW=<mật khẩu> node tests/pha1-r1.e2e.js   # đổi tài khoản giữa lúc làm mới ngầm (Pha 1)
 node tests/bank.test.js        # ngân hàng câu hỏi: ánh xạ kho → câu hỏi, chỉ mục, ma trận, chép hình theo lô (Pha 2)
 PORT=8787 ADMIN_PW=<mật khẩu> node tests/bank.e2e.js      # tab Ngân hàng đầu-cuối (dev-server mới; hoặc SERVER_COMPAT=1.0.0)
+LIBS_DIR=<node_modules có jszip, xlsx, katex> node tests/docx.test.js   # đọc file Word/Excel (Pha 3)
+node tests/pha4.test.js        # luyện tập (Pha 4)
+node tests/pha5.test.js        # màu, tương phản (Pha 5)
+node tests/pha6.test.js        # phát hành: phiên bản, setup trên Sheet cũ, kiemTraSauTrienKhai (Pha 6)
+node tests/scan-secrets.js     # quét repo: mật khẩu, PIN, email, id file Drive (Pha 6)
 ```
+
+Các e2e khác (`docx.e2e.js`, `pha4.e2e.js`, `pha5.e2e.js`, `pha*-kiem-thu.e2e.js`) chạy trên dev-server **khởi động mới**, cần `ADMIN_PW` và `LIBS_DIR`; xem dòng đầu mỗi file.
 
 Biến môi trường của `tests/dev-server.js`:
 - `SERVER_COMPAT=1.0.0` — nạp đúng máy chủ 1.0.0 (`tests/fixtures/Code-1.0.0.gs`) để thử giao diện với máy chủ cũ; chạy e2e kèm `SERVER_COMPAT=1.0.0` để bỏ qua các bước cần máy chủ mới.
