@@ -308,7 +308,10 @@ check('Giao diện in giữ nguyên', printSame(css) === printSame(gitShow('asse
 
 // ================= TC-5.14 =================
 let gd = '';
-try { gd = execSync(`git diff ${BASE_REF} -- apps-script/`, { cwd: ROOT, encoding: 'utf8' }); } catch (e) { gd = 'LỖI: ' + e.message; }
+// Pha 6 (người làm) sửa: Pha 6 đổi Code.gs, nên khi Pha 5 đã gộp thì so phần thay đổi của chính commit gộp Pha 5
+let merge5 = '';
+try { merge5 = execSync('git log --merges --grep="^Gộp Pha 5" -1 --format=%H', { cwd: ROOT, encoding: 'utf8' }).trim(); } catch (e) { /* chưa gộp */ }
+try { gd = execSync(merge5 ? `git diff ${merge5}^1 ${merge5} -- apps-script/` : `git diff ${BASE_REF} -- apps-script/`, { cwd: ROOT, encoding: 'utf8' }); } catch (e) { gd = 'LỖI: ' + e.message; }
 check('TC-5.14 Code.gs không đổi', gd.trim() === '', gd.trim() ? gd.slice(0, 200) : `git diff ${BASE_REF} -- apps-script/ rỗng`);
 
 const fails = R.filter((x) => !x.pass);

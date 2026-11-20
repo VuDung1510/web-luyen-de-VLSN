@@ -260,7 +260,9 @@ t('Vòng 2 K-1: tiêu đề h1 trong .card-title nhỏ lại ở khổ hẹp', (
 
 t('TC-5.14 máy chủ không đổi: git diff origin/main -- apps-script/ rỗng', () => {
   let out;
-  try { out = execSync('git diff origin/main -- apps-script/', { cwd: ROOT, encoding: 'utf8' }); }
+  // Pha 6 đổi Code.gs: sau khi Pha 5 đã gộp, so đúng phần thay đổi của commit gộp Pha 5 (cha thứ nhất → commit gộp)
+  const merge = execSync('git log --merges --grep="^Gộp Pha 5" -1 --format=%H', { cwd: ROOT, encoding: 'utf8' }).trim();
+  try { out = execSync(merge ? `git diff ${merge}^1 ${merge} -- apps-script/` : 'git diff origin/main -- apps-script/', { cwd: ROOT, encoding: 'utf8' }); }
   catch (e) { throw new Error('không chạy được git diff (thiếu origin/main?): ' + e.message); }
   assert.strictEqual(out.trim(), '', 'apps-script/ đã đổi');
 });
