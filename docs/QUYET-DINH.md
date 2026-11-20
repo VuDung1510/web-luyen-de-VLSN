@@ -1,4 +1,4 @@
-> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 19/11/2026 (đầu Pha 5).
+> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 20/11/2026 (đầu Pha 6).
 
 # WEB LUYỆN ĐỀ VLSN — QUYẾT ĐỊNH ĐÃ CHỐT
 
@@ -90,3 +90,4 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - 19/11/2026 — Claude Code: gộp Pha 3 (Tải đề Word/Excel); soát code và kiểm thử vòng 2 ĐẠT; 4 file Word thật: đúng số câu, 525/525 công thức đổi được. Không đổi Code.gs. Repo không ghi id file thật trên Drive. Bắt đầu Pha 4.
 - 19/11/2026 — Claude Code: chốt thêm mục 5 — câu của đề thi chỉ vào luyện tập khi đề đã đóng và cho xem lời giải (theo soát code Pha 4).
 - 19/11/2026 — Claude Code: gộp Pha 4 (Luyện tập, Code.gs 1.4.0); soát và kiểm thử ĐẠT sau 3 vòng. Bắt đầu Pha 5.
+- 20/11/2026 — Claude Code: gộp Pha 5 (màu xanh #1D6B3E, logo VLSN TẠM, chân trang thương hiệu + hotline + slogan, bỏ tên giáo viên; giữ bố cục). Tiêu đề Montserrat 800 không in hoa toàn bộ (mặc định, chờ giáo viên). Thay logo chuẩn = thay file assets/img/logo-vlsn.png. Bắt đầu Pha 6a.
