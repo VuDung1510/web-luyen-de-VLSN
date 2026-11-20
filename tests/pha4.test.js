@@ -60,11 +60,11 @@ const sumMeta = (m) => m.cay.reduce((s, x) => s + x.dem.TN + x.dem.DS + x.dem.TL
 
 console.log('Luyện tập (Pha 4) — máy chủ:');
 
-t('features có "practice"; APP_VERSION 1.4.0; publicConfig.practice theo CHO_LUYEN_TAP; setup tạo 2 trang tính, chạy lại an toàn', () => {
+t('features có "practice"; APP_VERSION 1.5.0; publicConfig.practice theo CHO_LUYEN_TAP; setup tạo 2 trang tính, chạy lại an toàn', () => {
   const w = world({ sync: false });
   const p = ok(w.g.call('publicConfig'));
   assert(p.features.includes('practice'));
-  assert.strictEqual(p.version, '1.4.0');
+  assert.strictEqual(p.version, '1.5.0');
   assert.strictEqual(p.practice, true);
   K.setSetting(w.g, { CHO_LUYEN_TAP: 'KHONG' });
   assert.strictEqual(ok(w.g.call('publicConfig')).practice, false);
@@ -653,14 +653,15 @@ t('Vòng 2 R-5 / N-2: nộp lại tìm bài theo mã bài + mã học sinh; tắ
   const w = world();
   const s = ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'TU_TAO', so: { TN: 5 }, phut: 5 }));
   const v = ok(w.g.call('submitExam', { token: w.sTok, attemptToken: s.attemptToken, answers: {} }));
-  assert(/^LT\d{12}[0-9A-F]{12}$/.test(v.id), v.id);
+  assert(/^LT\d{12}[0-9A-F]{16}$/.test(v.id), v.id); // Pha 6 (N-1): 16 hex
   // giả lập hàng trùng mã bài của học sinh khác (đổi Mã HS): nộp lại không trả bài của người khác
   const d = w.g._sheets.KetQuaLuyenTap._data();
   d[1][d[0].indexOf('Mã HS')] = 'HS9999';
   clearCache(w.g);
   const r = w.g.call('submitExam', { token: w.sTok, attemptToken: s.attemptToken, answers: {} });
   assert(!r.ok || r.data.studentId === 'HS0001', 'trả bài của học sinh khác');
-  d[1][d[0].indexOf('Mã HS')] = 'HS0001';
+  // Pha 6 (N-1): kiểm trùng theo mã bài + mã HS → hàng của "học sinh khác" giữ nguyên, bài của HS0001 được ghi riêng
+  assert.strictEqual(d[1][d[0].indexOf('Mã HS')], 'HS9999');
   clearCache(w.g);
   K.setSetting(w.g, { CHO_LUYEN_TAP: 'KHONG' });
   assert.strictEqual(ok(w.g.call('myResults', { token: w.sTok, loai: 'luyen' })).length, 1);

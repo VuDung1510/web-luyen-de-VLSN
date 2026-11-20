@@ -22,11 +22,15 @@
     }
     const saved = store.get('ld_pub', null);
     if (saved) applyPub(saved);
-    // Không gọi lại publicConfig nếu bản lưu mới hơn 10 phút (bootstrap cũng trả cấu hình)
-    if (!App.pubFresh()) refreshPub();
+    // Không gọi lại publicConfig nếu bản lưu mới hơn 10 phút (bootstrap cũng trả cấu hình).
+    // K-2 (Pha 6): bản lưu là của máy chủ cũ (không có features) thì luôn hỏi lại — giáo viên vừa triển khai máy chủ mới
+    // thì F5 là thấy ngay, không phải chờ bản lưu hết hạn.
+    if (!App.pubFresh() || !(saved && Array.isArray(saved.features))) refreshPub();
     window.addEventListener('hashchange', route);
     route();
+    booted = true;
   }
+  let booted = false;
 
   function refreshPub() {
     return api('publicConfig', {}, { tokenKey: false, retries: 2 }).then((p) => { App.savePub(p); applyPub(p); }).catch(() => {});
@@ -34,8 +38,13 @@
 
   function applyPub(p) {
     const featuresChanged = JSON.stringify((pub && pub.features) || null) !== JSON.stringify(p.features || null);
+    // đã biết máy chủ (bản lưu có version) rồi thấy danh sách tính năng khác: máy chủ vừa được cập nhật / quay về
+    const serverSwitched = featuresChanged && !!(pub && pub.version);
     pub = p;
-    if (featuresChanged && user) {
+    if (serverSwitched && user && booted && !store.get('ld_attempt', null) && !/^#\/(lam-bai|luyen-tap\/lam)/.test(location.hash)) {
+      // K-2: máy chủ vừa đổi (cũ → mới): vẽ lại màn đang xem theo tính năng mới (không đụng bài đang làm)
+      setTimeout(route, 0);
+    } else if (featuresChanged && user) {
       renderUserBox();
       // N-2: cấu hình máy chủ về sau lần vẽ đầu → vẽ lại Lịch sử để có bộ lọc "Đề thi / Luyện tập"
       if (/^#\/lich-su/.test(location.hash) && !document.getElementById('histSeg') && App.has('practice')) { App.newView(); viewHistory(); }

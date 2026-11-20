@@ -26,10 +26,26 @@
       $app.innerHTML = `<div class="card narrow"><h1>Chưa kết nối máy chủ</h1><p>Mở file <code>assets/js/config.js</code> và dán URL ứng dụng web Apps Script vào <code>API_URL</code>. Xem README để biết cách cài.</p></div>`;
       return;
     }
-    if (!App.pubFresh()) api('publicConfig', {}, { tokenKey: false }).then((p) => { pub = p; App.savePub(p); }).catch(() => {});
+    // K-2 (Pha 6): bản lưu của máy chủ cũ (không có features) thì luôn hỏi lại, để F5 sau khi triển khai thấy ngay máy chủ mới
+    const saved = store.get('ld_pub', null);
+    if (!App.pubFresh() || !(saved && Array.isArray(saved.features))) refreshPub();
     window.addEventListener('hashchange', route);
     window.addEventListener('beforeunload', (e) => { if (editorDirty) { e.preventDefault(); e.returnValue = ''; } });
     route();
+  }
+
+  /**
+   * Hỏi lại cấu hình máy chủ. Máy chủ đổi danh sách tính năng (vừa cập nhật / vừa lưu cài đặt) thì vẽ lại màn đang xem
+   * (trừ trình soạn đề đang có thay đổi chưa lưu). Lỗi mạng: giữ bản cũ.
+   */
+  function refreshPub() {
+    return api('publicConfig', {}, { tokenKey: false }).then((p) => {
+      const old = store.get('ld_pub', null);
+      const changed = !old || JSON.stringify(old.features || null) !== JSON.stringify(p.features || null) || old.version !== p.version || !!old.practice !== !!p.practice;
+      pub = p; App.savePub(p);
+      if (changed && old && me && store.get('ld_admin_token') && !editorDirty) route();
+      return p;
+    }).catch(() => null);
   }
 
   function logout(silent) {
@@ -1202,7 +1218,7 @@
         <div class="field"><label>Lớp *</label><input id="sLop" value="${esc(s.lop)}" placeholder="12A1"></div>
         <div class="field"><label>Ngày sinh *</label><input id="sDob" value="${esc(s.ngaySinh)}" placeholder="dd/mm/yyyy"><span class="hint">PIN mặc định = ngày + tháng (05/03 → 0503)</span></div>
         <div class="field"><label>PIN riêng (tùy chọn)</label><input id="sPin" inputmode="numeric" maxlength="4" value="${s.pinRieng ? esc(s.pin) : ''}" placeholder="Để trống = theo ngày sinh"></div>
-        <div class="field"><label>Email Google (tùy chọn)</label><input id="sEmail" type="email" value="${esc(s.email)}" placeholder="hocsinh@gmail.com"></div>
+        <div class="field"><label>Email Google (tùy chọn)</label><input id="sEmail" type="email" value="${esc(s.email)}" placeholder="hocsinh@example.com"></div>
         <div class="field"><label>Trạng thái</label><select id="sStatus"><option value="HOAT_DONG">Hoạt động</option><option value="KHOA" ${s.trangThai === 'KHOA' ? 'selected' : ''}>Khóa (không đăng nhập được)</option></select></div></div>
       <div class="modal-actions">${isNew ? '' : '<button class="btn btn-danger" id="sDel" style="margin-right:auto">Xóa học sinh</button>'}
         <button class="btn" data-close="">Hủy</button><button class="btn btn-primary" id="sSave">Lưu</button></div>`, {
@@ -1383,7 +1399,13 @@
       document.getElementById('btnSaveSet').onclick = (e) => withBusy(e.currentTarget, async () => {
         const settings = {};
         $app.querySelectorAll('[data-k]').forEach((el) => { settings[el.dataset.k] = el.value; });
-        try { await api('adminSaveSettings', { settings }); bankMeta = null; store.del('ld_pub'); store.del('ld_pub_t'); toast('Đã lưu cài đặt', 'ok'); } catch (err) { toast(err.message, 'err'); }
+        try {
+          await api('adminSaveSettings', { settings }); bankMeta = null;
+          // K-3 (Pha 6): tải lại cấu hình ngay (không chỉ xóa bản lưu) để tab Ngân hàng giữ "Đưa vào luyện tập" / "Pool luyện tập"
+          store.del('ld_pub_t');
+          if (!(await refreshPub())) { store.del('ld_pub'); }
+          toast('Đã lưu cài đặt', 'ok');
+        } catch (err) { toast(err.message, 'err'); }
       });
       document.getElementById('btnPw').onclick = (e) => withBusy(e.currentTarget, async () => {
         const a = document.getElementById('newPw').value, b = document.getElementById('newPw2').value;

@@ -112,6 +112,14 @@
     const LEVEL = { NB: 'NB', B: 'NB', TH: 'TH', H: 'TH', VD: 'VD', VDC: 'VDC' };
     const LEVEL_RE = /^\[\s*(NB|TH|VDC|VD|B|H)\s*\]\s*\.?\s*/i;
     const push = () => { if (cur && !cur._old) qs.push(cur); cur = null; };
+    // một dòng lời giải sau "HẾT": "Đáp án: B" ghi đáp án (nếu chưa có); bỏ nhãn "Lời giải:" rồi nối vào lời giải
+    const solLine = (t) => {
+      const am2 = t.match(/^(Đ[áa]p\s*[áa]n|ĐA|Đ[áa]p\s*s[ốo])\s*[:.]?\s*(.+)$/i);
+      if (am2 && !cur.dapAn) { cur.dapAn = am2[2].trim().replace(/[.。]$/, ''); cur._solKey = true; }
+      const lm2 = t.match(/^(L[ờo]i\s*gi[ảa]i|H[ưu][ớo]ng\s*d[ẫa]n(\s*gi[ảa]i)?|HDG|HD|Gi[ảa]i)\s*[:.]\s*(.*)$/i);
+      const line = lm2 ? lm2[3] : t;
+      if (line) cur.loiGiai += (cur.loiGiai && !cur.loiGiai.endsWith('\n') ? '\n' : '') + line;
+    };
 
     for (let raw of lines) {
       const line = raw.replace(/ /g, ' ').trimEnd();
@@ -150,8 +158,9 @@
           if (old) {
             solIdx = idx;
             cur = old; cur._old = true; mode = 'sol';
+            // N-3 (Pha 6): phần cùng dòng "Câu 1. Lời giải: Chọn B." xử lý như các dòng lời giải sau đó
             const rest = (qm[2] || '').replace(LEVEL_RE, '').trim();
-            if (rest) cur.loiGiai = (cur.loiGiai ? cur.loiGiai + '\n' : '') + rest;
+            if (rest) solLine(rest);
           }
           continue;
         }
@@ -163,14 +172,7 @@
         continue;
       }
       if (!cur) continue;
-      if (cur._old && mode === 'sol') {
-        const am2 = t.match(/^(Đ[áa]p\s*[áa]n|ĐA|Đ[áa]p\s*s[ốo])\s*[:.]?\s*(.+)$/i);
-        if (am2 && !cur.dapAn) { cur.dapAn = am2[2].trim().replace(/[.。]$/, ''); cur._solKey = true; }
-        const lm2 = t.match(/^(L[ờo]i\s*gi[ảa]i|H[ưu][ớo]ng\s*d[ẫa]n(\s*gi[ảa]i)?|HDG|HD|Gi[ảa]i)\s*[:.]\s*(.*)$/i);
-        const line = lm2 ? lm2[3] : t;
-        if (line) cur.loiGiai += (cur.loiGiai && !cur.loiGiai.endsWith('\n') ? '\n' : '') + line;
-        continue;
-      }
+      if (cur._old && mode === 'sol') { solLine(t); continue; }
 
       // "Chọn" chỉ là đáp án khi theo sau là đúng một chữ A–D (tránh nhầm câu dẫn "Chọn phát biểu đúng…")
       // "Chọn B" / "Chọn: B." (có thể kèm "Lời giải: …" phía sau); "Chọn câu đúng." là câu dẫn, giữ trong nội dung

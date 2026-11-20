@@ -18,7 +18,7 @@
  * Máy chủ chỉ ĐỌC kho và thư mục hình của kho; câu được chọn được chép sang CauHoi, hình được chép sang thư mục web.
  */
 
-var APP_VERSION = '1.4.0';
+var APP_VERSION = '1.5.0';
 /** Tính năng máy chủ này hỗ trợ. Giao diện bật/tắt nút theo danh sách này (không so số phiên bản). */
 var FEATURES = ['changePin', 'goal', 'bootstrap', 'cache', 'bank', 'practice'];
 var TZ = 'Asia/Ho_Chi_Minh';
@@ -71,7 +71,7 @@ var RESULT_NUMBER_FORMATS = [['diem', '0.00'], ['diemGoc', '0.00'], ['diemToiDa'
 
 var DEFAULT_SETTINGS = [
   ['TEN_UNG_DUNG', 'Luyện đề Vật lý', 'Tên hiển thị trên web'],
-  ['TEN_GIAO_VIEN', '', 'Tên giáo viên (hiển thị ở chân trang)'],
+  ['TEN_GIAO_VIEN', '', 'Tên giáo viên (chỉ dùng nội bộ, không hiển thị trên trang học sinh)'],
   ['GOOGLE_CLIENT_ID', '', 'OAuth Client ID để đăng nhập bằng Google (xem README). Để trống = tắt đăng nhập Google'],
   ['EMAIL_GIAO_VIEN', '', 'Email Google được vào trang quản trị (nhiều email cách nhau dấu phẩy)'],
   ['MAT_KHAU_QUAN_TRI', function () { return randomPassword_(); }, 'Mật khẩu vào trang quản trị (luôn dùng được, kể cả khi chưa cài Google)'],
@@ -137,6 +137,86 @@ function setup() {
   var pw = getSetting_('MAT_KHAU_QUAN_TRI');
   Logger.log('✅ Cài đặt xong! Mật khẩu trang quản trị: ' + pw + '  (xem/đổi ở trang tính CaiDat)');
   return 'OK';
+}
+
+/**
+ * Chạy tay trong trình soạn Apps Script SAU khi triển khai (chọn hàm này → ▶ Chạy → xem "Nhật ký thực thi").
+ * Chỉ ĐỌC: không sửa trang tính, kho hay Drive. Việc ghi duy nhất là 1 khóa thử trong CacheService (xóa ngay sau đó).
+ * Không in mật khẩu, PIN hay id file.
+ */
+function kiemTraSauTrienKhai() {
+  var dong = [], soLoi = 0, soCanhBao = 0;
+  var ok = function (m) { dong.push('✅ ' + m); };
+  var canhBao = function (m) { soCanhBao++; dong.push('⚠️ ' + m); };
+  var loi = function (m) { soLoi++; dong.push('❌ ' + m); };
+  var msg = function (e) { return String(e && e.message || e); };
+  MEMO_ = {};
+  ok('Phiên bản máy chủ: ' + APP_VERSION + ' · tính năng: ' + FEATURES.join(', '));
+
+  // 1. Trang tính và cột tiêu đề (đọc hàng tiêu đề, không thêm gì)
+  var ss = ss_();
+  Object.keys(SCHEMA).forEach(function (name) {
+    var sh = ss.getSheetByName(name);
+    if (!sh) { loi('Thiếu trang tính "' + name + '". Hãy chạy hàm setup() một lần.'); return; }
+    var lastCol = sh.getLastColumn();
+    var header = lastCol ? sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String) : [];
+    var thieu = SCHEMA[name].map(function (d) { return d[1]; }).filter(function (l) { return header.indexOf(l) < 0; });
+    var trung = header.filter(function (h, i) { return h && header.indexOf(h) !== i; });
+    var soHang = Math.max(sh.getLastRow() - 1, 0);
+    if (thieu.length) loi(name + ': thiếu cột ' + thieu.map(function (l) { return '"' + l + '"'; }).join(', ') + '. Hãy chạy hàm setup() một lần.');
+    else if (trung.length) canhBao(name + ': có cột trùng tên ' + trung.map(function (l) { return '"' + l + '"'; }).join(', ') + '. Xóa bớt cột trùng (giữ cột có dữ liệu).');
+    else ok(name + ': đủ ' + SCHEMA[name].length + ' cột, ' + soHang + ' hàng dữ liệu.');
+    // R-10 (Pha 2): CauHoi sắp hết số hàng đã định dạng văn bản
+    if (name === 'CauHoi' && sh.getLastRow() > sh.getMaxRows() - 100) {
+      canhBao('CauHoi đã dùng ' + sh.getLastRow() + '/' + sh.getMaxRows() + ' hàng. Thêm hàng trống ở cuối trang tính rồi chạy setup() để định dạng.');
+    }
+  });
+
+  // 2. CaiDat: đủ khóa, không trùng (đọc thẳng Sheet, không qua đệm)
+  var caiDat = [];
+  try { caiDat = readSheet_('CaiDat'); } catch (e) { loi('Không đọc được CaiDat: ' + msg(e)); }
+  MEMO_.CaiDat = caiDat; // getSetting_ dùng bản vừa đọc, không ghi đệm
+  var khoa = caiDat.map(function (r) { return r.khoa; });
+  var thieuKhoa = DEFAULT_SETTINGS.map(function (d) { return d[0]; }).filter(function (k) { return khoa.indexOf(k) < 0; });
+  var trungKhoa = khoa.filter(function (k, i) { return k && khoa.indexOf(k) !== i; });
+  if (thieuKhoa.length) loi('CaiDat thiếu dòng: ' + thieuKhoa.join(', ') + '. Hãy chạy hàm setup() một lần.');
+  else ok('CaiDat: đủ ' + DEFAULT_SETTINGS.length + ' dòng cài đặt.');
+  if (trungKhoa.length) canhBao('CaiDat có dòng trùng khóa: ' + trungKhoa.join(', ') + '. Xóa dòng thừa (máy chủ chỉ đọc dòng đầu tiên).');
+  if (!getSetting_('MAT_KHAU_QUAN_TRI')) loi('CaiDat: MAT_KHAU_QUAN_TRI đang trống. Đặt mật khẩu quản trị trong CaiDat.');
+
+  // 3. Kho câu hỏi (chỉ đọc hàng tiêu đề và số hàng)
+  if (!idFromSetting_(getSetting_('KHO_CAU_HOI_ID'))) {
+    canhBao('Chưa có KHO_CAU_HOI_ID: tab Ngân hàng chưa dùng được. Dán link file "KHO CÂU HỎI VẬT LÝ" ở Cài đặt của trang quản trị.');
+  } else {
+    try {
+      var kho = bankOpen_();
+      ok('Mở được kho câu hỏi: trang "' + BANK_SHEET + '" có ' + Math.max(kho.lastRow - 1, 0) + ' hàng, đủ cột cần đọc.');
+    } catch (e) { loi('Kho câu hỏi: ' + msg(e)); }
+  }
+  var thuMuc = idFromSetting_(getSetting_('THU_MUC_HINH_KHO_ID'));
+  if (!thuMuc) canhBao('Chưa có THU_MUC_HINH_KHO_ID: hình của kho sẽ được tìm trên toàn Drive (chậm hơn). Nên dán link thư mục "02. HÌNH VẼ".');
+  else {
+    try { ok('Mở được thư mục hình của kho: "' + DriveApp.getFolderById(thuMuc).getName() + '".'); }
+    catch (e) { loi('Không mở được thư mục hình của kho (' + msg(e) + '). Kiểm tra THU_MUC_HINH_KHO_ID.'); }
+  }
+  var luyen = getSetting_('CHO_LUYEN_TAP').toUpperCase() === 'CO';
+  ok('Luyện tập cho học sinh: ' + (luyen ? 'đang BẬT' : 'đang TẮT (bật ở Cài đặt khi đã đưa câu vào luyện tập)') + '.');
+
+  // 4. Bộ nhớ đệm: ghi thử 1 khóa, đọc lại, xóa
+  try {
+    var c = CacheService.getScriptCache();
+    var k = 'kiemtra_' + Utilities.getUuid().slice(0, 8), v = String(Date.now());
+    c.put(k, v, 60);
+    var doc = c.get(k);
+    c.remove(k);
+    if (doc === v) ok('Bộ nhớ đệm (CacheService): ghi/đọc thử được.');
+    else canhBao('Bộ nhớ đệm không đọc lại được khóa thử. Web vẫn chạy đúng nhưng chậm hơn.');
+  } catch (e) { canhBao('Bộ nhớ đệm lỗi (' + msg(e) + '). Web vẫn chạy đúng nhưng chậm hơn.'); }
+
+  var ketLuan = soLoi ? '❌ CÓ ' + soLoi + ' LỖI cần sửa' : soCanhBao ? '✅ CHẠY ĐƯỢC, có ' + soCanhBao + ' lưu ý' : '✅ TẤT CẢ ĐỀU ỔN';
+  dong.push(ketLuan + '. Mở trang quản trị → Cài đặt: phải thấy "Phiên bản máy chủ ' + APP_VERSION + '".');
+  Logger.log('KIỂM TRA SAU TRIỂN KHAI\n' + dong.join('\n'));
+  return { loi: soLoi, canhBao: soCanhBao, dong: dong };
 }
 
 function applyResultFormats_(sh, name) {
@@ -268,7 +348,6 @@ var ROUTES = {
 function apiPublicConfig_() {
   return {
     appName: getSetting_('TEN_UNG_DUNG') || 'Luyện đề Vật lý',
-    teacherName: getSetting_('TEN_GIAO_VIEN') || '',
     googleClientId: getSetting_('GOOGLE_CLIENT_ID') || '',
     showLeaderboard: yes_(getSetting_('HIEN_BANG_XEP_HANG')),
     version: APP_VERSION,
@@ -536,7 +615,7 @@ function apiSubmitExam_(req) {
   var fb = buildFeedback_(qs, graded, { usedSec: usedSec, limitSec: a.dur, prevSame: prevSame, prevAll: prevAll, goal: goal });
   var diem10 = graded.max ? round2_(graded.score / graded.max * 10) : 0;
   var result = {
-    id: 'KQ' + Utilities.formatDate(new Date(now), TZ, 'yyMMddHHmmss') + Math.floor(Math.random() * 900 + 100),
+    id: newResultId_(now),
     nopLuc: fmtDateTime_(new Date(now)), hoTen: st.hoTen, lop: st.lop, tieuDe: e.tieuDe,
     diem: diem10, mucTieu: goal == null ? '' : goal, diemGoc: graded.score, diemToiDa: graded.max, soCauDung: graded.correctCount, tongCau: qs.length,
     thoiGianLam: fmtDuration_(usedSec), nhanXet: fb.text, studentId: st.id, examId: e.id,
@@ -550,7 +629,11 @@ function apiSubmitExam_(req) {
       return it;
     }))
   };
-  withLock_(function () { appendRows_('KetQua', [result]); });
+  withLock_(function () {
+    // N-1 (Pha 6): mã bài phải duy nhất — kiểm trong khóa, trùng thì sinh mã khác
+    for (var tries = 0; tries < 5 && resultIdTaken_('KetQua', result.id); tries++) result.id = newResultId_(now);
+    appendRows_('KetQua', [result]);
+  });
   cache.put(doneKey, result.id, 21600);
   notifyTeacher_(result);
   return buildResultView_(readTable_('KetQua').filter(function (r) { return r.id === result.id; })[0] || result, e, 'student');
@@ -568,12 +651,15 @@ function apiMyResults_(req) {
 function apiGetResult_(req) {
   var u = requireUser_(req);
   if (/^LT/.test(str_(req.resultId))) {
-    var lt = rowsWhere_('KetQuaLuyenTap', 'id', req.resultId)[0];
+    // N-1 (Pha 6): học sinh thì ưu tiên hàng của chính mình khi (hiếm) có hai hàng cùng mã bài
+    var lts = rowsWhere_('KetQuaLuyenTap', 'id', req.resultId);
+    var lt = (u.role === 'student' ? lts.filter(function (x) { return x.studentId === u.student.id; })[0] : null) || lts[0];
     if (!lt) throw new Error('Không tìm thấy bài làm.');
     if (u.role === 'student' && lt.studentId !== u.student.id) throw new Error('Bạn không xem được bài làm này.');
     return buildPracticeView_(lt, u.role);
   }
-  var r = readTable_('KetQua').filter(function (x) { return x.id === str_(req.resultId); })[0];
+  var rs = readTable_('KetQua').filter(function (x) { return x.id === str_(req.resultId); });
+  var r = (u.role === 'student' ? rs.filter(function (x) { return x.studentId === u.student.id; })[0] : null) || rs[0];
   if (!r) throw new Error('Không tìm thấy bài làm.');
   if (u.role === 'student' && r.studentId !== u.student.id) throw new Error('Bạn không xem được bài làm này.');
   return buildResultView_(r, findExam_(r.examId), u.role);
@@ -2421,18 +2507,37 @@ function apiPracticeStart_(req) {
   };
 }
 
-/** Mã bài luyện tập: cố định theo lượt (token) → nộp lại cùng token không ghi thêm hàng. */
-function practiceResultId_(p) {
-  return 'LT' + Utilities.formatDate(new Date(p.st), TZ, 'yyMMddHHmmss') + String(p.pid).replace(/[^0-9a-f]/gi, '').slice(0, 12).toUpperCase();
+/**
+ * Mã bài thi (KetQua): "KQ" + yyMMddHHmmss + 8 ký tự hex ngẫu nhiên (N-1, Pha 6). Mã cũ "KQ" + 15 chữ số vẫn đọc được
+ * (mã chỉ là chuỗi). Trùng mã khi nhiều bài nộp cùng giây: kiểm lại trong khóa (resultIdTaken_).
+ */
+function newResultId_(now) {
+  return 'KQ' + Utilities.formatDate(new Date(now), TZ, 'yyMMddHHmmss') + Utilities.getUuid().replace(/[^0-9a-f]/gi, '').slice(0, 8).toUpperCase();
 }
 
-/** Mã bài đã có trong KetQuaLuyenTap? Đọc thẳng cột "Mã bài" của Sheet (không qua đệm, gọi trong khóa). */
-function practiceResultExists_(id) {
-  delete MEMO_.__si_KetQuaLuyenTap;
-  var info = sheetInfo_('KetQuaLuyenTap');
-  if (!info || !info.col.id || info.lastRow < 2) return false;
-  return info.sh.getRange(2, info.col.id, info.lastRow - 1, 1).getValues().some(function (r) { return str_(r[0]) === id; });
+/** Mã bài luyện tập: cố định theo lượt (token) → nộp lại cùng token không ghi thêm hàng. 16 hex của mã lượt (N-1). */
+function practiceResultId_(p) {
+  return 'LT' + Utilities.formatDate(new Date(p.st), TZ, 'yyMMddHHmmss') + String(p.pid).replace(/[^0-9a-f]/gi, '').slice(0, 16).toUpperCase();
 }
+
+/**
+ * Mã bài `id` đã có trong trang `name`? Đọc thẳng cột "Mã bài" (và "Mã HS" khi có `sid`) của Sheet, không qua đệm.
+ * Gọi trong khóa.
+ */
+function resultIdTaken_(name, id, sid) {
+  delete MEMO_['__si_' + name];
+  var info = sheetInfo_(name);
+  if (!info || !info.col.id || info.lastRow < 2) return false;
+  var ids = info.sh.getRange(2, info.col.id, info.lastRow - 1, 1).getValues();
+  return ids.some(function (r, i) {
+    if (str_(r[0]) !== id) return false;
+    // chỉ hàng trùng mã mới đọc thêm ô "Mã HS" (không đọc cả cột)
+    return !sid || !info.col.studentId || str_(info.sh.getRange(i + 2, info.col.studentId, 1, 1).getValues()[0][0]) === sid;
+  });
+}
+
+/** Bài luyện mã `id` của học sinh `sid` đã ghi chưa (nộp hai lần cùng lúc → chỉ một hàng). */
+function practiceResultExists_(id, sid) { return resultIdTaken_('KetQuaLuyenTap', id, sid); }
 
 function practiceSubmit_(st, p, req) {
   requirePracticeOn_();
@@ -2476,7 +2581,7 @@ function practiceSubmit_(st, p, req) {
     }))
   };
   var wrote = withLock_(function () {
-    if (practiceResultExists_(id)) return false; // nộp hai lần cùng lúc: chỉ một hàng
+    if (practiceResultExists_(id, st.id)) return false; // nộp hai lần cùng lúc: chỉ một hàng
     appendRows_('KetQuaLuyenTap', [result]);
     return true;
   });

@@ -391,6 +391,47 @@ const strip = (q) => { const o = Object.assign({}, q); delete o.hinhAnh; return 
     assert.deepStrictEqual([r.stats.mathOk, r.stats.mathOkInQ], [2, 1]);
   });
 
+  // Pha 6: sửa nốt N-2, N-3 của soát Pha 3
+  // khai sai kích thước giải nén của word/document.xml (mục lục cuối file + đầu từng file)
+  const lieSize = (buf, name, size) => {
+    const b = Buffer.from(buf), nm = Buffer.from(name);
+    for (let i = 0; i < b.length - 4; i++) {
+      const sig = b.readUInt32LE(i);
+      if (sig === 0x04034b50 && b.slice(i + 30, i + 30 + nm.length).equals(nm)) b.writeUInt32LE(size, i + 22);
+      if (sig === 0x02014b50 && b.slice(i + 46, i + 46 + nm.length).equals(nm)) b.writeUInt32LE(size, i + 24);
+    }
+    return b;
+  };
+  await test('N-2 file .docx khai sai kích thước giải nén → thông báo tiếng Việt, dừng sớm, không giải nén hết', async () => {
+    const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+    // (a) khai 1 000 B nhưng thật ~80 MB: dừng khi vượt giới hạn, không báo lỗi tiếng Anh
+    const z = new JSZip(); z.file('word/document.xml', `<w:document ${W}><w:body><w:p><w:r><w:t>` + 'a'.repeat(80e6) + '</w:t></w:r></w:p></w:body></w:document>');
+    const big = lieSize(await z.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 9 } }), 'word/document.xml', 1000);
+    const t0 = Date.now();
+    const e1 = await R.readFile('noi-doi.docx', big, libs).then(() => null, (e) => e);
+    assert.ok(e1, 'phải báo lỗi');
+    assert.ok(/^File Word bất thường: khi giải nén quá lớn/.test(e1.message), e1.message);
+    assert.ok(!/Bug|mismatch/i.test(e1.message), e1.message);
+    assert.ok(Date.now() - t0 < 3000, (Date.now() - t0) + ' ms');
+    // (b) khai 1 000 B, thật nhỏ hơn giới hạn nhưng lệch: "File Word bị hỏng…" thay cho "Bug : uncompressed data size mismatch"
+    const z2 = new JSZip(); z2.file('word/document.xml', `<w:document ${W}><w:body><w:p><w:r><w:t>PHẦN I</w:t></w:r></w:p><w:p><w:r><w:t>Câu 1. ` + 'x'.repeat(5000) + '</w:t></w:r></w:p></w:body></w:document>');
+    const small = lieSize(await z2.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }), 'word/document.xml', 1000);
+    const e2 = await R.readFile('lech.docx', small, libs).then(() => null, (e) => e);
+    assert.ok(e2 && /^File Word bị hỏng/.test(e2.message) && !/Bug|mismatch/i.test(e2.message), e2 && e2.message);
+    // file đúng vẫn đọc được (có hình: dữ liệu hình đọc qua cùng đường giới hạn)
+    const ok = await readDocx([M.p('PHẦN I'), M.p('Câu 1. Một câu?'), M.p('A. 1'), M.p('B. 2'), M.p('C. 3'), M.p('D. 4')]);
+    assert.strictEqual(ok.questions.length, 1);
+  });
+  await test('N-3 sau "HẾT": "Câu 1. Lời giải: Chọn B." lấy được đáp án B, bỏ nhãn "Lời giải:"', async () => {
+    const de = 'PHẦN 1\nCâu 1. a?\nA. 1\nB. 2\nC. 3\nD. 4\nCâu 2. b?\nA. 1\nB. 2\nC. 3\nD. 4\nPHẦN 3\nCâu 1. Tính x?\n---------- HẾT ----------\n';
+    const r = I.fromText(de + 'Câu 1. Lời giải: Chọn B.\nCâu 2. Đáp án: D\nVì 2\nCâu 1. Đáp số: 2,5');
+    assert.deepStrictEqual(r.questions.map((q) => [q.phan, q.dapAn, q.loiGiai]), [[1, 'B', 'Chọn B.'], [1, 'D', 'Đáp án: D\nVì 2'], [3, '2,5', 'Đáp số: 2,5']]);
+    assert.ok(!r.warnings.some((w) => /chưa tìm thấy đáp án/.test(w)), r.warnings.join('|'));
+    // dòng riêng như trước vẫn đúng
+    const r2 = I.fromText('PHẦN 1\nCâu 1. a?\nA. 1\nB. 2\nC. 3\nD. 4\n---------- HẾT ----------\nCâu 1.\nLời giải: Chọn C.');
+    assert.strictEqual(r2.questions[0].dapAn, 'C');
+  });
+
   await test('TC-3.13 importer cũ: dán văn bản / TSV không đổi kết quả (xem tests/importer.test.js)', async () => {
     require('./importer.test.js');
   });
