@@ -11,3 +11,10 @@ Lượt đo: đăng nhập học sinh → Lịch sử → Thống kê → Xếp 
 
 - Cả lượt kéo dài khoảng 20–35 s (dải thời gian của Network).
 - Ghi chú: giao diện hiện tại (Pha 1–6a) đang chạy với máy chủ 1.0.0 qua đường dự phòng; con số là điểm gốc để so ở TC-6.7 sau khi dán Code.gs 1.5.0.
+
+## A1–A6. Triển khai Code.gs 1.5.0 (21/11/2026)
+- A1: đã sao lưu Sheet; phiên bản triển khai trước khi dán: **2** (quay về số này nếu có sự cố).
+- A2–A3: dán Code.gs 1.5.0 vào Sheet gốc, chạy `setup`, cấp quyền: xong; có thêm `LuyenTap`, `KetQuaLuyenTap`, dữ liệu cũ còn nguyên.
+- A4: đã điền link kho và thư mục hình; `CHO_LUYEN_TAP` = KHONG.
+- A5: triển khai Phiên bản mới.
+- A6 `kiemTraSauTrienKhai`: **TẤT CẢ ĐỀU ỔN** — phiên bản 1.5.0, features đủ 6; HocSinh 8 cột/1 hàng, DeThi 13/1, CauHoi 21/6, KetQua 19/1, CaiDat 3 cột/13 dòng, LuyenTap 18/0, KetQuaLuyenTap 20/0; mở được kho (10 239 hàng, đủ cột) và thư mục "02. HÌNH VẼ"; luyện tập đang tắt; CacheService ghi/đọc được.
