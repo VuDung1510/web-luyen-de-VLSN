@@ -1891,7 +1891,9 @@
     "h": 57,
     "hb": 0,
     "hi": 0,
-    "el": "header.topbar"
+    "el": "header.topbar",
+    "hintIn": false,
+    "hintBelow": false
    },
    ".brand": {
     "x": 106,
@@ -1900,7 +1902,9 @@
     "h": 34,
     "hb": 0,
     "hi": 0,
-    "el": "a.brand"
+    "el": "a.brand",
+    "hintIn": false,
+    "hintBelow": false
    },
    ".brand-logo": {
     "x": 106,
@@ -1909,7 +1913,9 @@
     "h": 34,
     "hb": 0,
     "hi": 0,
-    "el": "img.brand-logo"
+    "el": "img.brand-logo",
+    "hintIn": false,
+    "hintBelow": false
    },
    "#nav": {
     "x": 227,
@@ -1918,7 +1924,9 @@
     "h": 36,
     "hb": 0,
     "hi": 0,
-    "el": "nav.nav"
+    "el": "nav.nav",
+    "hintIn": false,
+    "hintBelow": false
    },
    "#userBox": {
     "x": 937,
@@ -1927,7 +1935,9 @@
     "h": 34,
     "hb": 0,
     "hi": 0,
-    "el": "div.row"
+    "el": "div.row",
+    "hintIn": false,
+    "hintBelow": false
    },
    ".card": {
     "x": 106,
@@ -1936,7 +1946,9 @@
     "h": 948,
     "hb": 32,
     "hi": 25,
-    "el": "div.card"
+    "el": "div.card",
+    "hintIn": true,
+    "hintBelow": false
    },
    ".footer": {
     "x": 0,
@@ -1945,7 +1957,9 @@
     "h": 125,
     "hb": 107,
     "hi": 0,
-    "el": "footer.footer"
+    "el": "footer.footer",
+    "hintIn": false,
+    "hintBelow": true
    },
    "main>*[0]": {
     "x": 106,
@@ -1954,7 +1968,9 @@
     "h": 32,
     "hb": 0,
     "hi": 32,
-    "el": "h1"
+    "el": "h1",
+    "hintIn": false,
+    "hintBelow": false
    },
    "main>*[1]": {
     "x": 106,
@@ -1963,7 +1979,9 @@
     "h": 948,
     "hb": 32,
     "hi": 25,
-    "el": "div.card"
+    "el": "div.card",
+    "hintIn": true,
+    "hintBelow": false
    },
    "main>*[2]": {
     "x": 106,
@@ -1972,7 +1990,9 @@
     "h": 205,
     "hb": 57,
     "hi": 25,
-    "el": "div.card"
+    "el": "div.card",
+    "hintIn": false,
+    "hintBelow": true
    },
    "main>*[3]": {
     "x": 106,
@@ -1981,7 +2001,9 @@
     "h": 193,
     "hb": 82,
     "hi": 25,
-    "el": "div.card"
+    "el": "div.card",
+    "hintIn": false,
+    "hintBelow": true
    }
   }
  },

@@ -111,3 +111,45 @@ Nhánh `pha-5-thiet-ke`, code tính năng ở commit `34d2c53` (báo cáo ngư�
 **CHƯA ĐẠT.**
 - **Đạt:** TC-5.1–5.7, 5.9–5.14 (bắt buộc) và TC-5.15 (khuyến nghị) đều đạt, ở cả máy chủ mới và 1.0.0, sáng và tối.
 - **Chưa đạt:** TC-5.8, do K-1 (Nhẹ). Sửa xong K-1 (và kiến trúc sư thêm miễn trừ cho N-1) thì người kiểm thử chạy lại toàn bộ `tests/pha5-kiem-thu.*`.
+
+## Vòng 2
+
+Nhánh `pha-5-thiet-ke`, commit `91cf25f`. Đặc tả có thêm miễn trừ N-1. Ngày 20/11/2026.
+
+### Tóm tắt cho giáo viên
+- **Kết luận: ĐẠT.** 15/15 TC đạt, kể cả TC-5.15 (khuyến nghị).
+- **K-1 đã sửa:** ở điện thoại, nút "↻ Đọc lại kho" nay nằm cùng hàng với tiêu đề "Ngân hàng câu hỏi", như trước khi đổi phông.
+- **Lỗi có sẵn của Pha 1 cũng đã sửa:** viên "Đang cập nhật…" nay treo ngay dưới thanh đầu trang và không che nút nào.
+- **Phông chữ:** nếu Google Fonts trả lời chậm, trang vẫn hiện ngay bằng phông dự phòng. Trước đây phải chờ khoảng 3 giây.
+
+### Thay đổi kịch bản kiểm thử
+`tests/pha5-kiem-thu.test.js` giữ nguyên. Sửa `tests/pha5-kiem-thu.e2e.js`:
+- **Miễn trừ N-1**, đúng như đặc tả sửa ngày 19/11:
+  - Trên trang Cài đặt của nhánh, đo phần cao mà dòng gợi ý "Không hiển thị trên trang học sinh (chỉ dùng nội bộ)" chiếm: ẩn tạm dòng đó rồi đo lại thẻ. Kết quả **24 px** ở cả 390 và 1280.
+  - Chỉ trừ đúng 24 px: vào chiều cao của khối chứa dòng gợi ý, và vào `y` của các khối nằm dưới nó.
+  - Mọi khối khác vẫn giữ dung sai 4 px.
+- **Chế độ mới `vong2`** (cũng chạy trong `all`):
+  - **(a) Google Fonts treo 3 s:** route giữ request CSS phông 3 s. Đo thời gian tới khi `#selClass` (trang học sinh) hoặc `#pw` (trang quản trị) hiện ra, cùng FCP. Đối chứng trên `main`.
+  - **(b) Viên "Đang cập nhật":** dev-server trễ 2,5 s. Chuyển qua lại giữa các trang đã có đệm. Lấy mẫu vị trí viên 8 lần mỗi lần chuyển trang, kiểm nó có đè lên nút, liên kết, ô nhập nào không. Làm ở khổ 390 và 1280.
+- **Ảnh:** ảnh viên "Đang cập nhật" chỉ chụp phần đầu trang (390×240) cho gọn. Tổng dung lượng `anh/pha-5/` là 10 743 605 byte, thấp hơn bản ở `91cf25f` (10 760 664 byte).
+
+### Kết quả
+
+| TC | Vòng 2 | Bằng chứng |
+|---|---|---|
+| TC-5.1 – 5.4, 5.6, 5.14 | **ĐẠT** | `node tests/pha5-kiem-thu.test.js`: 27/27. Vẫn đúng một link phông gộp, nay có `media="print" onload` |
+| TC-5.5 | **ĐẠT** | Logo 34×34, nền trắng, `object-fit: contain`, alt đúng; favicon 200 image/png. Đúng ở sáng và tối, ở cả hai máy chủ. **Logo ngang 300×100:** khung 34×34 ở 19 màn, mỗi khổ 390 và 1280. So bố cục với `main`: 212/212 khối trong dung sai, tính miễn trừ N-1 |
+| TC-5.7, 5.9 – 5.12 | **ĐẠT** | Như vòng 1, chạy lại toàn bộ trên `91cf25f`: 4 lượt máy chủ mới + 3 lượt `SERVER_COMPAT=1.0.0`. 0 lỗi JS, không tràn ngang, 0 chỗ còn dùng màu cũ, biểu đồ dùng biến màu. Ảnh `kt-*` chụp lại |
+| TC-5.8 | **ĐẠT** | So 212 khối ở 20 màn. Đạt cả **4 tổ hợp**: 390 và 1280, mỗi khổ với phông bị chặn và với phông cục bộ (nhánh tải được thật Montserrat 800). Miễn trừ N-1 áp cho 4 khối ở Cài đặt, mỗi khối đúng 24 px. Tab Ngân hàng 390 với phông thật: `.card-title` cao **45 px** như trên `main` (vòng 1 là 80 px). `h1` dùng Montserrat 800, 19,2px, rộng 193 px; nút cùng hàng (ảnh `kt-K1-ngan-hang-390-sau.png`) |
+| TC-5.13 | **ĐẠT** | Node: `backend` 13/13, `importer` đạt, `bank` 30/30, `pha2-kiem-thu` 31/31, `pha3-kiem-thu` 17/17, `pha4-kiem-thu` 33/33. `e2e.js` đạt ở máy chủ mới và 1.0.0. `pha1-kiem-thu.e2e.js all` trên nhánh: **57 ✓, 0 ✗** (K-1: "che: không phần tử nào"). Đối chứng trên worktree `main`: vẫn 56 ✓, 1 ✗ (che nút "Làm lại"), tức là bản sửa của nhánh có tác dụng |
+| TC-5.15 (khuyến nghị) | **ĐẠT** | Lighthouse Accessibility: màn đăng nhập **100**, trang chủ học sinh (đã đăng nhập) **100** |
+| R-1: Google Fonts treo 3 s | **ĐẠT** | Nhánh: trang học sinh hiện sau **70 ms** (FCP 56 ms); trang quản trị hiện sau **92 ms** (FCP 60 ms). Đối chứng `main`: 3 341 ms (FCP 3 048 ms) và 3 331 ms (FCP 3 040 ms) |
+| Viên "Đang cập nhật" (K-1 của Pha 1) | **ĐẠT** | Lớp `sync-pill`, 133×18. Ở 390: tại (129, 141), ngay dưới thanh đầu trang cao 141 px. Ở 1280: tại (574, 57). Thấy viên 32 lần ở mỗi khổ (trang Lịch sử và trang chủ). Phần tử bấm được bị đè: **không có** ở cả hai khổ. Ảnh `kt-v2-dang-cap-nhat-390.png` |
+
+### Lỗi còn lại
+Không có.
+
+### Kết luận vòng 2
+**ĐẠT.**
+- Mọi TC bắt buộc của Pha 5 đạt, ở máy chủ mới và 1.0.0, chế độ sáng và tối. TC-5.15 (khuyến nghị) cũng đạt.
+- Test cũ đạt hết. Riêng mục K-1 của Pha 1 trước đây hỏng sẵn trên `main`; nay trên nhánh đã đạt.

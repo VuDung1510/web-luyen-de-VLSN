@@ -552,13 +552,16 @@ async function pillCheck(browser) {
         for (let i = 0; i < 8; i++) {
           await p.waitForTimeout(150);
           const r = await p.evaluate(() => {
-            const pill = [...document.querySelectorAll('body *')].find((e) => e.children.length < 3 && /Đang cập nhật/.test(e.textContent) && e.getBoundingClientRect().height > 0 && getComputedStyle(e).visibility !== 'hidden' && getComputedStyle(e).opacity !== '0');
+            const re = /Đang cập nhật/;
+            let pill = [...document.querySelectorAll('body *')].find((e) => re.test(e.textContent) && ![...e.children].some((c) => re.test(c.textContent)) && e.getBoundingClientRect().height > 0 && getComputedStyle(e).visibility !== 'hidden' && getComputedStyle(e).opacity !== '0');
+            // lấy khung viên (cha gần nhất có nền/viền riêng), không phải cả thanh đầu trang
+            while (pill && pill.parentElement && pill.parentElement.getBoundingClientRect().height <= 30 && re.test(pill.parentElement.textContent)) pill = pill.parentElement;
             if (!pill) return null;
             const pr = pill.getBoundingClientRect();
             const hits = [...document.querySelectorAll('button, a, input, select, textarea, label, [data-opt], [data-tf]')].filter((e) => !pill.contains(e) && !e.contains(pill) && e.getBoundingClientRect().width > 0).filter((e) => { const q = e.getBoundingClientRect(); return q.left < pr.right && q.right > pr.left && q.top < pr.bottom && q.bottom > pr.top; }).map((e) => (e.id ? '#' + e.id : e.tagName.toLowerCase()) + ' "' + e.textContent.trim().slice(0, 20) + '"');
             return { cls: String(pill.className), rect: [Math.round(pr.left), Math.round(pr.top), Math.round(pr.width), Math.round(pr.height)], hits, hash: location.hash };
           });
-          if (r) { found.push(r); if (vp[0] === 390 && found.length === 1) await shot(p, 'v2-dang-cap-nhat-390'); }
+          if (r) { found.push(r); if (vp[0] === 390 && found.length === 1) await shot(p, 'v2-dang-cap-nhat-390', { clip: { x: 0, y: 0, width: 390, height: 240 } }); }
         }
         await p.waitForTimeout(2800);
       }

@@ -171,3 +171,9 @@ Chưa trả lời thì web chạy theo mặc định.
 
 ### Lệch so với gợi ý của điều phối
 - R-1 dùng `media="print"` + `onload` thay cho `preload` + `<noscript>` (điều phối nêu là "ví dụ"). Lý do: giữ đúng một link phông; kết quả không chặn như nhau.
+
+## Ghi chú của điều phối khi gộp (20/11/2026)
+- Soát code vòng 2: **ĐẠT**. Kiểm thử vòng 2: **ĐẠT** (15/15 TC, hai máy chủ, sáng/tối, phông bị chặn và phông tải thật). Code.gs không đổi.
+- Đã sửa kèm 1 lỗi có sẵn trên trang thật từ Pha 4: viên "Đang cập nhật" che nút "Làm lại" trên điện thoại.
+- Logo là logo TẠM (mê cung chữ Q từ file Word mẫu). Thay logo chuẩn = thay đúng file `assets/img/logo-vlsn.png`.
+- Để Pha 6 kiểm trên điện thoại thật: R-3 (tiêu đề Montserrat dài ở khổ 390), R-7 (tiêu đề thẻ có nút nhỏ hơn ở khổ hẹp). R-5: nếu sau này thêm CSP thì cho phép handler `onload` của link phông.
