@@ -107,3 +107,49 @@ Chạy trên nhánh `pha-6-phat-hanh` (commit có Code.gs 1.5.0), ngày 20/11/20
 - Máy đã lưu cấu hình cũ (`ld_pub`) thấy nút Đổi PIN/ô Mục tiêu sau khi tải lại trang (bản lưu quá 10 phút). Đã ghi ở bước A6.
 - Dán nhầm/thiếu code: có sao lưu (A1), quay về phiên bản cũ (A7), và giao diện tự dùng đường dự phòng với máy chủ 1.0.0.
 - V2-3 Pha 4 (câu bị ẩn lời giải vẫn hiện đúng/sai) đã được chấp nhận, không sửa.
+
+---
+
+## Vòng 2 (người làm) — sửa theo `pha-6-soat.md` và `pha-6-kiem-thu.md`
+
+### Tóm tắt cho giáo viên
+- Thêm bước **A0**: đo tốc độ trang đang chạy **trước** khi dán code, để có số so sánh.
+- Sau khi triển khai, thầy chỉ cần bấm **F5** một lần là web nhận máy chủ mới (trước đây phải chờ tới 10 phút).
+- Mỗi bài nộp có **mã bài không trùng**, kể cả khi cả lớp nộp cùng một giây.
+- Lời nhắc: **không** gửi ảnh nhật ký của `setup` (có mật khẩu); chỉ gửi nhật ký `kiemTraSauTrienKhai`.
+- Tên nút và tên file trong hướng dẫn đã sửa cho đúng giao diện. Máy chủ vẫn là **1.5.0** (chưa phát hành nên không tăng số).
+
+### Đã sửa
+| Mã | Sửa | File |
+|---|---|---|
+| R-1 / K-1 | Mẫu `ADMIN_PW` chỉ nhận giá trị thật (≥ 6 chữ/số ngay sau `=` hoặc dấu nháy). Không còn báo nhầm `` ` ``, `<mật khẩu>`, `$PW`, `(?!…` trong báo cáo soát/kiểm thử. Repo quét sạch, gồm cả hai báo cáo đó. | `tests/scan-secrets.js` |
+| R-4 | PIN chỉ được miễn ở **11 file test liệt kê đích danh** (tự gieo học sinh giả); trong tài liệu chỉ miễn PIN mẫu `0101` (Học Sinh Mẫu) và `0503` (ví dụ README). Bắt thêm `ADMIN_PW="…"`, `process.env.ADMIN_PW \|\| '…'`, "PIN của em là …", "pin riêng: …", id Drive kiểu cũ `0B…`. Hai chuỗi ví dụ trong `pha-6-soat.md` được miễn đích danh (file + chuỗi). Ghi giới hạn (hàng dữ liệu dạng bảng không kèm email/PIN) ở đầu file. Test mới cài 10 mẫu vi phạm giả (mã hóa base64 để chính file test không bị quét ra) và 6 mẫu không phải vi phạm. | `tests/scan-secrets.js`, `tests/pha6.test.js` |
+| N-1 | Mã bài thi = `KQ` + `yyMMddHHmmss` + **8 hex ngẫu nhiên** (`Utilities.getUuid`), kiểm trùng **trong khóa** (đọc thẳng cột Mã bài), trùng thì sinh mã khác. Mã bài luyện tập = `LT` + giờ + **16 hex** của mã lượt; kiểm "đã ghi" theo **mã bài + mã HS** (chỉ đọc ô Mã HS của hàng trùng mã). `getResult` ưu tiên hàng của chính học sinh. Mã cũ (`KQ` + 15 số, `LT` + 12 hex) vẫn đọc được. Test: 300 bài nộp liền nhau không trùng; mã cũ đọc được; mã đã có sẵn thì sinh mã khác. `cache.test.js` chạy 30 lần liền: 30/30 đạt. | `Code.gs`, `tests/pha6.test.js`, `tests/pha4.test.js` |
+| K-2 | Bản lưu `ld_pub` là của máy chủ cũ (không có `features`) thì mỗi lần tải trang luôn hỏi lại `publicConfig`. Khi danh sách tính năng đổi: trang quản trị vẽ lại màn đang xem (trừ trình soạn đề có thay đổi chưa lưu); trang học sinh vẽ lại màn đang xem (trừ khi đang làm bài). Máy chủ mới thì không thêm request (bootstrap vẫn trả cấu hình). `pha6-kiem-thu.e2e.js`: "Ngân hàng dùng được ngay sau F5" và "Đổi PIN hiện sau đúng 1 lần F5" đều ĐẠT. | `assets/js/app.js`, `assets/js/admin.js` |
+| K-3 | "Lưu cài đặt" tải lại `publicConfig` ngay (không chỉ xóa bản lưu); tab Ngân hàng giữ "Đưa vào luyện tập" và "Pool luyện tập". | `assets/js/admin.js` |
+| R-8 | Bỏ `teacherName` khỏi `publicConfig` (giao diện không dùng: `grep` không còn chỗ nào). Test khẳng định không còn trường này. | `Code.gs`, `tests/pha6.test.js` |
+| R-2 | Thêm **A0**: đo trên máy chủ 1.0.0 trước khi dán (trang chủ lần 1/lần 2, chuyển tab, máy tính + điện thoại, F12 Network nếu làm cùng Claude). B1 so với A0. | `docs/VIEC-GIAO-VIEN.md`, README |
+| R-3 / N-3 | A3: nhật ký `setup` có mật khẩu — không chụp, không gửi. A6: chỉ gửi nhật ký `kiemTraSauTrienKhai`. README nhắc tương tự. | tài liệu |
+| R-5 | Không sửa code (có từ 1.0.0). Thêm câu ở A3 về cột riêng của giáo viên có thể đổi cách hiển thị. | `docs/VIEC-GIAO-VIEN.md` |
+| R-6 / K-5 | A2: file có thể tên `Mã.gs`, chỉ giữ một file .gs; tìm `APP_VERSION` bằng Ctrl+F (khoảng dòng 21). | tài liệu |
+| R-7 / K-6 | A6: Lớp 12 → **Tạo ma trận** → **Thêm vào giỏ** → **Tạo đề (28 câu) →** → **Tên đề** → **💾 Lưu đề**; xóa bằng nút **Xóa** ở tab Đề thi. B3: **+ Tạo đề mới** → **⇪ Nhập nhanh từ Word / Excel** → **Tải file lên**. | tài liệu |
+| R-9 | B6 thêm Lighthouse (khuyến nghị, TC-5.15). | tài liệu |
+| K-4 | README Bước 1: "7 trang tính". | README |
+| Hạ tầng | `tests/dev-server.js` đặt khóa ký phiên cố định theo cổng (`DEV_SECRET`, mặc định theo số cổng), giống Apps Script thật giữ Script Properties khi triển khai phiên bản mới. Nhờ vậy kịch bản "chuyển 1.0.0 → 1.5.0 trên cùng địa chỉ" của kiểm thử không phải đăng nhập lại. | `tests/dev-server.js` |
+
+### Không sửa
+- **R-5**: `setup` đặt định dạng chữ cho mọi cột (có từ 1.0.0). Chỉ ghi rủi ro và nhắc ở A3.
+- **N-2**: lịch sử git còn 5 id Drive thật và 4 email giả cũ. Không viết lại lịch sử (trái 00 §4). HEAD sạch.
+
+### Chỗ lệch vòng 2
+1. `tests/pha6-kiem-thu.test.js` (của kiểm thử, không sửa) còn **2 mục báo KHÔNG ĐẠT** vì kiểm đúng câu chữ cũ đã sửa: "README ghi 5 trang tính" đòi đúng 5 trang (nay README ghi 7); "A2 dòng đầu có APP_VERSION" đòi dòng 1 của Code.gs (nay tài liệu bảo tìm bằng Ctrl+F). Cả hai là lỗi tài liệu K-4, K-5 **đã sửa**; người kiểm thử cần cập nhật hai mục này ở vòng 2.
+2. `tests/pha4.test.js` mục "Vòng 2 R-5": giả lập hàng trùng mã bài của học sinh khác. Nay máy chủ coi đó là bài khác (kiểm theo mã bài + mã HS) nên ghi bài của HS0001 riêng. Đã sửa kỳ vọng của test cho đúng hành vi mới.
+3. `setup` vẫn in mật khẩu (giữ hành vi 1.0.0 để thầy lấy mật khẩu lần đầu); giảm rủi ro bằng lời nhắc trong tài liệu.
+
+### Kết quả test vòng 2
+KẾT_QUẢ_VÒNG_2
+
+### Rủi ro còn lại (bổ sung)
+- **R-5**: cột riêng của giáo viên có thể đổi cách hiển thị sau `setup`.
+- **N-2**: id Drive thật còn trong lịch sử git (repo công khai thì xem được id, nhưng mở file vẫn cần quyền Drive của thầy).
+- Trên máy chủ 1.0.0 (trước khi dán), mỗi lần tải trang tốn thêm 1 lời gọi `publicConfig` (để nhận ra ngay khi máy chủ được cập nhật). Hết sau khi triển khai 1.5.0.
