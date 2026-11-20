@@ -208,5 +208,19 @@ t('TC-6.5 tests/scan-secrets.js: repo sạch (mật khẩu, PIN, email, id file 
   assert.ok(/sạch — \d+ file, 0 phát hiện/.test(out), out);
 });
 
+t('Vòng 2 (R-1, R-4): scan-secrets bắt đủ mẫu cài sẵn, không báo nhầm "ADMIN_PW=<…>", backtick, regex', () => {
+  const fs = require('fs');
+  const f = path.join(__dirname, '..', 'zz-scan-thu.md');
+  // mẫu vi phạm GIẢ, mã hóa base64 để chính file này không bị quét ra
+  const bad = Buffer.from('UElOIGPhu6dhIGVtIGzDoCAxNTAzCnBpbiByacOqbmc6IDI4MDcKQURNSU5fUFc9IkFiYzEyMzQ1IiBub2RlIHgKY29uc3QgcHcgPSBwcm9jZXNzLmVudi5BRE1JTl9QVyB8fCAnbWF0a2hhdTEnOwpBRE1JTl9QVz1hYmMxMjMgbm9kZQppZCAwQnhZekFiQ2RFZkdoSWpLbE1uT3BRclN0VXZXMTIKcGluOiAnMTIzNCcKdGhheS50aGF0QGdtYWlsLmNvbQoxQWJDZEVmR2hJaktsTW5PcFFyU3RVdld4WXowMTIzNDU2Nzg5Ck3huq10IGto4bqpdSBxdeG6o24gdHLhu4s6IFh5MTJhYjM0', 'base64').toString('utf8').split('\n');
+  const good = ['ADMIN_PW=<mật khẩu> node', 'ADMIN_PW=`x`', 'ADMIN_PW=(?![<$])\\S+', 'ADMIN_PW=$PW', 'nhập PIN 0101', 'hs@example.com'];
+  fs.writeFileSync(f, bad.concat(good).join('\n') + '\n');
+  let out = '';
+  try { require('child_process').execSync('node ' + JSON.stringify(path.join(__dirname, 'scan-secrets.js')), { encoding: 'utf8' }); }
+  catch (e) { out = String(e.stdout); } finally { fs.unlinkSync(f); }
+  const lines = out.split('\n').filter((l) => l.indexOf('zz-scan-thu.md:') >= 0).map((l) => +l.split(':')[1].split(' ')[0]);
+  assert.deepStrictEqual([...new Set(lines)].sort((a, b) => a - b), bad.map((_, i) => i + 1), out);
+});
+
 console.log(failed ? `pha6.test: ${failed} KHÔNG ĐẠT / ${passed + failed}` : `pha6.test: ${passed}/${passed} đạt`);
 process.exit(failed ? 1 : 0);
