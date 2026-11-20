@@ -82,7 +82,6 @@ t('Còn khoảng trắng canh cột: tách theo vị trí cột (ô có dấu c�
 
 t('Ô chứa $…$ có dấu cách không bị cắt; dấu phẩy thập phân trong công thức như cũ', () => {
   const tb = tables(rich([D, 'Đại lượng Giá trị', '-------- --------', '$p = 1,5 \\cdot 10^5$ Pa', D].join('\n')));
-  assert.deepStrictEqual(tb[0].th, ['Đại lượng', 'Giá trị'].length === 2 ? tb[0].th : null);
   // "Đại lượng Giá trị": 3 mảnh, 2 cột, không có công thức, không phải số → cả dòng vào ô đầu
   assert.deepStrictEqual(tb[0].th, ['Đại lượng Giá trị', '']);
   assert.deepStrictEqual(tb[0].td, [['$p = 1{,}5 \\cdot 10^5$', 'Pa']]);
