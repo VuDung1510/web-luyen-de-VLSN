@@ -60,3 +60,14 @@ Mọi commit kết thúc bằng 2 dòng `Co-Authored-By` / `Claude-Session` theo
 Gộp vào `main` ngày 19/11/2026. Soát code vòng 2 ĐẠT; kiểm thử vòng 2 ĐẠT sau khi sửa K-1 (giới hạn ma trận). Kho thật: 1 014/10 239 câu dùng được, đối chiếu 61/61 đúng.
 
 **Việc đầu tiên của phiên mới:** nhóm "Tạo đề" trong `tests/pha2-kiem-thu.e2e.js` chập chờn (khoảng 3/9 lần không đạt, tùy câu bốc ngẫu nhiên). Bắt ca hỏng (in mã câu, ô hình, nhãn) để xác định là lỗi test hay lỗi chép hình theo lô; sửa rồi mới bắt đầu Pha 3. Xem ghi chú cuối `docs/bao-cao/pha-2-kiem-thu.md`.
+
+## 7. Cập nhật 21/11/2026 (phiên làm Pha 3 → 6a)
+| Pha | Trạng thái |
+|---|---|
+| 3 — Tải đề Word/Excel | Đã gộp `main` 19/11 (không đổi Code.gs). Báo cáo `docs/bao-cao/pha-3*.md` |
+| 4 — Luyện tập | Đã gộp `main` 19/11, Code.gs 1.4.0. Đã chốt: câu đề thi chỉ vào luyện tập khi đề đã đóng và cho xem lời giải |
+| 5 — Màu xanh + logo | Đã gộp `main` 20/11. Logo là logo TẠM (mê cung chữ Q từ file Word mẫu); thay = thay `assets/img/logo-vlsn.png`. 4 câu hỏi cho giáo viên trong `docs/bao-cao/pha-5.md` |
+| 6a — Chuẩn bị phát hành | Đã gộp `main` 21/11, **Code.gs bản cuối 1.5.0**, `docs/VIEC-GIAO-VIEN.md`, README, `tests/scan-secrets.js` |
+| 6b — Làm cùng giáo viên | **Việc tiếp theo.** Theo `docs/VIEC-GIAO-VIEN.md`: A0 đo tốc độ máy chủ 1.0.0 TRƯỚC khi dán; rồi nhóm A, B (TC-6.7, 6.8) |
+
+Máy chủ thật vẫn là 1.0.0. Bài kiểm thử "Tạo đề" chập chờn của Pha 2 đã xác định là lỗi của test và đã sửa.

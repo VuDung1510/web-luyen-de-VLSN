@@ -91,3 +91,4 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - 19/11/2026 — Claude Code: chốt thêm mục 5 — câu của đề thi chỉ vào luyện tập khi đề đã đóng và cho xem lời giải (theo soát code Pha 4).
 - 19/11/2026 — Claude Code: gộp Pha 4 (Luyện tập, Code.gs 1.4.0); soát và kiểm thử ĐẠT sau 3 vòng. Bắt đầu Pha 5.
 - 20/11/2026 — Claude Code: gộp Pha 5 (màu xanh #1D6B3E, logo VLSN TẠM, chân trang thương hiệu + hotline + slogan, bỏ tên giáo viên; giữ bố cục). Tiêu đề Montserrat 800 không in hoa toàn bộ (mặc định, chờ giáo viên). Thay logo chuẩn = thay file assets/img/logo-vlsn.png. Bắt đầu Pha 6a.
+- 21/11/2026 — Claude Code: gộp Pha 6a (Code.gs bản cuối 1.5.0, README, docs/VIEC-GIAO-VIEN.md); soát code và kiểm thử vòng 2 ĐẠT. Chờ giáo viên làm Pha 6b (dán Code.gs một lần).
