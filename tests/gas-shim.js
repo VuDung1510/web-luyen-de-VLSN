@@ -90,6 +90,7 @@ function makeSheet(name, env, tag) {
     insertRowBefore: () => { wrote(); return sh; },
     insertColumns: () => { wrote(); return sh; },
     _setData: (rows) => { data = rows.map((r) => r.slice()); },
+    _formats: () => Object.assign({}, formats), // định dạng số đã đặt, khóa "hàng,cột" của ô đầu vùng (Pha 6)
     setFrozenRows: () => {}
   };
   return sh;

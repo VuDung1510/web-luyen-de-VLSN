@@ -18,7 +18,7 @@
  * Máy chủ chỉ ĐỌC kho và thư mục hình của kho; câu được chọn được chép sang CauHoi, hình được chép sang thư mục web.
  */
 
-var APP_VERSION = '1.4.0';
+var APP_VERSION = '1.5.0';
 /** Tính năng máy chủ này hỗ trợ. Giao diện bật/tắt nút theo danh sách này (không so số phiên bản). */
 var FEATURES = ['changePin', 'goal', 'bootstrap', 'cache', 'bank', 'practice'];
 var TZ = 'Asia/Ho_Chi_Minh';
@@ -71,7 +71,7 @@ var RESULT_NUMBER_FORMATS = [['diem', '0.00'], ['diemGoc', '0.00'], ['diemToiDa'
 
 var DEFAULT_SETTINGS = [
   ['TEN_UNG_DUNG', 'Luyện đề Vật lý', 'Tên hiển thị trên web'],
-  ['TEN_GIAO_VIEN', '', 'Tên giáo viên (hiển thị ở chân trang)'],
+  ['TEN_GIAO_VIEN', '', 'Tên giáo viên (chỉ dùng nội bộ, không hiển thị trên trang học sinh)'],
   ['GOOGLE_CLIENT_ID', '', 'OAuth Client ID để đăng nhập bằng Google (xem README). Để trống = tắt đăng nhập Google'],
   ['EMAIL_GIAO_VIEN', '', 'Email Google được vào trang quản trị (nhiều email cách nhau dấu phẩy)'],
   ['MAT_KHAU_QUAN_TRI', function () { return randomPassword_(); }, 'Mật khẩu vào trang quản trị (luôn dùng được, kể cả khi chưa cài Google)'],
@@ -137,6 +137,86 @@ function setup() {
   var pw = getSetting_('MAT_KHAU_QUAN_TRI');
   Logger.log('✅ Cài đặt xong! Mật khẩu trang quản trị: ' + pw + '  (xem/đổi ở trang tính CaiDat)');
   return 'OK';
+}
+
+/**
+ * Chạy tay trong trình soạn Apps Script SAU khi triển khai (chọn hàm này → ▶ Chạy → xem "Nhật ký thực thi").
+ * Chỉ ĐỌC: không sửa trang tính, kho hay Drive. Việc ghi duy nhất là 1 khóa thử trong CacheService (xóa ngay sau đó).
+ * Không in mật khẩu, PIN hay id file.
+ */
+function kiemTraSauTrienKhai() {
+  var dong = [], soLoi = 0, soCanhBao = 0;
+  var ok = function (m) { dong.push('✅ ' + m); };
+  var canhBao = function (m) { soCanhBao++; dong.push('⚠️ ' + m); };
+  var loi = function (m) { soLoi++; dong.push('❌ ' + m); };
+  var msg = function (e) { return String(e && e.message || e); };
+  MEMO_ = {};
+  ok('Phiên bản máy chủ: ' + APP_VERSION + ' · tính năng: ' + FEATURES.join(', '));
+
+  // 1. Trang tính và cột tiêu đề (đọc hàng tiêu đề, không thêm gì)
+  var ss = ss_();
+  Object.keys(SCHEMA).forEach(function (name) {
+    var sh = ss.getSheetByName(name);
+    if (!sh) { loi('Thiếu trang tính "' + name + '". Hãy chạy hàm setup() một lần.'); return; }
+    var lastCol = sh.getLastColumn();
+    var header = lastCol ? sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String) : [];
+    var thieu = SCHEMA[name].map(function (d) { return d[1]; }).filter(function (l) { return header.indexOf(l) < 0; });
+    var trung = header.filter(function (h, i) { return h && header.indexOf(h) !== i; });
+    var soHang = Math.max(sh.getLastRow() - 1, 0);
+    if (thieu.length) loi(name + ': thiếu cột ' + thieu.map(function (l) { return '"' + l + '"'; }).join(', ') + '. Hãy chạy hàm setup() một lần.');
+    else if (trung.length) canhBao(name + ': có cột trùng tên ' + trung.map(function (l) { return '"' + l + '"'; }).join(', ') + '. Xóa bớt cột trùng (giữ cột có dữ liệu).');
+    else ok(name + ': đủ ' + SCHEMA[name].length + ' cột, ' + soHang + ' hàng dữ liệu.');
+    // R-10 (Pha 2): CauHoi sắp hết số hàng đã định dạng văn bản
+    if (name === 'CauHoi' && sh.getLastRow() > sh.getMaxRows() - 100) {
+      canhBao('CauHoi đã dùng ' + sh.getLastRow() + '/' + sh.getMaxRows() + ' hàng. Thêm hàng trống ở cuối trang tính rồi chạy setup() để định dạng.');
+    }
+  });
+
+  // 2. CaiDat: đủ khóa, không trùng (đọc thẳng Sheet, không qua đệm)
+  var caiDat = [];
+  try { caiDat = readSheet_('CaiDat'); } catch (e) { loi('Không đọc được CaiDat: ' + msg(e)); }
+  MEMO_.CaiDat = caiDat; // getSetting_ dùng bản vừa đọc, không ghi đệm
+  var khoa = caiDat.map(function (r) { return r.khoa; });
+  var thieuKhoa = DEFAULT_SETTINGS.map(function (d) { return d[0]; }).filter(function (k) { return khoa.indexOf(k) < 0; });
+  var trungKhoa = khoa.filter(function (k, i) { return k && khoa.indexOf(k) !== i; });
+  if (thieuKhoa.length) loi('CaiDat thiếu dòng: ' + thieuKhoa.join(', ') + '. Hãy chạy hàm setup() một lần.');
+  else ok('CaiDat: đủ ' + DEFAULT_SETTINGS.length + ' dòng cài đặt.');
+  if (trungKhoa.length) canhBao('CaiDat có dòng trùng khóa: ' + trungKhoa.join(', ') + '. Xóa dòng thừa (máy chủ chỉ đọc dòng đầu tiên).');
+  if (!getSetting_('MAT_KHAU_QUAN_TRI')) loi('CaiDat: MAT_KHAU_QUAN_TRI đang trống. Đặt mật khẩu quản trị trong CaiDat.');
+
+  // 3. Kho câu hỏi (chỉ đọc hàng tiêu đề và số hàng)
+  if (!idFromSetting_(getSetting_('KHO_CAU_HOI_ID'))) {
+    canhBao('Chưa có KHO_CAU_HOI_ID: tab Ngân hàng chưa dùng được. Dán link file "KHO CÂU HỎI VẬT LÝ" ở Cài đặt của trang quản trị.');
+  } else {
+    try {
+      var kho = bankOpen_();
+      ok('Mở được kho câu hỏi: trang "' + BANK_SHEET + '" có ' + Math.max(kho.lastRow - 1, 0) + ' hàng, đủ cột cần đọc.');
+    } catch (e) { loi('Kho câu hỏi: ' + msg(e)); }
+  }
+  var thuMuc = idFromSetting_(getSetting_('THU_MUC_HINH_KHO_ID'));
+  if (!thuMuc) canhBao('Chưa có THU_MUC_HINH_KHO_ID: hình của kho sẽ được tìm trên toàn Drive (chậm hơn). Nên dán link thư mục "02. HÌNH VẼ".');
+  else {
+    try { ok('Mở được thư mục hình của kho: "' + DriveApp.getFolderById(thuMuc).getName() + '".'); }
+    catch (e) { loi('Không mở được thư mục hình của kho (' + msg(e) + '). Kiểm tra THU_MUC_HINH_KHO_ID.'); }
+  }
+  var luyen = getSetting_('CHO_LUYEN_TAP').toUpperCase() === 'CO';
+  ok('Luyện tập cho học sinh: ' + (luyen ? 'đang BẬT' : 'đang TẮT (bật ở Cài đặt khi đã đưa câu vào luyện tập)') + '.');
+
+  // 4. Bộ nhớ đệm: ghi thử 1 khóa, đọc lại, xóa
+  try {
+    var c = CacheService.getScriptCache();
+    var k = 'kiemtra_' + Utilities.getUuid().slice(0, 8), v = String(Date.now());
+    c.put(k, v, 60);
+    var doc = c.get(k);
+    c.remove(k);
+    if (doc === v) ok('Bộ nhớ đệm (CacheService): ghi/đọc thử được.');
+    else canhBao('Bộ nhớ đệm không đọc lại được khóa thử. Web vẫn chạy đúng nhưng chậm hơn.');
+  } catch (e) { canhBao('Bộ nhớ đệm lỗi (' + msg(e) + '). Web vẫn chạy đúng nhưng chậm hơn.'); }
+
+  var ketLuan = soLoi ? '❌ CÓ ' + soLoi + ' LỖI cần sửa' : soCanhBao ? '✅ CHẠY ĐƯỢC, có ' + soCanhBao + ' lưu ý' : '✅ TẤT CẢ ĐỀU ỔN';
+  dong.push(ketLuan + '. Mở trang quản trị → Cài đặt: phải thấy "Phiên bản máy chủ ' + APP_VERSION + '".');
+  Logger.log('KIỂM TRA SAU TRIỂN KHAI\n' + dong.join('\n'));
+  return { loi: soLoi, canhBao: soCanhBao, dong: dong };
 }
 
 function applyResultFormats_(sh, name) {

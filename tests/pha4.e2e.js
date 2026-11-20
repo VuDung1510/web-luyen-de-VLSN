@@ -103,7 +103,7 @@ async function answerAndSubmit(page) {
 }
 
 async function runNew(browser) {
-  console.log('Máy chủ mới (1.4.0):');
+  console.log('Máy chủ mới:');
   const errors = [];
   const srv = await startServer(PORT_NEW, { LATENCY_MS: String(LAT) });
   try {

@@ -60,11 +60,11 @@ const sumMeta = (m) => m.cay.reduce((s, x) => s + x.dem.TN + x.dem.DS + x.dem.TL
 
 console.log('Luyện tập (Pha 4) — máy chủ:');
 
-t('features có "practice"; APP_VERSION 1.4.0; publicConfig.practice theo CHO_LUYEN_TAP; setup tạo 2 trang tính, chạy lại an toàn', () => {
+t('features có "practice"; APP_VERSION 1.5.0; publicConfig.practice theo CHO_LUYEN_TAP; setup tạo 2 trang tính, chạy lại an toàn', () => {
   const w = world({ sync: false });
   const p = ok(w.g.call('publicConfig'));
   assert(p.features.includes('practice'));
-  assert.strictEqual(p.version, '1.4.0');
+  assert.strictEqual(p.version, '1.5.0');
   assert.strictEqual(p.practice, true);
   K.setSetting(w.g, { CHO_LUYEN_TAP: 'KHONG' });
   assert.strictEqual(ok(w.g.call('publicConfig')).practice, false);
