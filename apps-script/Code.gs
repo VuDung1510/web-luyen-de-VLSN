@@ -616,7 +616,7 @@ function apiSubmitExam_(req) {
   var fb = buildFeedback_(qs, graded, { usedSec: usedSec, limitSec: a.dur, prevSame: prevSame, prevAll: prevAll, goal: goal });
   var diem10 = graded.max ? round2_(graded.score / graded.max * 10) : 0;
   var result = {
-    id: 'KQ' + Utilities.formatDate(new Date(now), TZ, 'yyMMddHHmmss') + Math.floor(Math.random() * 900 + 100),
+    id: newResultId_(now),
     nopLuc: fmtDateTime_(new Date(now)), hoTen: st.hoTen, lop: st.lop, tieuDe: e.tieuDe,
     diem: diem10, mucTieu: goal == null ? '' : goal, diemGoc: graded.score, diemToiDa: graded.max, soCauDung: graded.correctCount, tongCau: qs.length,
     thoiGianLam: fmtDuration_(usedSec), nhanXet: fb.text, studentId: st.id, examId: e.id,
@@ -630,7 +630,11 @@ function apiSubmitExam_(req) {
       return it;
     }))
   };
-  withLock_(function () { appendRows_('KetQua', [result]); });
+  withLock_(function () {
+    // N-1 (Pha 6): mã bài phải duy nhất — kiểm trong khóa, trùng thì sinh mã khác
+    for (var tries = 0; tries < 5 && resultIdTaken_('KetQua', result.id); tries++) result.id = newResultId_(now);
+    appendRows_('KetQua', [result]);
+  });
   cache.put(doneKey, result.id, 21600);
   notifyTeacher_(result);
   return buildResultView_(readTable_('KetQua').filter(function (r) { return r.id === result.id; })[0] || result, e, 'student');
@@ -2501,18 +2505,35 @@ function apiPracticeStart_(req) {
   };
 }
 
-/** Mã bài luyện tập: cố định theo lượt (token) → nộp lại cùng token không ghi thêm hàng. */
-function practiceResultId_(p) {
-  return 'LT' + Utilities.formatDate(new Date(p.st), TZ, 'yyMMddHHmmss') + String(p.pid).replace(/[^0-9a-f]/gi, '').slice(0, 12).toUpperCase();
+/**
+ * Mã bài thi (KetQua): "KQ" + yyMMddHHmmss + 8 ký tự hex ngẫu nhiên (N-1, Pha 6). Mã cũ "KQ" + 15 chữ số vẫn đọc được
+ * (mã chỉ là chuỗi). Trùng mã khi nhiều bài nộp cùng giây: kiểm lại trong khóa (resultIdTaken_).
+ */
+function newResultId_(now) {
+  return 'KQ' + Utilities.formatDate(new Date(now), TZ, 'yyMMddHHmmss') + Utilities.getUuid().replace(/[^0-9a-f]/gi, '').slice(0, 8).toUpperCase();
 }
 
-/** Mã bài đã có trong KetQuaLuyenTap? Đọc thẳng cột "Mã bài" của Sheet (không qua đệm, gọi trong khóa). */
-function practiceResultExists_(id) {
-  delete MEMO_.__si_KetQuaLuyenTap;
-  var info = sheetInfo_('KetQuaLuyenTap');
-  if (!info || !info.col.id || info.lastRow < 2) return false;
-  return info.sh.getRange(2, info.col.id, info.lastRow - 1, 1).getValues().some(function (r) { return str_(r[0]) === id; });
+/** Mã bài luyện tập: cố định theo lượt (token) → nộp lại cùng token không ghi thêm hàng. 16 hex của mã lượt (N-1). */
+function practiceResultId_(p) {
+  return 'LT' + Utilities.formatDate(new Date(p.st), TZ, 'yyMMddHHmmss') + String(p.pid).replace(/[^0-9a-f]/gi, '').slice(0, 16).toUpperCase();
 }
+
+/**
+ * Mã bài `id` đã có trong trang `name`? Đọc thẳng cột "Mã bài" (và "Mã HS" khi có `sid`) của Sheet, không qua đệm.
+ * Gọi trong khóa.
+ */
+function resultIdTaken_(name, id, sid) {
+  delete MEMO_['__si_' + name];
+  var info = sheetInfo_(name);
+  if (!info || !info.col.id || info.lastRow < 2) return false;
+  var n = info.lastRow - 1;
+  var ids = info.sh.getRange(2, info.col.id, n, 1).getValues();
+  var sids = sid && info.col.studentId ? info.sh.getRange(2, info.col.studentId, n, 1).getValues() : null;
+  return ids.some(function (r, i) { return str_(r[0]) === id && (!sids || str_(sids[i][0]) === sid); });
+}
+
+/** Bài luyện mã `id` của học sinh `sid` đã ghi chưa (nộp hai lần cùng lúc → chỉ một hàng). */
+function practiceResultExists_(id, sid) { return resultIdTaken_('KetQuaLuyenTap', id, sid); }
 
 function practiceSubmit_(st, p, req) {
   requirePracticeOn_();
@@ -2556,7 +2577,7 @@ function practiceSubmit_(st, p, req) {
     }))
   };
   var wrote = withLock_(function () {
-    if (practiceResultExists_(id)) return false; // nộp hai lần cùng lúc: chỉ một hàng
+    if (practiceResultExists_(id, st.id)) return false; // nộp hai lần cùng lúc: chỉ một hàng
     appendRows_('KetQuaLuyenTap', [result]);
     return true;
   });
