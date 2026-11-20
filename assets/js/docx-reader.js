@@ -493,6 +493,38 @@
   /* ===================== Đọc document.xml ===================== */
   const SYMBOL_FONT = { 0x61: 'α', 0x62: 'β', 0x63: 'χ', 0x64: 'δ', 0x65: 'ε', 0x66: 'φ', 0x67: 'γ', 0x68: 'η', 0x69: 'ι', 0x6a: 'ϕ', 0x6b: 'κ', 0x6c: 'λ', 0x6d: 'μ', 0x6e: 'ν', 0x6f: 'ο', 0x70: 'π', 0x71: 'θ', 0x72: 'ρ', 0x73: 'σ', 0x74: 'τ', 0x75: 'υ', 0x77: 'ω', 0x78: 'ξ', 0x79: 'ψ', 0x7a: 'ζ', 0x44: 'Δ', 0x46: 'Φ', 0x47: 'Γ', 0x4c: 'Λ', 0x50: 'Π', 0x51: 'Θ', 0x53: 'Σ', 0x57: 'Ω', 0x59: 'Ψ', 0xb0: '°', 0xb1: '±', 0xb4: '×', 0xb9: '≠', 0xbb: '≈', 0xa3: '≤', 0xb3: '≥', 0xae: '→', 0xde: '⇒', 0xd7: '·', 0xa5: '∞', 0x2d: '−' };
 
+  const ZIP_BROKEN = 'File Word bị hỏng: dữ liệu nén không khớp với thông tin trong file, không đọc được. Hãy mở bằng Word rồi lưu lại.';
+  const ZIP_TOO_BIG = 'File Word bất thường: khi giải nén quá lớn. Hãy mở bằng Word, nén ảnh rồi lưu lại.';
+  /** Giải nén một file trong zip theo từng đoạn; dừng khi vượt `limit` (byte/ký tự). Trả chuỗi hoặc Uint8Array. */
+  function readLimited(f, type, limit) {
+    if (typeof f.internalStream !== 'function') {
+      return f.async(type).then((v) => { if (v.length > limit) throw new Error(ZIP_TOO_BIG); return v; }, () => { throw new Error(ZIP_BROKEN); });
+    }
+    return new Promise((resolve, reject) => {
+      const parts = [];
+      let size = 0, done = false, h = null;
+      const fail = (msg) => { if (done) return; done = true; try { if (h) h.pause(); } catch (e) { /* bỏ qua */ } reject(new Error(msg)); };
+      try { h = f.internalStream(type); } catch (e) { fail(ZIP_BROKEN); return; }
+      h.on('data', (c) => {
+        if (done) return;
+        size += c.length;
+        if (size > limit) { fail(ZIP_TOO_BIG); return; }
+        parts.push(c);
+      });
+      h.on('error', () => fail(ZIP_BROKEN));
+      h.on('end', () => {
+        if (done) return;
+        done = true;
+        if (type === 'string') { resolve(parts.join('')); return; }
+        const u = new Uint8Array(size);
+        let o = 0;
+        parts.forEach((c) => { u.set(c, o); o += c.length; });
+        resolve(u);
+      });
+      try { h.resume(); } catch (e) { fail(ZIP_BROKEN); }
+    });
+  }
+
   async function read(data, opts) {
     opts = opts || {};
     const JSZip = opts.JSZip || (root && root.JSZip);
@@ -511,7 +543,16 @@
     if (usize(zip.file('word/document.xml')) > MAX_XML || total > MAX_UNZIP) {
       throw new Error('File Word bất thường: khi giải nén quá lớn (' + Math.round(total / 1048576) + ' MB). Hãy mở bằng Word, nén ảnh rồi lưu lại.');
     }
-    const get = async (p) => { const f = zip.file(p); return f ? f.async('string') : null; };
+    // N-2 (Pha 6): không tin kích thước file tự khai — giải nén từng đoạn, đếm byte thật, quá giới hạn thì dừng ngay.
+    // Mọi lỗi giải nén (vd JSZip "Bug : uncompressed data size mismatch") đổi thành thông báo tiếng Việt.
+    let budget = MAX_UNZIP;
+    const get = async (p, type, limit) => {
+      const f = zip.file(p);
+      if (!f) return null;
+      const out = await readLimited(f, type || 'string', Math.min(limit || MAX_XML, budget));
+      budget -= out.length;
+      return out;
+    };
     const docXml = await get('word/document.xml');
     if (!docXml) throw new Error('File không có nội dung Word (thiếu word/document.xml). Hãy lưu lại bằng Word dạng .docx.');
     const relsXml = await get('word/_rels/document.xml.rels');
@@ -757,7 +798,7 @@
       const f = zip.file(im.path);
       if (!f) { im.kind = 'missing'; continue; }
       im.name = im.path.split('/').pop();
-      if (im.kind === 'img') im.data = await f.async('uint8array');
+      if (im.kind === 'img') im.data = await get(im.path, 'uint8array', MAX_UNZIP);
     }
     if (stats.textboxes) warnings.push('File có ' + stats.textboxes + ' khung văn bản (Text Box): chữ trong khung chưa được đọc, hãy kiểm tra lại.');
     Object.keys(badNum).forEach((k) => warnings.push('Có đoạn đánh số tự động không dựng lại được (' + k + '): kiểm tra số câu / phương án.'));
