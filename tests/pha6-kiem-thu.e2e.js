@@ -266,7 +266,17 @@ async function runOld(browser) {
     ok('A7 máy chủ cũ: tab Ngân hàng báo "Cần cập nhật máy chủ"', /Cần cập nhật máy chủ/i.test(await mainText(ad)));
     const st = await ctx.newPage();
     await routeCdn(st); watchErrors(st, 'hs-1.0.0');
+    // (vòng 2) A0 làm trên máy chủ 1.0.0: nút đăng nhập và các tab nêu trong A0
+    await st.goto(srv.base + '/'); await st.waitForSelector('#btnLogin');
+    const loginLabel = (await st.$eval('#btnLogin', (b) => b.textContent.trim()));
+    const viec = fs.readFileSync(path.join(__dirname, '..', 'docs', 'VIEC-GIAO-VIEN.md'), 'utf8');
+    const a0 = viec.split('## A0')[1].split('\n## ')[0];
+    const a0Btn = (/bấm "([^"]+)"/.exec(a0) || [])[1];
+    ok(`A0 "bấm \"${a0Btn}\"" là nút đăng nhập thật`, a0Btn === loginLabel, `nút thật: "${loginLabel}"`);
     await studentLogin(st, srv.base, '12A1', 'Học Sinh Mẫu', '0101');
+    const navs = await st.$$eval('a[href^="#/"]', (as) => as.filter((a) => a.offsetParent !== null).map((a) => a.textContent.trim()));
+    const need = ['Lịch sử', 'Thống kê', 'Xếp hạng', 'Trang chủ'];
+    ok('A0 các tab "Lịch sử, Thống kê, Xếp hạng, Trang chủ" có trên trang học sinh (máy chủ 1.0.0)', need.every((n) => navs.some((x) => x.includes(n))), navs.join(' | '));
     ok('A7 máy chủ cũ: học sinh đăng nhập được, nút Đổi PIN bị ẩn', !(await hasButton(st, /Đổi PIN/)));
     ok('Không có lỗi JS trên trang (1.0.0)', errors.length === before, errors.slice(before, before + 5).join(' | '));
     await ctx.close();

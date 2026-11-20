@@ -8,7 +8,7 @@ Máy chủ mới: **Code.gs 1.5.0** (gồm toàn bộ thay đổi máy chủ c�
 ## A0. TRƯỚC khi dán code: đo tốc độ máy chủ cũ (số gốc cho TC-6.7)
 
 Dán code xong thì không đo lại được máy chủ cũ nữa. Làm bước này trước, tốt nhất trong buổi làm cùng Claude.
-- ☐ Trên **máy tính**, mở trang học sinh trong cửa sổ ẩn danh, đăng nhập một học sinh. Bấm giờ (đồng hồ điện thoại) từ lúc bấm "Vào" tới lúc trang chủ hiện đủ danh sách đề: ghi **lần 1**.
+- ☐ Trên **máy tính**, mở trang học sinh trong cửa sổ ẩn danh, đăng nhập một học sinh. Bấm giờ (đồng hồ điện thoại) từ lúc bấm "Đăng nhập" tới lúc trang chủ hiện đủ danh sách đề: ghi **lần 1**.
 - ☐ Bấm sang **Lịch sử**, rồi **Thống kê**, rồi **Xếp hạng**, rồi **Trang chủ**: ghi thời gian mỗi lần chuyển tới khi nội dung hiện đủ.
 - ☐ Tải lại trang (F5) và đo lại trang chủ: ghi **lần 2**.
 - ☐ Làm lại 3 bước trên bằng **điện thoại** (4G hoặc wifi trường).

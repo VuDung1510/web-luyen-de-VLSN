@@ -192,3 +192,60 @@ Không sửa `gas-shim.js` hay `dev-server.js`. Trong `pha6-kiem-thu.e2e.js`, ph
   - sửa chữ K-4/K-5/K-6.
 
   K-3 và N-1 nên sửa trong vòng này (N-1 đổi Code.gs nhưng vẫn là 1.5.0 vì chưa triển khai). Sau đó chạy lại toàn bộ TC.
+
+## Vòng 2
+
+Kiểm trên `5ab70f7` (code vòng 2 tới `4b7d7b9`), ngày 21/11/2026. Chạy lại **toàn bộ** TC-6.1 → 6.6 và kiểm lại K-1 → K-6, N-1.
+
+### Tóm tắt cho giáo viên
+- **Kết luận vòng 2: ĐẠT.**
+  - Mọi TC đạt.
+  - Mọi lỗi K-1 → K-6 và N-1 đã sửa đúng.
+  - Toàn bộ test các pha đạt, ở cả máy chủ mới và máy chủ 1.0.0.
+- Sau khi triển khai, bấm F5 **một lần** là trang quản trị và trang học sinh nhận máy chủ mới. Đã thử chuyển máy chủ ngay khi trang đang mở.
+- 300 bài nộp liền nhau, có lúc 138 bài trong cùng một giây: không bài nào trùng mã.
+- Còn **một chữ nhỏ** trong bước A0 mới (K-7, Nhẹ, không chặn): tài liệu ghi bấm **"Vào"**, nhưng nút thật tên là **"Đăng nhập"**.
+
+### Thay đổi kịch bản
+- **`tests/pha6-kiem-thu.test.js`**:
+  - Hai mục trước đây kiểm câu chữ cũ nay kiểm đúng nội dung:
+    - số "sẽ thấy N trang tính" (README Bước 1.4) và "tổng cộng N trang tính" (VIEC A3) phải bằng số trang `setup` tạo thật;
+    - A2: tìm `APP_VERSION` bằng Ctrl+F thì lần gặp **đầu tiên** phải là dòng `var APP_VERSION = '1.5.0';`, nằm đúng "khoảng dòng 21" (lệch ≤ 3), và mọi dòng trước nó chỉ là chú thích.
+  - Thêm khối **N-1** (dữ liệu giả, shim):
+    - 300 bài thi nộp liền nhau, 3 học sinh xen kẽ;
+    - 60 bài luyện tập nộp liền nhau;
+    - mã kiểu cũ `KQ` + 15 số mở được bằng `getResult` và có trong `myResults`;
+    - hai bài cũ **trùng mã** của hai học sinh khác nhau: mỗi em mở được bài của mình;
+    - mã luyện tập kiểu cũ `LT` + giờ + 12 hex mở được;
+    - chạy `cache.test.js` 30 lần.
+- **`tests/pha6-kiem-thu.e2e.js`**: thêm kiểm **A0** trên máy chủ 1.0.0, gồm tên nút đăng nhập nêu trong A0 và các tab Lịch sử, Thống kê, Xếp hạng, Trang chủ. Kịch bản "chuyển máy chủ" giữ nguyên. Dev-server mới giữ khóa ký phiên theo cổng, nên không còn phải đăng nhập lại.
+- **Ảnh:** ảnh e2e vòng 2 ghi ra thư mục nháp. Ảnh `kt-*` trong repo giữ bản vòng 1, vì `kt-06` là bằng chứng của K-2.
+
+### Kết quả
+
+| TC / lỗi | Vòng 2 | Bằng chứng |
+|---|---|---|
+| TC-6.1 | **ĐẠT** | Như vòng 1. `publicConfig` không còn `teacherName` (R-8 của người soát) |
+| TC-6.2 | **ĐẠT** | **Node:** `backend` 13/13 · `importer` đạt · `bank` 30/30 · `cache` 17/17 · `common-cache` 5/5 · `docx` 29/29 · `pha1/2/3/4/5-kiem-thu` 29/29 · 31/31 · 17/17 · 33/33 · 27/27 · `pha4` 22 · `pha5` 11 · `pha6` **10/10** · `pha6-kiem-thu` **105/105**. **e2e**, mỗi lần một dev-server mới: `e2e.js`, `bank.e2e`, `docx.e2e`, `pha1-r1.e2e` đạt ở máy chủ mới và ở `SERVER_COMPAT=1.0.0`. `pha1-kiem-thu.e2e all` 57 ✓ 0 ✗ · `pha2-kiem-thu` 16/16 · `pha3-kiem-thu` 23/23 · `pha4-kiem-thu` 22/22 · `pha5-kiem-thu` 16/16 (không có `MAIN_DIR`) · `pha4.e2e all`, `pha5.e2e all` đạt. Cổng 8790–8792 |
+| TC-6.3, TC-6.4, `kiemTraSauTrienKhai` | **ĐẠT** | Như vòng 1, chạy lại trên code vòng 2: so 477 ô cũ, 0 ô đổi; API cũ đúng từng trường; `setup` chạy lặp không đổi gì; 7 tình huống `kiemTraSauTrienKhai` đều 0 lần ghi và không lộ mật khẩu |
+| TC-6.5 / K-1 | **ĐẠT** | `scan-secrets.js`: sạch, 92 file, 0 phát hiện, tính cả hai báo cáo soát và kiểm thử. Bộ quét riêng: mọi phát hiện đều vô hại. `pha6.test.js` 10/10 |
+| TC-6.6 | **ĐẠT** (còn K-7 Nhẹ) | Đi lại nhóm A (A0 mới, A2, A3, A4, A6, A7) và nhóm C trên shim và dev-server: 35/36 mục đạt. Mục còn lại là K-7. README "Khi cập nhật Code.gs" (bước 0–6) khớp. Các bước trong giao diện Apps Script vẫn **cần giáo viên** |
+| K-2 | **Đã sửa** | Cùng địa chỉ, máy chủ chuyển 1.0.0 → 1.5.0 khi trang đang mở. **F5 lần 1:** học sinh thấy "Đổi PIN"; tab Ngân hàng của trang quản trị dùng được ngay ("Kho có 54 câu", có Pool luyện tập). `ld_pub` cập nhật thành 1.5.0 có đủ `features`. VIEC A6 và README bước 5 nay ghi "F5 một lần", đúng với hành vi thật |
+| K-3 | **Đã sửa** | Sau "Lưu cài đặt" (ở A4 và ở C), tab Ngân hàng vẫn có "Đưa vào luyện tập" và "Pool luyện tập" mà không cần F5 |
+| K-4 | **Đã sửa** | README "sẽ thấy 7 trang tính", VIEC A3 "tổng cộng 7 trang tính", `setup` tạo 7 trang |
+| K-5 | **Đã sửa** | Ctrl+F `APP_VERSION`: lần gặp đầu là dòng 21 `var APP_VERSION = '1.5.0';`; 20 dòng trước đều là chú thích |
+| K-6 | **Đã sửa** | A6 ghi đúng chuỗi nút: Lớp 12 → Tạo ma trận → Thêm vào giỏ → Tạo đề (28 câu) → Tên đề → 💾 Lưu đề, xóa bằng nút "Xóa". B3 ghi "+ Tạo đề mới → ⇪ Nhập nhanh từ Word / Excel → Tải file lên". e2e đi đúng chuỗi này và đạt |
+| N-1 | **Đã sửa** | 300 bài thi nộp trong 1,8 s, tối đa 138 bài cùng một giây: **300 mã khác nhau**, cột Mã bài không trùng. 60 bài luyện: 60 mã `LT` khác nhau. Mã cũ `KQ`+15 số và `LT`+giờ+12 hex mở được. Hai bài cũ trùng mã: mỗi học sinh mở đúng bài của mình. `cache.test.js` chạy 30 lần: 0 lỗi (trong `pha6-kiem-thu.test.js`) |
+| N-2 | Giữ nguyên (thông tin) | Lịch sử git vẫn còn 5 id Drive thật. Người làm không viết lại lịch sử, đúng quy tắc 00 §4 |
+| N-3 | **Đã xử lý bằng tài liệu** | A3: "Nhật ký này có mật khẩu quản trị: KHÔNG chụp, KHÔNG gửi". A6 và README: chỉ gửi nhật ký `kiemTraSauTrienKhai` |
+
+### Lỗi còn lại
+**K-7 (Nhẹ, tài liệu)** — VIEC-GIAO-VIEN A0: "Bấm giờ từ lúc bấm **"Vào"**". Trên trang học sinh, ở cả máy chủ 1.0.0 lẫn 1.5.0, nút thật tên là **"Đăng nhập"** (`#btnLogin`). Đề xuất sửa chữ thành "Đăng nhập". Không chặn phát hành.
+
+### Kết luận vòng 2
+**ĐẠT.**
+- TC-6.1 → TC-6.6 đều đạt.
+- Toàn bộ test cũ và mới đạt ở hai chế độ máy chủ.
+- K-1 → K-6 và N-1 đã sửa đúng.
+- Chỉ còn K-7, một chữ trong A0, nên sửa khi tiện.
+- TC-6.7 và TC-6.8 thuộc Pha 6b (cần giáo viên).

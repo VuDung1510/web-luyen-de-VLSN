@@ -169,3 +169,9 @@ Nhánh `pha-6-phat-hanh` sau mọi sửa vòng 2, ngày 21/11/2026. Ảnh của 
 - **R-5**: cột riêng của giáo viên có thể đổi cách hiển thị sau `setup`.
 - **N-2**: id Drive thật còn trong lịch sử git (repo công khai thì xem được id, nhưng mở file vẫn cần quyền Drive của thầy).
 - Trên máy chủ 1.0.0 (trước khi dán), mỗi lần tải trang tốn thêm 1 lời gọi `publicConfig` (để nhận ra ngay khi máy chủ được cập nhật). Hết sau khi triển khai 1.5.0.
+
+## Ghi chú của điều phối khi gộp Pha 6a (21/11/2026)
+- Soát code vòng 2: **ĐẠT**. Kiểm thử vòng 2: **ĐẠT** (TC-6.1 → 6.6; mọi test hai chế độ máy chủ). K-7 (chữ "Vào" → "Đăng nhập" ở bước A0) điều phối đã sửa.
+- **Code.gs bản cuối: 1.5.0** (gồm 1.1.0 + Pha 1, 2, 4, 6a). Giáo viên dán một lần ở Pha 6b theo `docs/VIEC-GIAO-VIEN.md`.
+- Để đo ở 6b: thời gian nộp bài (R2-2), trang Luyện tập khi KetQuaLuyenTap lớn, R2-1 (dữ liệu cũ có hai bài trùng mã thì thao tác quản trị trúng hàng đầu).
+- Lịch sử git còn vài id Drive thật từ trước Pha 3 (HEAD sạch); không viết lại lịch sử.
