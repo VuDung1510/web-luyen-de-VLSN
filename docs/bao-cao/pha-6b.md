@@ -39,3 +39,12 @@ Lượt đo: đăng nhập học sinh → Lịch sử → Thống kê → Xếp 
   - Giữ nguyên là chữ: dòng gạch đơn lẻ, "---------- HẾT ----------", chữ có dấu gạch, bảng không có hàng dữ liệu, chia cột không có dòng đóng. Khối `[BẢNG]` không đổi.
 - **Test:** `tests/bang-gach.test.js` (13 ca: ví dụ của giáo viên → 3 cột, 1 tiêu đề + 3 hàng; có/không viền trên; không tiêu đề; tách theo vị trí cột; ô `$…$` có dấu cách; không tách được; dòng gạch đơn lẻ/HẾT; `[BẢNG]` cũ giống hệt; `<script>` bị escape; 2 bảng + `\r\n`) — đạt. `tests/bang-gach.e2e.js` (học sinh làm đề có câu bảng kẻ gạch, KaTeX vẽ 2 công thức ở tiêu đề) — đạt. Chạy lại: backend, importer, docx (29/29), pha2-kiem-thu (31/31), pha2-kiem-thu.e2e all (16/16 nhóm), pha5 (11), common-cache, e2e.js máy chủ mới và 1.0.0, scan-secrets — đều đạt.
 - **Ảnh:** `docs/bao-cao/anh/pha-6b/01-bang-gach.png` (nội dung câu tự soạn).
+
+## TC-6.8 (21/11/2026)
+- Giáo viên tạo "Đề thử phát hành" từ kho (ma trận Lớp 12), đưa câu vào luyện tập, bật Luyện tập. Học sinh mẫu làm đề và làm một bài luyện: **KetQua và KetQuaLuyenTap đều có hàng mới. ĐẠT.**
+- Vòng xem thứ hai các tab hiện ngay (đệm trên máy chạy đúng).
+- Giáo viên thấy 3 lỗi hiển thị: (1) bảng kẻ gạch của kho chưa thành bảng → đã sửa (mục dưới); (2) một hình quét bị nghiêng → lỗi của file hình trong kho; (3) câu `L12C3B16-P1-07955` mất ký hiệu Φ → lỗi dữ liệu kho (mất khi nhập), đã ghi cho bên Cowork ở mục 9 file quyết định chung.
+
+## Gộp bản sửa bảng kẻ gạch (điều phối)
+- Soát code: ĐẠT (4 Nhẹ). Kiểm thử: ĐẠT (97/97 ca Node, e2e hai chế độ). R-1 (soát: `replace(/\s+$/)` chậm bậc hai) điều phối đã đổi thành `trimEnd()`, chạy lại test đạt.
+- Còn nhẹ, chấp nhận: bảng thiếu viền dưới mà câu viết liền thì câu bị cuốn vào bảng; tiêu đề không có công thức và nhiều chữ hơn số cột dồn vào ô đầu; dạng không viền trên + dòng đóng nhiều đoạn thì tiêu đề in thành chữ. Không mất chữ trong mọi trường hợp. Không đổi Code.gs.

@@ -361,7 +361,7 @@
   }
   function splitCells(line, sep, keep) {
     const n = sep.length;
-    const L = line.replace(/\s+$/, '');
+    const L = line.trimEnd();
     const olen = (t) => t.replace(/\u0000(\d+)\u0000/g, (m, j) => keep[+j] || m).length; // độ dài theo chữ gốc (công thức chưa thay)
     if (/\S[ \t]{2,}\S/.test(L)) {
       // còn khoảng trắng canh cột: tách theo vị trí các đoạn gạch
