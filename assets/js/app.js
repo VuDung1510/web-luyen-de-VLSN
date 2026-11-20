@@ -46,7 +46,7 @@
     // Luyện tập: máy chủ có tính năng "practice" VÀ giáo viên bật CHO_LUYEN_TAP (máy chủ 1.0.0: không có mục này)
     const np = document.getElementById('navPractice');
     if (np) np.classList.toggle('hidden', !practiceAllowed(p));
-    document.getElementById('footer').textContent = (p.teacherName ? 'Giáo viên: ' + p.teacherName + ' · ' : '') + p.appName;
+    // Pha 5: chân trang là chữ thương hiệu cố định trong index.html — không ghi tên giáo viên
   }
 
   function practiceAllowed(p) {

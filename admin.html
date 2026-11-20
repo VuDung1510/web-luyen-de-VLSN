@@ -3,19 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Quản trị luyện đề</title>
+  <title>Quản trị · Luyện đề</title>
   <meta name="robots" content="noindex">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f59e0b'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EΦ%3C/text%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" href="assets/img/logo-vlsn.png">
+  <meta name="theme-color" content="#1D6B3E" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1420" media="(prefers-color-scheme: dark)">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Phông tải không chặn hiển thị (media="print" rồi đổi sang "all" khi tải xong): mạng treo thì trang vẫn hiện ngay bằng phông dự phòng. Trang cần JavaScript nên không cần <noscript>. -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Montserrat:wght@700;800&display=swap" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-in">
-      <a class="brand" href="#/"><span class="brand-logo" style="background:var(--accent)">Φ</span><span>Quản trị</span></a>
+      <!-- Logo TẠM (mê cung chữ Q từ file Word mẫu). Logo chuẩn (vatly.ai): thay file assets/img/logo-vlsn.png, giữ tên, không sửa code. -->
+      <a class="brand" href="#/"><img class="brand-logo" src="assets/img/logo-vlsn.png" alt="Vật Lý Siêu Nhẩm"><span>Quản trị</span></a>
       <nav class="nav hidden" id="nav">
         <a href="#/" data-nav="home">Tổng quan</a>
         <a href="#/de-thi" data-nav="exams">Đề thi</a>
@@ -30,6 +34,11 @@
     </div>
   </header>
   <main id="app" class="container"></main>
+  <footer class="footer" id="footer">
+    <div class="footer-brand">HỆ THỐNG GIÁO DỤC VẬT LÝ SIÊU NHẨM</div>
+    <div>Hotline: 0978 650726 - 0326 425 111</div>
+    <div class="footer-slogan">VẬT LÝ SIÊU NHẨM - ĐỊNH HƯỚNG TRUYỀN CẢM HỨNG</div>
+  </footer>
 
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>

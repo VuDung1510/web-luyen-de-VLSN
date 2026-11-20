@@ -1,4 +1,4 @@
-> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 19/11/2026 (đầu Pha 4).
+> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 19/11/2026 (đầu Pha 5).
 
 # WEB LUYỆN ĐỀ VLSN — QUYẾT ĐỊNH ĐÃ CHỐT
 
@@ -43,6 +43,7 @@
 - Nhiều mã đề: hoãn, tạm dùng "Trộn câu". (18/11/2026)
 - Kết quả luyện tập lưu ở trang tính riêng KetQuaLuyenTap. (18/11/2026)
 - Câu thuộc đề thi chưa công bố lời giải không xuất hiện trong luyện tập cho tới khi đề đó công bố lời giải. (18/11/2026)
+  - Cách hiểu "đã công bố lời giải": đề đã đóng (hết hạn hoặc giáo viên đóng) và đề cho xem lời giải. Đề đang mở ở mọi chế độ hiện lời giải, kể cả "ngay sau khi nộp", vẫn bị chặn (19/11/2026).
 - Đề Word của giáo viên gõ công thức bằng Equation có sẵn của Word. (18/11/2026)
 - Quy tắc nhập kho (Cowork, 11/2026): nhập toàn bộ câu của mỗi đề/tài liệu, gắn nhãn 7 tiêu chí: khối; chủ đề (lớp – chương – bài); dạng câu (Phần I/II/III); mức độ; nguồn; đi kèm (đáp án, lời giải, hình); mã câu. Ba tiêu chí đầu ưu tiên; chưa rõ thì hỏi giáo viên.
 - Câu tự luận vẫn nhập kho, nhãn "Phần IV – Tự luận" (mã P4). Trắc nghiệm 4 lựa chọn kiểu cũ xếp Phần I. (11/2026)
@@ -87,3 +88,5 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - 19/11/2026 — Claude Code (phiên mới): bài kiểm thử "Tạo đề" chập chờn của Pha 2 là lỗi của bài test (đọc nhầm mã câu khi gặp câu thiếu hình), không phải lỗi web; đã sửa. Bắt đầu Pha 3.
 - 19/11/2026 — Claude Code: Pha 5 viết lại đặc tả theo mục 6. Chưa chốt: file logo chuẩn (tạm dùng logo mê cung, web chỉ trỏ tới một file assets/img/logo-vlsn.png); tiêu đề có in hoa toàn bộ không; slogan ở đầu trang hay chân trang (mặc định: chân trang).
 - 19/11/2026 — Claude Code: gộp Pha 3 (Tải đề Word/Excel); soát code và kiểm thử vòng 2 ĐẠT; 4 file Word thật: đúng số câu, 525/525 công thức đổi được. Không đổi Code.gs. Repo không ghi id file thật trên Drive. Bắt đầu Pha 4.
+- 19/11/2026 — Claude Code: chốt thêm mục 5 — câu của đề thi chỉ vào luyện tập khi đề đã đóng và cho xem lời giải (theo soát code Pha 4).
+- 19/11/2026 — Claude Code: gộp Pha 4 (Luyện tập, Code.gs 1.4.0); soát và kiểm thử ĐẠT sau 3 vòng. Bắt đầu Pha 5.

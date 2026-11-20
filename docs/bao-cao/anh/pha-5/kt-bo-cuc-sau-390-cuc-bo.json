@@ -1,0 +1,2291 @@
+{
+ "dang-nhap": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Montserrat 800"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 55,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 174,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   ".card": {
+    "x": 16,
+    "y": 126,
+    "w": 358,
+    "h": 466,
+    "hb": 0,
+    "hi": 27,
+    "el": "div.card"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 723,
+    "w": 390,
+    "h": 125,
+    "hb": 27,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 126,
+    "w": 358,
+    "h": 523,
+    "hb": 0,
+    "hi": 27,
+    "el": "div.narrow"
+   }
+  }
+ },
+ "trang-chu": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Montserrat 800"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 174,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 323,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".card": {
+    "x": 16,
+    "y": 415,
+    "w": 358,
+    "h": 157,
+    "hb": 27,
+    "hi": 0,
+    "el": "a.card.practice-teaser"
+   },
+   ".stats": {
+    "x": 16,
+    "y": 198,
+    "w": 358,
+    "h": 201,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.stats"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 905,
+    "w": 390,
+    "h": 125,
+    "hb": 73,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 27,
+    "hb": 0,
+    "hi": 27,
+    "el": "h1"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 198,
+    "w": 358,
+    "h": 201,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.stats"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 415,
+    "w": 358,
+    "h": 157,
+    "hb": 27,
+    "hi": 0,
+    "el": "a.card.practice-teaser"
+   },
+   "main>*[3]": {
+    "x": 16,
+    "y": 590,
+    "w": 358,
+    "h": 25,
+    "hb": 27,
+    "hi": 25,
+    "el": "h2"
+   },
+   "main>*[4]": {
+    "x": 16,
+    "y": 625,
+    "w": 358,
+    "h": 220,
+    "hb": 52,
+    "hi": 21,
+    "el": "div.grid.grid-3"
+   }
+  }
+ },
+ "luyen-tap": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Montserrat 800"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 174,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 323,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".card": {
+    "x": 16,
+    "y": 500,
+    "w": 358,
+    "h": 159,
+    "hb": 27,
+    "hi": 21,
+    "el": "div.card"
+   },
+   ".stats": {
+    "x": 16,
+    "y": 258,
+    "w": 358,
+    "h": 226,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.stats"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 1694,
+    "w": 390,
+    "h": 125,
+    "hb": 115,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 27,
+    "hb": 0,
+    "hi": 27,
+    "el": "h1"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 192,
+    "w": 358,
+    "h": 50,
+    "hb": 27,
+    "hi": 0,
+    "el": "p.muted"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 258,
+    "w": 358,
+    "h": 226,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.stats"
+   },
+   "main>*[3]": {
+    "x": 16,
+    "y": 500,
+    "w": 358,
+    "h": 565,
+    "hb": 27,
+    "hi": 63,
+    "el": "div.grid.grid-3.practice-cards"
+   },
+   "main>*[4]": {
+    "x": 16,
+    "y": 1089,
+    "w": 358,
+    "h": 545,
+    "hb": 90,
+    "hi": 25,
+    "el": "div.card.section-gap"
+   }
+  }
+ },
+ "lam-bai": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Be Vietnam Pro 800",
+   "Montserrat 800",
+   "KaTeX_Main 400"
+  ],
+  "rects": {
+   ".exam-bar": {
+    "x": 16,
+    "y": 20,
+    "w": 358,
+    "h": 62,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.exam-bar"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 20,
+    "w": 358,
+    "h": 62,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.exam-bar"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 82,
+    "w": 358,
+    "h": 2497,
+    "hb": 0,
+    "hi": 84,
+    "el": "div.exam-wrap"
+   },
+   "main>*[2]": {
+    "x": 113,
+    "y": 783,
+    "w": 261,
+    "h": 45,
+    "hb": 84,
+    "hi": 0,
+    "el": "button.btn.qnav-fab"
+   }
+  }
+ },
+ "ket-qua": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Be Vietnam Pro 800",
+   "Montserrat 800",
+   "KaTeX_Main 400",
+   "KaTeX_Math 400"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 174,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 323,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".card": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 429,
+    "hb": 0,
+    "hi": 27,
+    "el": "div.card"
+   },
+   ".score-hero": {
+    "x": 33,
+    "y": 178,
+    "w": 324,
+    "h": 395,
+    "hb": 0,
+    "hi": 27,
+    "el": "div.score-hero"
+   },
+   ".score-ring": {
+    "x": 33,
+    "y": 178,
+    "w": 120,
+    "h": 120,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.score-ring"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 6208,
+    "w": 390,
+    "h": 125,
+    "hb": 316,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 429,
+    "hb": 0,
+    "hi": 27,
+    "el": "div.card"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 605,
+    "w": 358,
+    "h": 431,
+    "hb": 27,
+    "hi": 71,
+    "el": "div.card.goal-card.goal-miss"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 1052,
+    "w": 358,
+    "h": 1631,
+    "hb": 98,
+    "hi": 151,
+    "el": "div.card"
+   },
+   "main>*[3]": {
+    "x": 16,
+    "y": 2707,
+    "w": 358,
+    "h": 537,
+    "hb": 249,
+    "hi": 42,
+    "el": "div.grid.grid-2.section-gap"
+   },
+   "main>*[4]": {
+    "x": 16,
+    "y": 3269,
+    "w": 358,
+    "h": 2865,
+    "hb": 291,
+    "hi": 25,
+    "el": "div.section-gap"
+   }
+  }
+ },
+ "thong-ke": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Be Vietnam Pro 800",
+   "Montserrat 800",
+   "KaTeX_Main 400",
+   "KaTeX_Math 400"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 174,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 323,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".card": {
+    "x": 16,
+    "y": 415,
+    "w": 358,
+    "h": 241,
+    "hb": 27,
+    "hi": 25,
+    "el": "div.card"
+   },
+   ".stats": {
+    "x": 16,
+    "y": 198,
+    "w": 358,
+    "h": 201,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.stats"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 1652,
+    "w": 390,
+    "h": 125,
+    "hb": 140,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 27,
+    "hb": 0,
+    "hi": 27,
+    "el": "h1"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 198,
+    "w": 358,
+    "h": 201,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.stats"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 415,
+    "w": 358,
+    "h": 241,
+    "hb": 27,
+    "hi": 25,
+    "el": "div.card"
+   },
+   "main>*[3]": {
+    "x": 16,
+    "y": 672,
+    "w": 358,
+    "h": 329,
+    "hb": 52,
+    "hi": 25,
+    "el": "div.card"
+   },
+   "main>*[4]": {
+    "x": 16,
+    "y": 1025,
+    "w": 358,
+    "h": 567,
+    "hb": 77,
+    "hi": 63,
+    "el": "div.grid.grid-2.section-gap"
+   }
+  }
+ },
+ "lich-su": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Be Vietnam Pro 800",
+   "Montserrat 800",
+   "KaTeX_Main 400",
+   "KaTeX_Math 400"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 174,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 323,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".table-wrap": {
+    "x": 16,
+    "y": 251,
+    "w": 358,
+    "h": 223,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.table-wrap"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 534,
+    "w": 390,
+    "h": 125,
+    "hb": 27,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 27,
+    "hb": 0,
+    "hi": 27,
+    "el": "h1"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 198,
+    "w": 170,
+    "h": 40,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.seg"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 251,
+    "w": 358,
+    "h": 223,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.table-wrap"
+   }
+  }
+ },
+ "xep-hang": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Be Vietnam Pro 800",
+   "Montserrat 800",
+   "KaTeX_Main 400",
+   "KaTeX_Math 400"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 174,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 323,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".table-wrap": {
+    "x": 16,
+    "y": 343,
+    "w": 358,
+    "h": 434,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.table-wrap"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 837,
+    "w": 390,
+    "h": 125,
+    "hb": 27,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 27,
+    "hb": 0,
+    "hi": 27,
+    "el": "h1"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 198,
+    "w": 358,
+    "h": 74,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.row"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 284,
+    "w": 358,
+    "h": 47,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.notice"
+   },
+   "main>*[3]": {
+    "x": 16,
+    "y": 343,
+    "w": 358,
+    "h": 434,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.table-wrap"
+   }
+  }
+ },
+ "qt-dang-nhap": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Montserrat 800"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 55,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 112,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   ".card": {
+    "x": 16,
+    "y": 126,
+    "w": 358,
+    "h": 291,
+    "hb": 0,
+    "hi": 27,
+    "el": "div.card"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 476,
+    "w": 390,
+    "h": 125,
+    "hb": 27,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 126,
+    "w": 358,
+    "h": 291,
+    "hb": 0,
+    "hi": 27,
+    "el": "div.narrow"
+   }
+  }
+ },
+ "qt-tong-quan": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Montserrat 800"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 112,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 242,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".stats": {
+    "x": 16,
+    "y": 335,
+    "w": 358,
+    "h": 307,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.stats"
+   },
+   ".table-wrap": {
+    "x": 16,
+    "y": 696,
+    "w": 358,
+    "h": 1125,
+    "hb": 49,
+    "hi": 0,
+    "el": "div.table-wrap"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 1881,
+    "w": 390,
+    "h": 125,
+    "hb": 49,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 77,
+    "hb": 0,
+    "hi": 24,
+    "el": "div.card-title"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 249,
+    "w": 358,
+    "h": 70,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.notice"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 335,
+    "w": 358,
+    "h": 307,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.stats"
+   },
+   "main>*[3]": {
+    "x": 16,
+    "y": 659,
+    "w": 358,
+    "h": 25,
+    "hb": 24,
+    "hi": 25,
+    "el": "div.card-title"
+   },
+   "main>*[4]": {
+    "x": 16,
+    "y": 696,
+    "w": 358,
+    "h": 1125,
+    "hb": 49,
+    "hi": 0,
+    "el": "div.table-wrap"
+   }
+  }
+ },
+ "qt-soan-de": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Be Vietnam Pro 800",
+   "Montserrat 800"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 112,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 242,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".card": {
+    "x": 16,
+    "y": 197,
+    "w": 358,
+    "h": 909,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.card"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 2935,
+    "w": 390,
+    "h": 125,
+    "hb": 91,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 25,
+    "hb": 0,
+    "hi": 24,
+    "el": "div.card-title"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 197,
+    "w": 358,
+    "h": 909,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.card"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 1130,
+    "w": 358,
+    "h": 78,
+    "hb": 24,
+    "hi": 25,
+    "el": "div.card-title.section-gap"
+   },
+   "main>*[3]": {
+    "x": 16,
+    "y": 1220,
+    "w": 358,
+    "h": 164,
+    "hb": 49,
+    "hi": 0,
+    "el": "div.notice.small"
+   },
+   "main>*[4]": {
+    "x": 16,
+    "y": 1408,
+    "w": 358,
+    "h": 1270,
+    "hb": 49,
+    "hi": 42,
+    "el": "div"
+   },
+   "main>*[5]": {
+    "x": 16,
+    "y": 2690,
+    "w": 358,
+    "h": 100,
+    "hb": 91,
+    "hi": 0,
+    "el": "div.row"
+   },
+   "main>*[6]": {
+    "x": 16,
+    "y": 774,
+    "w": 358,
+    "h": 70,
+    "hb": 91,
+    "hi": 0,
+    "el": "div.sticky-actions"
+   }
+  }
+ },
+ "qt-tai-file": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Be Vietnam Pro 800",
+   "Montserrat 800",
+   "KaTeX_Main 400"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 112,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 242,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".card": {
+    "x": 16,
+    "y": 197,
+    "w": 358,
+    "h": 909,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.card"
+   },
+   ".tabs": {
+    "x": 36,
+    "y": 133,
+    "w": 318,
+    "h": 66,
+    "hb": 116,
+    "hi": 0,
+    "el": "div.tabs"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 2935,
+    "w": 390,
+    "h": 125,
+    "hb": 91,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 25,
+    "hb": 0,
+    "hi": 24,
+    "el": "div.card-title"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 197,
+    "w": 358,
+    "h": 909,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.card"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 1130,
+    "w": 358,
+    "h": 78,
+    "hb": 24,
+    "hi": 25,
+    "el": "div.card-title.section-gap"
+   },
+   "main>*[3]": {
+    "x": 16,
+    "y": 1220,
+    "w": 358,
+    "h": 164,
+    "hb": 49,
+    "hi": 0,
+    "el": "div.notice.small"
+   },
+   "main>*[4]": {
+    "x": 16,
+    "y": 1408,
+    "w": 358,
+    "h": 1270,
+    "hb": 49,
+    "hi": 42,
+    "el": "div"
+   },
+   "main>*[5]": {
+    "x": 16,
+    "y": 2690,
+    "w": 358,
+    "h": 100,
+    "hb": 91,
+    "hi": 0,
+    "el": "div.row"
+   },
+   "main>*[6]": {
+    "x": 16,
+    "y": 774,
+    "w": 358,
+    "h": 70,
+    "hb": 91,
+    "hi": 0,
+    "el": "div.sticky-actions"
+   }
+  }
+ },
+ "qt-ngan-hang": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Montserrat 800",
+   "KaTeX_Main 400",
+   "KaTeX_Math 400"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 112,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 242,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".card": {
+    "x": 16,
+    "y": 364,
+    "w": 358,
+    "h": 747,
+    "hb": 24,
+    "hi": 0,
+    "el": "aside.card.bank-filter"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 5637,
+    "w": 390,
+    "h": 125,
+    "hb": 24,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 229,
+    "h": 38,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.seg.no-print"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 210,
+    "w": 358,
+    "h": 45,
+    "hb": 0,
+    "hi": 24,
+    "el": "div.card-title"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 267,
+    "w": 358,
+    "h": 87,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.muted.small"
+   },
+   "main>*[3]": {
+    "x": 16,
+    "y": 364,
+    "w": 358,
+    "h": 5213,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.bank-layout"
+   },
+   "main>*[4]": {
+    "x": 0,
+    "y": 747,
+    "w": 390,
+    "h": 97,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.cart-bar"
+   }
+  }
+ },
+ "qt-pool": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Montserrat 800",
+   "KaTeX_Main 400",
+   "KaTeX_Math 400"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 112,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 242,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".card": {
+    "x": 16,
+    "y": 346,
+    "w": 358,
+    "h": 4596,
+    "hb": 27,
+    "hi": 0,
+    "el": "div.card"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 5002,
+    "w": 390,
+    "h": 125,
+    "hb": 27,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 229,
+    "h": 38,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.seg.no-print"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 210,
+    "w": 358,
+    "h": 27,
+    "hb": 0,
+    "hi": 27,
+    "el": "h1"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 248,
+    "w": 358,
+    "h": 4694,
+    "hb": 27,
+    "hi": 0,
+    "el": "div"
+   }
+  }
+ },
+ "qt-de-thi": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Montserrat 800",
+   "KaTeX_Main 400",
+   "KaTeX_Math 400"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 112,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 242,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".table-wrap": {
+    "x": 16,
+    "y": 217,
+    "w": 358,
+    "h": 199,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.table-wrap"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 476,
+    "w": 390,
+    "h": 125,
+    "hb": 24,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 45,
+    "hb": 0,
+    "hi": 24,
+    "el": "div.card-title"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 217,
+    "w": 358,
+    "h": 199,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.table-wrap"
+   }
+  }
+ },
+ "qt-hoc-sinh": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Montserrat 800",
+   "KaTeX_Main 400",
+   "KaTeX_Math 400"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 112,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 242,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".table-wrap": {
+    "x": 16,
+    "y": 413,
+    "w": 358,
+    "h": 572,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.table-wrap"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 1045,
+    "w": 390,
+    "h": 125,
+    "hb": 24,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 132,
+    "hb": 0,
+    "hi": 24,
+    "el": "div.card-title"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 304,
+    "w": 358,
+    "h": 97,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.row"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 413,
+    "w": 358,
+    "h": 572,
+    "hb": 24,
+    "hi": 0,
+    "el": "div"
+   }
+  }
+ },
+ "qt-ket-qua": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Montserrat 800",
+   "KaTeX_Main 400",
+   "KaTeX_Math 400"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 112,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 242,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".stats": {
+    "x": 16,
+    "y": 323,
+    "w": 358,
+    "h": 201,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.stats"
+   },
+   ".table-wrap": {
+    "x": 16,
+    "y": 540,
+    "w": 358,
+    "h": 1125,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.table-wrap"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 1725,
+    "w": 390,
+    "h": 125,
+    "hb": 24,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 45,
+    "hb": 0,
+    "hi": 24,
+    "el": "div.card-title"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 217,
+    "w": 358,
+    "h": 94,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.row"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 323,
+    "w": 358,
+    "h": 201,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.stats"
+   },
+   "main>*[3]": {
+    "x": 16,
+    "y": 540,
+    "w": 358,
+    "h": 1125,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.table-wrap"
+   }
+  }
+ },
+ "qt-bang-diem": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Montserrat 800",
+   "KaTeX_Main 400",
+   "KaTeX_Math 400"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 112,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 242,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".table-wrap": {
+    "x": 16,
+    "y": 325,
+    "w": 358,
+    "h": 303,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.table-wrap"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 688,
+    "w": 390,
+    "h": 125,
+    "hb": 24,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 45,
+    "hb": 0,
+    "hi": 24,
+    "el": "div.card-title"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 217,
+    "w": 358,
+    "h": 95,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.row"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 325,
+    "w": 358,
+    "h": 303,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.table-wrap"
+   }
+  }
+ },
+ "qt-cai-dat": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Montserrat 800",
+   "KaTeX_Main 400",
+   "KaTeX_Math 400"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar",
+    "hintIn": false,
+    "hintBelow": false
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 112,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand",
+    "hintIn": false,
+    "hintBelow": false
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo",
+    "hintIn": false,
+    "hintBelow": false
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav",
+    "hintIn": false,
+    "hintBelow": false
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 242,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row",
+    "hintIn": false,
+    "hintBelow": false
+   },
+   ".card": {
+    "x": 16,
+    "y": 198,
+    "w": 358,
+    "h": 1470,
+    "hb": 27,
+    "hi": 25,
+    "el": "div.card",
+    "hintIn": true,
+    "hintBelow": false
+   },
+   ".footer": {
+    "x": 0,
+    "y": 2300,
+    "w": 390,
+    "h": 125,
+    "hb": 102,
+    "hi": 0,
+    "el": "footer.footer",
+    "hintIn": false,
+    "hintBelow": true
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 27,
+    "hb": 0,
+    "hi": 27,
+    "el": "h1",
+    "hintIn": false,
+    "hintBelow": false
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 198,
+    "w": 358,
+    "h": 1470,
+    "hb": 27,
+    "hi": 25,
+    "el": "div.card",
+    "hintIn": true,
+    "hintBelow": false
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 1684,
+    "w": 358,
+    "h": 280,
+    "hb": 52,
+    "hi": 25,
+    "el": "div.card",
+    "hintIn": false,
+    "hintBelow": true
+   },
+   "main>*[3]": {
+    "x": 16,
+    "y": 1980,
+    "w": 358,
+    "h": 260,
+    "hb": 77,
+    "hi": 25,
+    "el": "div.card",
+    "hintIn": false,
+    "hintBelow": true
+   }
+  }
+ },
+ "qt-thong-ke-de": {
+  "fonts": [
+   "Be Vietnam Pro 400",
+   "Be Vietnam Pro 500",
+   "Be Vietnam Pro 600",
+   "Be Vietnam Pro 700",
+   "Montserrat 800",
+   "KaTeX_Main 400",
+   "KaTeX_Math 400"
+  ],
+  "rects": {
+   ".topbar": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 141,
+    "hb": 0,
+    "hi": 0,
+    "el": "header.topbar"
+   },
+   ".brand": {
+    "x": 16,
+    "y": 10,
+    "w": 112,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "a.brand"
+   },
+   ".brand-logo": {
+    "x": 16,
+    "y": 10,
+    "w": 34,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "img.brand-logo"
+   },
+   "#nav": {
+    "x": 16,
+    "y": 94,
+    "w": 358,
+    "h": 36,
+    "hb": 0,
+    "hi": 0,
+    "el": "nav.nav"
+   },
+   "#userBox": {
+    "x": 16,
+    "y": 52,
+    "w": 242,
+    "h": 34,
+    "hb": 0,
+    "hi": 0,
+    "el": "div.row"
+   },
+   ".card": {
+    "x": 16,
+    "y": 708,
+    "w": 358,
+    "h": 323,
+    "hb": 24,
+    "hi": 21,
+    "el": "div.card"
+   },
+   ".stats": {
+    "x": 16,
+    "y": 360,
+    "w": 358,
+    "h": 332,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.stats"
+   },
+   ".table-wrap": {
+    "x": 16,
+    "y": 1928,
+    "w": 358,
+    "h": 457,
+    "hb": 133,
+    "hi": 0,
+    "el": "div.table-wrap"
+   },
+   ".footer": {
+    "x": 0,
+    "y": 3629,
+    "w": 390,
+    "h": 125,
+    "hb": 158,
+    "hi": 0,
+    "el": "footer.footer"
+   },
+   "main>*[0]": {
+    "x": 16,
+    "y": 161,
+    "w": 358,
+    "h": 133,
+    "hb": 0,
+    "hi": 24,
+    "el": "div.card-title"
+   },
+   "main>*[1]": {
+    "x": 16,
+    "y": 306,
+    "w": 358,
+    "h": 42,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.row"
+   },
+   "main>*[2]": {
+    "x": 16,
+    "y": 360,
+    "w": 358,
+    "h": 332,
+    "hb": 24,
+    "hi": 0,
+    "el": "div.stats"
+   },
+   "main>*[3]": {
+    "x": 16,
+    "y": 708,
+    "w": 358,
+    "h": 679,
+    "hb": 24,
+    "hi": 42,
+    "el": "div.grid.grid-2"
+   },
+   "main>*[4]": {
+    "x": 16,
+    "y": 1411,
+    "w": 358,
+    "h": 458,
+    "hb": 66,
+    "hi": 42,
+    "el": "div.grid.grid-2.section-gap"
+   },
+   "main>*[5]": {
+    "x": 16,
+    "y": 1893,
+    "w": 358,
+    "h": 25,
+    "hb": 108,
+    "hi": 25,
+    "el": "h2.section-gap"
+   },
+   "main>*[6]": {
+    "x": 16,
+    "y": 1928,
+    "w": 358,
+    "h": 457,
+    "hb": 133,
+    "hi": 0,
+    "el": "div.table-wrap"
+   },
+   "main>*[7]": {
+    "x": 16,
+    "y": 2409,
+    "w": 358,
+    "h": 25,
+    "hb": 133,
+    "hi": 25,
+    "el": "h2.section-gap"
+   },
+   "main>*[8]": {
+    "x": 16,
+    "y": 2444,
+    "w": 358,
+    "h": 1125,
+    "hb": 158,
+    "hi": 0,
+    "el": "div.table-wrap"
+   }
+  }
+ }
+}
