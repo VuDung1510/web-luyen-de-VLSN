@@ -168,17 +168,17 @@ t('thống kê, bảng điểm, bảng xếp hạng', () => {
 });
 
 t('đăng nhập Google: liên kết tài khoản HS bằng PIN, giáo viên theo email', () => {
-  ok(g.call('adminSaveSettings', { token: tTok, settings: { GOOGLE_CLIENT_ID: 'cid', EMAIL_GIAO_VIEN: 'thay@gmail.com' } }));
-  const r1 = ok(g.call('loginGoogle', { credential: 'fake:hs@gmail.com:cid', as: 'student' }));
+  ok(g.call('adminSaveSettings', { token: tTok, settings: { GOOGLE_CLIENT_ID: 'cid', EMAIL_GIAO_VIEN: 'thay@example.com' } }));
+  const r1 = ok(g.call('loginGoogle', { credential: 'fake:hs@example.com:cid', as: 'student' }));
   assert(r1.needLink);
-  assert(!g.call('loginGoogle', { credential: 'fake:hs@gmail.com:sai', as: 'student' }).ok);
-  const r2 = ok(g.call('linkGoogle', { credential: 'fake:hs@gmail.com:cid', studentId: 'HS0001', pin: '0101' }));
-  assert.strictEqual(r2.user.email, 'hs@gmail.com');
-  const r3 = ok(g.call('loginGoogle', { credential: 'fake:HS@gmail.com:cid', as: 'student' }));
+  assert(!g.call('loginGoogle', { credential: 'fake:hs@example.com:sai', as: 'student' }).ok);
+  const r2 = ok(g.call('linkGoogle', { credential: 'fake:hs@example.com:cid', studentId: 'HS0001', pin: '0101' }));
+  assert.strictEqual(r2.user.email, 'hs@example.com');
+  const r3 = ok(g.call('loginGoogle', { credential: 'fake:HS@example.com:cid', as: 'student' }));
   assert.strictEqual(r3.user.id, 'HS0001');
-  const t1 = ok(g.call('loginGoogle', { credential: 'fake:thay@gmail.com:cid', as: 'teacher' }));
+  const t1 = ok(g.call('loginGoogle', { credential: 'fake:thay@example.com:cid', as: 'teacher' }));
   assert.strictEqual(t1.user.role, 'teacher');
-  assert(!g.call('loginGoogle', { credential: 'fake:hs@gmail.com:cid', as: 'teacher' }).ok);
+  assert(!g.call('loginGoogle', { credential: 'fake:hs@example.com:cid', as: 'teacher' }).ok);
 });
 
 t('gửi email cho giáo viên khi bật cài đặt', () => {

@@ -203,5 +203,10 @@ t('kiemTraSauTrienKhai: CaiDat có dòng trùng khóa → lưu ý', () => {
   assert.ok(r.dong.some((d) => /^⚠️ CaiDat có dòng trùng khóa: CHO_LUYEN_TAP/.test(d)), r.dong.join('\n'));
 });
 
+t('TC-6.5 tests/scan-secrets.js: repo sạch (mật khẩu, PIN, email, id file Drive)', () => {
+  const out = require('child_process').execSync('node ' + JSON.stringify(path.join(__dirname, 'scan-secrets.js')), { encoding: 'utf8' });
+  assert.ok(/sạch — \d+ file, 0 phát hiện/.test(out), out);
+});
+
 console.log(failed ? `pha6.test: ${failed} KHÔNG ĐẠT / ${passed + failed}` : `pha6.test: ${passed}/${passed} đạt`);
 process.exit(failed ? 1 : 0);

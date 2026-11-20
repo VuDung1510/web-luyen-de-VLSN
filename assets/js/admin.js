@@ -1202,7 +1202,7 @@
         <div class="field"><label>Lớp *</label><input id="sLop" value="${esc(s.lop)}" placeholder="12A1"></div>
         <div class="field"><label>Ngày sinh *</label><input id="sDob" value="${esc(s.ngaySinh)}" placeholder="dd/mm/yyyy"><span class="hint">PIN mặc định = ngày + tháng (05/03 → 0503)</span></div>
         <div class="field"><label>PIN riêng (tùy chọn)</label><input id="sPin" inputmode="numeric" maxlength="4" value="${s.pinRieng ? esc(s.pin) : ''}" placeholder="Để trống = theo ngày sinh"></div>
-        <div class="field"><label>Email Google (tùy chọn)</label><input id="sEmail" type="email" value="${esc(s.email)}" placeholder="hocsinh@gmail.com"></div>
+        <div class="field"><label>Email Google (tùy chọn)</label><input id="sEmail" type="email" value="${esc(s.email)}" placeholder="hocsinh@example.com"></div>
         <div class="field"><label>Trạng thái</label><select id="sStatus"><option value="HOAT_DONG">Hoạt động</option><option value="KHOA" ${s.trangThai === 'KHOA' ? 'selected' : ''}>Khóa (không đăng nhập được)</option></select></div></div>
       <div class="modal-actions">${isNew ? '' : '<button class="btn btn-danger" id="sDel" style="margin-right:auto">Xóa học sinh</button>'}
         <button class="btn" data-close="">Hủy</button><button class="btn btn-primary" id="sSave">Lưu</button></div>`, {
