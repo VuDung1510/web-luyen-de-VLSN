@@ -29,3 +29,22 @@ Lượt đo: đăng nhập học sinh → Lịch sử → Thống kê → Xếp 
 - So với A0: số lời gọi mỗi lượt **8 → 5**; thời gian trung bình mỗi lời gọi **3,0–4,4 s → 1,6–2,2 s**; cả lượt 20–35 s → 18–23 s.
 - Giáo viên thấy viên "Đang cập nhật" khi chuyển tab (đúng thiết kế Pha 1: hiện dữ liệu đã lưu rồi cập nhật ngầm; lần đầu trong cửa sổ ẩn danh chưa có dữ liệu lưu nên phải chờ). Rời trang > 60 s rồi quay lại thì lời gọi chậm hơn: hết đệm máy chủ 60 s và Apps Script "ngủ" (đã chốt không làm hẹn giờ giữ ấm).
 - Nút Đổi PIN đã hiện cho học sinh.
+
+## Sửa lỗi bảng kẻ gạch (Người làm)
+- **Lỗi:** một số câu trong kho ghi bảng kiểu "bảng đơn giản" của pandoc, nhưng gạch đã thành "–" (lẫn "-") và khoảng trắng canh cột bị gộp thành 1 dấu cách. `rich()` không nhận ra nên web in nguyên các dòng gạch và số liệu thành chữ.
+- **Cách sửa** (`assets/js/common.js`, chỉ giao diện, không đổi `Code.gs`): `rich()` nhận thêm "bảng kẻ gạch" và vẽ thành `<table class="q-table">` giống khối `[BẢNG]` (cùng CSS; công thức trong ô vẫn do KaTeX vẽ; ô được escape như phần còn lại).
+  - Dòng gạch = chỉ gồm `-`, `–`, `—` và khoảng trắng, có ít nhất một đoạn ≥ 3 gạch; 1 đoạn = dòng viền, ≥ 2 đoạn = dòng chia cột (số đoạn = số cột).
+  - Có tiêu đề: [viền] → tiêu đề → chia cột → dữ liệu → viền. Thiếu viền trên thì phải có viền dưới; có viền trên thì bảng cũng có thể dừng ở dòng trống / hết nội dung. Không tiêu đề: chia cột → dữ liệu → dòng gạch đóng (bắt buộc).
+  - Tách ô: dòng còn ≥ 2 khoảng trắng liền → theo vị trí các đoạn gạch; chỉ còn 1 dấu cách → theo dấu cách (không bao giờ cắt trong `$…$`); thừa mảnh thì nhóm theo công thức ("Lần đo $U$ (V) $I$ (mA)" → "Lần đo" | "$U$ (V)" | "$I$ (mA)"), hoặc dồn phần đầu vào ô 1 nếu n − 1 mảnh cuối là số; không được thì cả dòng vào ô đầu (không mất chữ).
+  - Giữ nguyên là chữ: dòng gạch đơn lẻ, "---------- HẾT ----------", chữ có dấu gạch, bảng không có hàng dữ liệu, chia cột không có dòng đóng. Khối `[BẢNG]` không đổi.
+- **Test:** `tests/bang-gach.test.js` (13 ca: ví dụ của giáo viên → 3 cột, 1 tiêu đề + 3 hàng; có/không viền trên; không tiêu đề; tách theo vị trí cột; ô `$…$` có dấu cách; không tách được; dòng gạch đơn lẻ/HẾT; `[BẢNG]` cũ giống hệt; `<script>` bị escape; 2 bảng + `\r\n`) — đạt. `tests/bang-gach.e2e.js` (học sinh làm đề có câu bảng kẻ gạch, KaTeX vẽ 2 công thức ở tiêu đề) — đạt. Chạy lại: backend, importer, docx (29/29), pha2-kiem-thu (31/31), pha2-kiem-thu.e2e all (16/16 nhóm), pha5 (11), common-cache, e2e.js máy chủ mới và 1.0.0, scan-secrets — đều đạt.
+- **Ảnh:** `docs/bao-cao/anh/pha-6b/01-bang-gach.png` (nội dung câu tự soạn).
+
+## TC-6.8 (21/11/2026)
+- Giáo viên tạo "Đề thử phát hành" từ kho (ma trận Lớp 12), đưa câu vào luyện tập, bật Luyện tập. Học sinh mẫu làm đề và làm một bài luyện: **KetQua và KetQuaLuyenTap đều có hàng mới. ĐẠT.**
+- Vòng xem thứ hai các tab hiện ngay (đệm trên máy chạy đúng).
+- Giáo viên thấy 3 lỗi hiển thị: (1) bảng kẻ gạch của kho chưa thành bảng → đã sửa (mục dưới); (2) một hình quét bị nghiêng → lỗi của file hình trong kho; (3) câu `L12C3B16-P1-07955` mất ký hiệu Φ → lỗi dữ liệu kho (mất khi nhập), đã ghi cho bên Cowork ở mục 9 file quyết định chung.
+
+## Gộp bản sửa bảng kẻ gạch (điều phối)
+- Soát code: ĐẠT (4 Nhẹ). Kiểm thử: ĐẠT (97/97 ca Node, e2e hai chế độ). R-1 (soát: `replace(/\s+$/)` chậm bậc hai) điều phối đã đổi thành `trimEnd()`, chạy lại test đạt.
+- Còn nhẹ, chấp nhận: bảng thiếu viền dưới mà câu viết liền thì câu bị cuốn vào bảng; tiêu đề không có công thức và nhiều chữ hơn số cột dồn vào ô đầu; dạng không viền trên + dòng đóng nhiều đoạn thì tiêu đề in thành chữ. Không mất chữ trong mọi trường hợp. Không đổi Code.gs.
