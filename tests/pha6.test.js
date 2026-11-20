@@ -68,6 +68,7 @@ t('TC-6.1 APP_VERSION 1.5.0; doGet, publicConfig, bootstrap trả đúng phiên 
   const p = ok(g.call('publicConfig'));
   assert.strictEqual(p.version, '1.5.0');
   assert.deepStrictEqual(p.features.slice().sort(), ['bank', 'bootstrap', 'cache', 'changePin', 'goal', 'practice']);
+  assert.ok(!('teacherName' in p), 'Vòng 2 (R-8): publicConfig không trả tên giáo viên');
   const tok = ok(g.call('loginPin', { studentId: 'HS0001', pin: '0101' })).token;
   assert.strictEqual(ok(g.call('bootstrap', { token: tok })).v, '1.5.0');
   // appsscript.json: không khai oauthScopes; setup() không tạo trigger

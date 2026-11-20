@@ -28,6 +28,9 @@ if (COMPAT) {
   if (!fs.existsSync(codePath)) { console.error('Không có ' + codePath); process.exit(1); }
 }
 const g = createContext({ quiet: true, codePath, makeCopyMs: +process.env.MAKE_COPY_MS || 0 });
+// Như Apps Script thật (Script Properties được giữ khi triển khai phiên bản mới): khóa ký phiên cố định theo cổng,
+// nên dừng dev-server rồi chạy lại cùng cổng (vd 1.0.0 → máy chủ mới) thì phiên đăng nhập cũ vẫn dùng được (Pha 6).
+g._props.SECRET = process.env.DEV_SECRET || 'dev-server-khoa-ky-gia-' + PORT;
 g.setup();
 let kho = null;
 if (!COMPAT && process.env.BANK !== '0') {

@@ -348,7 +348,6 @@ var ROUTES = {
 function apiPublicConfig_() {
   return {
     appName: getSetting_('TEN_UNG_DUNG') || 'Luyện đề Vật lý',
-    teacherName: getSetting_('TEN_GIAO_VIEN') || '',
     googleClientId: getSetting_('GOOGLE_CLIENT_ID') || '',
     showLeaderboard: yes_(getSetting_('HIEN_BANG_XEP_HANG')),
     version: APP_VERSION,
