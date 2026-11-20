@@ -2526,10 +2526,12 @@ function resultIdTaken_(name, id, sid) {
   delete MEMO_['__si_' + name];
   var info = sheetInfo_(name);
   if (!info || !info.col.id || info.lastRow < 2) return false;
-  var n = info.lastRow - 1;
-  var ids = info.sh.getRange(2, info.col.id, n, 1).getValues();
-  var sids = sid && info.col.studentId ? info.sh.getRange(2, info.col.studentId, n, 1).getValues() : null;
-  return ids.some(function (r, i) { return str_(r[0]) === id && (!sids || str_(sids[i][0]) === sid); });
+  var ids = info.sh.getRange(2, info.col.id, info.lastRow - 1, 1).getValues();
+  return ids.some(function (r, i) {
+    if (str_(r[0]) !== id) return false;
+    // chỉ hàng trùng mã mới đọc thêm ô "Mã HS" (không đọc cả cột)
+    return !sid || !info.col.studentId || str_(info.sh.getRange(i + 2, info.col.studentId, 1, 1).getValues()[0][0]) === sid;
+  });
 }
 
 /** Bài luyện mã `id` của học sinh `sid` đã ghi chưa (nộp hai lần cùng lúc → chỉ một hàng). */

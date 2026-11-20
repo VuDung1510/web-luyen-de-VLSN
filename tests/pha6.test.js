@@ -222,5 +222,39 @@ t('Vòng 2 (R-1, R-4): scan-secrets bắt đủ mẫu cài sẵn, không báo nh
   assert.deepStrictEqual([...new Set(lines)].sort((a, b) => a - b), bad.map((_, i) => i + 1), out);
 });
 
+t('Vòng 2 (N-1): mã bài KetQua không trùng khi nộp liền nhau cùng giây (300 bài); mã cũ vẫn đọc được; mã trùng sẵn → sinh mã khác', () => {
+  const g6 = createContext({ quiet: true });
+  g6.setup();
+  const sTok = ok(g6.call('loginPin', { studentId: 'HS0001', pin: '0101' })).token;
+  const tTok = ok(g6.call('loginAdminPassword', { password: g6.readTable_('CaiDat').find((x) => x.khoa === 'MAT_KHAU_QUAN_TRI').giaTri })).token;
+  // cho làm không giới hạn lần
+  const de = g6._sheets.DeThi._data(); de[1][de[0].indexOf('Số lần làm tối đa')] = 0;
+  const ids = [];
+  for (let i = 0; i < 300; i++) {
+    const st = ok(g6.call('startExam', { token: sTok, examId: 'DEMAU' }));
+    ids.push(ok(g6.call('submitExam', { token: sTok, attemptToken: st.attemptToken, answers: {} })).id);
+  }
+  assert.strictEqual(new Set(ids).size, 300, 'trùng mã bài');
+  assert.ok(ids.every((x) => /^KQ\d{12}[0-9A-F]{8}$/.test(x)), ids[0]);
+  // mã kiểu cũ (KQ + 15 chữ số) vẫn đọc được
+  const kq = g6._sheets.KetQua._data(), idCol = kq[0].indexOf('Mã bài');
+  kq[1][idCol] = 'KQ261120094416508';
+  g6.bumpGen_('KetQua');
+  const r = ok(g6.call('getResult', { token: sTok, resultId: 'KQ261120094416508' }));
+  assert.strictEqual(r.id, 'KQ261120094416508');
+  // mã sinh ra đã có sẵn trên Sheet → máy chủ sinh mã khác (kiểm trong khóa)
+  const real = g6.newResultId_;
+  let n = 0;
+  g6.newResultId_ = (now) => (n++ === 0 ? 'KQ261120094416508' : real(now));
+  const st = ok(g6.call('startExam', { token: sTok, examId: 'DEMAU' }));
+  const v = ok(g6.call('submitExam', { token: sTok, attemptToken: st.attemptToken, answers: {} }));
+  g6.newResultId_ = real;
+  assert.ok(n >= 2, 'máy chủ phải sinh lại mã (n=' + n + ')');
+  assert.notStrictEqual(v.id, 'KQ261120094416508');
+  const all = g6._sheets.KetQua._data().slice(1).map((x) => x[idCol]).filter(Boolean);
+  assert.strictEqual(new Set(all).size, all.length, 'KetQua có mã trùng');
+  assert.ok(ok(g6.call('adminResults', { token: tTok })).length >= 301);
+});
+
 console.log(failed ? `pha6.test: ${failed} KHÔNG ĐẠT / ${passed + failed}` : `pha6.test: ${passed}/${passed} đạt`);
 process.exit(failed ? 1 : 0);

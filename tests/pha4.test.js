@@ -653,7 +653,7 @@ t('Vòng 2 R-5 / N-2: nộp lại tìm bài theo mã bài + mã học sinh; tắ
   const w = world();
   const s = ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'TU_TAO', so: { TN: 5 }, phut: 5 }));
   const v = ok(w.g.call('submitExam', { token: w.sTok, attemptToken: s.attemptToken, answers: {} }));
-  assert(/^LT\d{12}[0-9A-F]{12}$/.test(v.id), v.id);
+  assert(/^LT\d{12}[0-9A-F]{16}$/.test(v.id), v.id); // Pha 6 (N-1): 16 hex
   // giả lập hàng trùng mã bài của học sinh khác (đổi Mã HS): nộp lại không trả bài của người khác
   const d = w.g._sheets.KetQuaLuyenTap._data();
   d[1][d[0].indexOf('Mã HS')] = 'HS9999';
