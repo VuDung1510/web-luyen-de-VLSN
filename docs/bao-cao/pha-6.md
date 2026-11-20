@@ -35,6 +35,20 @@
 5. **`docs/VIEC-GIAO-VIEN.md`** gom từ báo cáo Pha 1–5 (việc giáo viên, R-9/R-10 Pha 2, `onEdit`, CDN và hình của Pha 3, đo trang Luyện tập Pha 4, R-3/R-7 và 4 câu hỏi Pha 5, 31 câu kho lỗi, dọn mã dự phòng).
 6. **README**: thêm mục Hiệu năng, "Khi cập nhật Code.gs" (gồm quay về phiên bản trước), cách 4 "Tải file lên", mục Luyện tập, mục Giao diện (màu, logo, cách thay logo); cập nhật số trang tính, cấu trúc thư mục, lệnh test.
 
+### Mẫu nhật ký `kiemTraSauTrienKhai` (gas-shim, kho giả)
+```
+✅ Phiên bản máy chủ: 1.5.0 · tính năng: changePin, goal, bootstrap, cache, bank, practice
+✅ HocSinh: đủ 8 cột, 1 hàng dữ liệu.
+… (DeThi, CauHoi, KetQua, CaiDat, LuyenTap, KetQuaLuyenTap)
+✅ CaiDat: đủ 13 dòng cài đặt.
+✅ Mở được kho câu hỏi: trang "Kho câu hỏi" có 54 hàng, đủ cột cần đọc.
+✅ Mở được thư mục hình của kho: "02. HÌNH VẼ".
+✅ Luyện tập cho học sinh: đang TẮT (bật ở Cài đặt khi đã đưa câu vào luyện tập).
+✅ Bộ nhớ đệm (CacheService): ghi/đọc thử được.
+✅ TẤT CẢ ĐỀU ỔN. Mở trang quản trị → Cài đặt: phải thấy "Phiên bản máy chủ 1.5.0".
+```
+Trên Sheet cũ chưa chạy `setup`, nhật ký có dòng ❌ "Thiếu trang tính "LuyenTap". Hãy chạy hàm setup() một lần." và kết luận "❌ CÓ n LỖI cần sửa".
+
 ### File đổi
 `apps-script/Code.gs`, `assets/js/docx-reader.js`, `assets/js/importer.js`, `assets/js/admin.js` (chỉ chữ gợi ý email), `README.md`, `docs/VIEC-GIAO-VIEN.md` (mới), `docs/bao-cao/pha-6.md` (mới), `docs/bao-cao/anh/pha-6/*` (mới), `tests/pha6.test.js` (mới), `tests/scan-secrets.js` (mới), `tests/gas-shim.js` (thêm `_formats()`), `tests/docx.test.js`, `tests/backend.test.js`, `tests/bank.test.js`, `tests/cache.test.js`, `tests/pha4.test.js`, `tests/pha4.e2e.js`, `tests/pha5.test.js`, `tests/pha5-kiem-thu.test.js`.
 
