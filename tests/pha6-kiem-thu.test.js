@@ -325,7 +325,13 @@ function idem(label, g, runs) {
   // README Bước 1.4 & 4: setup trên Sheet trống
   ok('6.6', 'setup in "✅ Cài đặt xong!" (VIEC-GIAO-VIEN A3)', logs.some((l) => l.includes('✅ Cài đặt xong!')), logs.filter((l) => /Cài đặt/.test(l)).map((l) => l.replace(String(setting(g, 'MAT_KHAU_QUAN_TRI')), '<mật khẩu>')));
   const nSheets = sheetNames(g).length;
-  ok('6.6', `README Bước 1.4 ghi "sẽ thấy 5 trang tính" — thực tế ${nSheets} trang`, nSheets === 5, sheetNames(g));
+  // (vòng 2) README Bước 1.4 "sẽ thấy N trang tính" và VIEC-GIAO-VIEN A3 "tổng cộng N trang tính" phải khớp setup thật
+  const rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  const vg = fs.readFileSync(path.join(ROOT, 'docs', 'VIEC-GIAO-VIEN.md'), 'utf8');
+  const nReadme = +((/sẽ thấy (\d+) trang tính/.exec(rd) || [])[1]);
+  const nViec = +((/tổng cộng (\d+) trang tính/.exec(vg) || [])[1]);
+  ok('6.6', `README Bước 1.4 "sẽ thấy ${nReadme} trang tính" khớp setup thật (${nSheets} trang)`, nReadme === nSheets, sheetNames(g));
+  ok('6.6', `VIEC-GIAO-VIEN A3 "tổng cộng ${nViec} trang tính" khớp setup thật (${nSheets})`, nViec === nSheets);
   const hs = g._sheets.HocSinh._data(); const de = g._sheets.DeThi._data();
   ok('6.6', 'README: có học sinh mẫu "Học Sinh Mẫu" lớp 12A1 và một đề mẫu', hs.length === 2 && hs[1].includes('Học Sinh Mẫu') && hs[1].includes('12A1') && de.length === 2);
   const lg = call(g, 'loginPin', { studentId: hs[1][0], pin: '0101' });
@@ -442,8 +448,12 @@ console.log('\n=== TC-6.6 (phần Node) — đối chiếu tài liệu với hà
   const code = fs.readFileSync(path.join(ROOT, 'apps-script', 'Code.gs'), 'utf8').split('\n');
   const viec = fs.readFileSync(path.join(ROOT, 'docs', 'VIEC-GIAO-VIEN.md'), 'utf8');
   const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  ok('6.6', 'VIEC-GIAO-VIEN A2 "Kiểm tra dòng đầu có var APP_VERSION = \'1.5.0\';" — dòng 1 của Code.gs', /var APP_VERSION = '1\.5\.0';/.test(code[0]),
-    'dòng 1: ' + code[0] + ' | APP_VERSION ở dòng ' + (code.findIndex((l) => /var APP_VERSION/.test(l)) + 1));
+  // (vòng 2) A2: "Ctrl+F, tìm APP_VERSION: phải thấy var APP_VERSION = '1.5.0'; (ở khoảng dòng 21, sau khối chú thích)"
+  const firstHit = code.findIndex((l) => l.includes('APP_VERSION'));
+  const declLine = code.findIndex((l) => /var APP_VERSION = '1\.5\.0';/.test(l));
+  const lineDoc = +((/khoảng dòng (\d+)/.exec(viec) || [])[1]);
+  ok('6.6', 'A2 Ctrl+F "APP_VERSION": kết quả tìm ĐẦU TIÊN chính là dòng var APP_VERSION = \'1.5.0\';', firstHit >= 0 && firstHit === declLine, `lần gặp đầu: dòng ${firstHit + 1}: ${code[firstHit]}`);
+  ok('6.6', `A2 "khoảng dòng ${lineDoc}" khớp vị trí thật (dòng ${declLine + 1}, lệch ≤ 3), và trước đó chỉ là khối chú thích`, Math.abs(lineDoc - (declLine + 1)) <= 3 && code.slice(0, declLine).every((l) => /^\s*(\/\*\*?|\*|\*\/|\/\/|$)/.test(l)), code.slice(0, declLine).filter((l) => !/^\s*(\/\*\*?|\*|\*\/|\/\/|$)/.test(l)).slice(0, 3));
   ok('6.6', 'VIEC-GIAO-VIEN ghi Code.gs 1.5.0', viec.includes('1.5.0') && readme.includes('1.5.0'));
   const g = newCtx();
   ['setup', 'kiemTraSauTrienKhai'].forEach((f) => ok('6.6', `hàm "${f}" nêu trong tài liệu có trong Code.gs`, typeof g[f] === 'function'));
@@ -463,6 +473,76 @@ console.log('\n=== TC-6.6 (phần Node) — đối chiếu tài liệu với hà
   const miss = files.map((f) => f.replace(/`/g, '')).filter((f) => !fs.existsSync(path.join(ROOT, f)));
   ok('6.6', 'mọi file docs/… nêu trong VIEC-GIAO-VIEN tồn tại', miss.length === 0, miss);
   ok('6.6', 'ghi chú cảnh báo "ứng dụng chưa xác minh" có ở cả hai tài liệu', /Nâng cao/.test(viec) && /Nâng cao/.test(readme));
+}
+
+// =============================================================================================
+console.log('\n=== Vòng 2 — N-1: Mã bài không trùng; mã kiểu cũ vẫn mở được ===');
+{
+  const g = newCtx(); g.setup();
+  K.install(g, { khoId: KHO_ID });
+  K.setSetting(g, { CHO_LUYEN_TAP: 'CO' });
+  const tok = adminToken(g);
+  let cur, r;
+  do { r = call(g, 'adminPracticeSync', { token: tok, filter: {}, mode: 'them', cursor: cur }); cur = r.ok ? r.data.tiepTuc : null; } while (cur != null);
+  ok('N-1', 'đưa kho giả vào pool luyện tập', r.ok, r.error);
+  data(call(g, 'adminImportStudents', { token: tok, rows: [{ hoTen: 'HS Hai', lop: '12A1', ngaySinh: '02/02/2008' }, { hoTen: 'HS Ba', lop: '12A1', ngaySinh: '03/03/2008' }] }));
+  const sts = data(call(g, 'adminListStudents', { token: tok }));
+  const pins = { 'Học Sinh Mẫu': '0101', 'HS Hai': '0202', 'HS Ba': '0303' };
+  const toks = Object.keys(pins).map((n) => data(call(g, 'loginPin', { studentId: sts.find((x) => x.hoTen === n).id, pin: pins[n] }), 'login ' + n).token);
+  // 300 bài thi nộp liền nhau (3 học sinh xen kẽ) — phần lớn rơi vào cùng một giây
+  const ids = [], secs = {};
+  const t0 = Date.now();
+  for (let i = 0; i < 300; i++) {
+    const t = toks[i % 3];
+    const a = data(call(g, 'startExam', { token: t, examId: 'DEMAU' }), 'start');
+    const res = data(call(g, 'submitExam', { token: t, attemptToken: a.attemptToken, answers: {} }), 'submit');
+    ids.push(res.id); const sec = String(res.id).slice(2, 14); secs[sec] = (secs[sec] || 0) + 1;
+  }
+  const maxSame = Math.max(...Object.values(secs));
+  ok('N-1', `300 bài thi nộp liền nhau (${((Date.now() - t0) / 1000).toFixed(1)} s, tối đa ${maxSame} bài cùng một giây): 300 mã bài khác nhau`, new Set(ids).size === 300, ids.length - new Set(ids).size + ' trùng');
+  const kq = g._sheets.KetQua._data(); const hk = kq[0]; const iId = hk.indexOf('Mã bài');
+  const sheetIds = kq.slice(1).map((x) => x[iId]);
+  ok('N-1', 'cột Mã bài trong KetQua: 300 hàng, không trùng', sheetIds.length === 300 && new Set(sheetIds).size === 300);
+  ok('N-1', 'mỗi học sinh mở được đúng bài của mình (mẫu 30 bài)', ids.filter((_, i) => i % 10 === 0).every((id, k) => { const rr = call(g, 'getResult', { token: toks[(k * 10) % 3], resultId: id }); return rr.ok && rr.data.id === id; }));
+  // Luyện tập: 60 bài luyện nộp liền nhau
+  const lt = [];
+  for (let i = 0; i < 60; i++) {
+    const t = toks[i % 3];
+    const a = call(g, 'practiceStart', { token: t, kieu: 'TU_TAO', chuong: [], bai: ['Bài 9. Định luật Boyle'], so: { TN: 5 }, phut: 10 });
+    if (!a.ok) { lt.push('LỖI ' + a.error); continue; }
+    const res = call(g, 'submitExam', { token: t, attemptToken: a.data.attemptToken, answers: {} });
+    lt.push(res.ok ? res.data.id : 'LỖI ' + res.error);
+  }
+  ok('N-1', '60 bài luyện tập nộp liền nhau: 60 mã LT khác nhau', lt.every((x) => /^LT/.test(x)) && new Set(lt).size === 60, lt.filter((x) => !/^LT/.test(x)).slice(0, 2).concat([lt[0]]));
+  // Mã kiểu cũ: KQ + 15 số (1.0.0) — chép một hàng thật rồi đổi mã; thêm cả hai hàng TRÙNG mã cũ của hai học sinh khác nhau
+  const base = kq.find((x, i) => i && x[hk.indexOf('Mã HS')] === sts.find((s0) => s0.hoTen === 'Học Sinh Mẫu').id);
+  const other = kq.find((x, i) => i && x[hk.indexOf('Mã HS')] === sts.find((s0) => s0.hoTen === 'HS Hai').id);
+  const OLD1 = 'KQ261101101010123', OLDDUP = 'KQ261101101011456';
+  const r1 = base.slice(); r1[iId] = OLD1;
+  const r2 = base.slice(); r2[iId] = OLDDUP; r2[hk.indexOf('Đề')] = 'bài cũ của Học Sinh Mẫu';
+  const r3 = other.slice(); r3[iId] = OLDDUP; r3[hk.indexOf('Đề')] = 'bài cũ của HS Hai';
+  kq.splice(1, 0, r3, r1, r2); // hàng của HS Hai đứng TRƯỚC
+  Object.keys(g._cache).forEach((k) => delete g._cache[k]);
+  const g1 = call(g, 'getResult', { token: toks[0], resultId: OLD1 });
+  ok('N-1', 'mã kiểu cũ KQ+15 số mở được (getResult)', g1.ok && g1.data.id === OLD1, g1.error);
+  ok('N-1', 'mã kiểu cũ có trong myResults', data(call(g, 'myResults', { token: toks[0] })).some((x) => x.id === OLD1));
+  const d0 = call(g, 'getResult', { token: toks[0], resultId: OLDDUP });
+  const d1 = call(g, 'getResult', { token: toks[1], resultId: OLDDUP });
+  ok('N-1', 'hai bài cũ TRÙNG mã của hai học sinh: mỗi em mở được bài của chính mình', d0.ok && d1.ok && d0.data.tieuDe === 'bài cũ của Học Sinh Mẫu' && d1.data.tieuDe === 'bài cũ của HS Hai', [d0.ok ? d0.data.tieuDe : d0.error, d1.ok ? d1.data.tieuDe : d1.error]);
+  // Mã LT kiểu cũ (LT + 12 hex)
+  const kl = g._sheets.KetQuaLuyenTap._data(); const hl = kl[0]; const iL = hl.indexOf('Mã bài');
+  if (iL >= 0 && kl.length > 1) {
+    const rl = kl[1].slice(); rl[iL] = 'LT261101101010' + 'A1B2C3D4E5F6'; kl.push(rl);
+    Object.keys(g._cache).forEach((k) => delete g._cache[k]);
+    const owner = sts.find((s0) => s0.id === rl[hl.indexOf('Mã HS')]);
+    const tk = toks[Object.keys(pins).indexOf(owner.hoTen)];
+    const gl = call(g, 'getResult', { token: tk, resultId: rl[iL] });
+    ok('N-1', 'mã luyện tập kiểu cũ LT+12 hex mở được', gl.ok, gl.error);
+  } else ok('N-1', 'có KetQuaLuyenTap để thử mã LT cũ', false, hl);
+  // cache.test chạy nhiều lần
+  let bad = 0; const N = +(process.env.CACHE_RUNS || 30);
+  for (let i = 0; i < N; i++) if (spawnSync(process.execPath, [path.join(__dirname, 'cache.test.js')], { cwd: ROOT }).status !== 0) bad++;
+  ok('N-1', `tests/cache.test.js chạy ${N} lần: 0 lần lỗi`, bad === 0, bad + ' lần lỗi');
 }
 
 // =============================================================================================

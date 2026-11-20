@@ -101,3 +101,49 @@ Tôi không chạy các e2e cố định cổng khác vì người kiểm thử 
 ## Ghi chú cho điều phối
 - Khi gộp, cập nhật mục 9 của `QUYET-DINH.md`: dòng "Code.gs 1.1.0 chưa dán" đổi thành 1.5.0. Ghi cả Google Doc.
 - R-1 và R-2 không đổi Code.gs. Nếu sửa thêm R-3 hoặc R-8 trong Code.gs thì giữ `APP_VERSION` 1.5.0, vì bản này chưa triển khai.
+
+---
+
+## Vòng 2 (soát `git diff 74bd64e..4b7d7b9`) — 20/11/2026
+
+### Tóm tắt cho giáo viên
+- Hai lỗi vừa ở vòng 1 đã sửa xong. Bài quét bí mật không còn báo đỏ. Danh sách việc của thầy có thêm bước **A0**: đo tốc độ trang đang chạy **trước** khi dán code.
+- Mã bài nộp nay không còn trùng, kể cả khi nhiều học sinh nộp cùng một giây. Mã của các bài cũ vẫn đọc được bình thường. Học sinh không bao giờ xem được bài của bạn khác.
+- Sau khi thầy triển khai, chỉ cần bấm F5 một lần là trang web nhận máy chủ mới. Khi thầy lưu cài đặt, web cập nhật luôn, không phải tải lại trang.
+- Code.gs vẫn là bản 1.5.0, an toàn để dán. Không còn lỗi phải sửa trước khi gộp.
+
+### Kết luận vòng 2: **ĐẠT**
+R-1 và R-2 (Vừa) đã sửa. Cũng đã sửa R-3, R-4, R-5 (ghi vào tài liệu), R-6, R-7, R-8, R-9. Vòng này có thêm 3 phát hiện Nhẹ (R2-1 … R2-3), không chặn việc gộp.
+
+### Đã kiểm
+- **Code.gs (đọc lại như bản phát hành ở các chỗ đổi)**:
+  - `node --check` (bọc cả file trong một hàm): không lỗi. Không có hàm trùng tên. Vẫn là `APP_VERSION = '1.5.0'`; giữ số này là đúng, vì bản này chưa từng được triển khai.
+  - `newResultId_` (`Code.gs:2514`) sinh mã `KQ` + `yyMMddHHmmss` + 8 hex lấy từ `Utilities.getUuid()`. Hàm `getUuid` có thật trên Apps Script.
+  - `submitExam` kiểm trùng mã **trong khóa** bằng `resultIdTaken_`: hàm này đọc thẳng cột "Mã bài" của Sheet, không qua đệm, và xóa `__si_` trước khi đọc. Trùng thì sinh lại mã, tối đa 5 lần. Sau đó `appendRows_` ghi và `afterWrite_` xóa `__si_`.
+  - Mã cũ (`KQ` + 15 chữ số) vẫn chỉ là một chuỗi. `getResult`, `myResults`, `adminDeleteResult` đều so cả chuỗi, nên mã cũ vẫn đọc được. TC trong `pha6.test.js` dùng đúng một mã kiểu cũ để thử.
+  - **`getResult`** (`Code.gs:651–666`): với học sinh, hàm ưu tiên hàng của chính em khi có hai hàng trùng mã. Không có hàng của em thì lấy hàng đầu, nhưng vẫn bị câu kiểm `studentId` chặn. Vì vậy học sinh không bao giờ nhận bài của người khác. Giáo viên nhận hàng đầu (xem R2-1).
+  - Mã bài luyện tập nay có 16 hex. `pid` là UUID 32 hex, nên đủ ký tự. Kiểm trùng theo mã bài + mã HS: chỉ hàng có mã trùng mới đọc thêm ô "Mã HS". Máy chủ thật chưa từng chạy bản luyện tập, nên không có mã luyện tập 12 hex nào cần giữ tương thích.
+  - Bỏ `teacherName` khỏi `publicConfig` (R-8): giao diện không còn dùng trường này (grep `assets/js`: 0 chỗ).
+- **Giao diện**:
+  - `app.js` và `admin.js` hỏi lại `publicConfig` khi bản lưu không có `features` (K-2).
+  - `booted` khai báo trước khi gọi `boot()` (`app.js:850`), nên không bị lỗi TDZ.
+  - Khi máy chủ đổi, trang vẽ lại màn đang xem, trừ màn đang làm bài (có `ld_attempt` hoặc hash `lam-bai`, `luyen-tap/lam`). Trình soạn đề đang có thay đổi chưa lưu (`editorDirty`) cũng không bị vẽ lại.
+  - Lưu cài đặt thì gọi `refreshPub()` (K-3). Gọi lỗi thì xóa bản lưu như cũ.
+  - Tôi tự chạy `e2e.js` trên cổng 8795 với máy chủ mới và với `SERVER_COMPAT=1.0.0`: cả hai đạt.
+- **`scan-secrets.js`**: tôi chạy lại trên repo tạm, với các mẫu của vòng 1 cộng mẫu mới. Kết quả: bắt được hết, gồm `ADMIN_PW="…"`, `ADMIN_PW || '…'`, câu PIN dạng tự do, `**…**`. Không báo nhầm `ADMIN_PW=<…>`, backtick hay `$PW`. Ngoại lệ PIN nay chỉ cho 11 file test được liệt kê đích danh, cộng hai PIN tài liệu (`0101`, `0503`). Ngoại lệ `ALLOW` chỉ khớp đúng từng chuỗi ví dụ trong báo cáo này. Repo: sạch, 92 file.
+- **`dev-server.js`**: khóa ký phiên cố định theo cổng, chỉ dùng trong test. Giá trị này không phải bí mật thật và không nằm trong Code.gs.
+- **Tài liệu**:
+  - A0 đặt trước A1. B1 so với số đo ở A0.
+  - A3, A6 và README nhắc không gửi nhật ký `setup`. Có `Mã.gs`, Ctrl+F `APP_VERSION`, câu về cột riêng (R-5), Lighthouse (R-9).
+  - Tên nút khớp `admin.js`: "Tạo ma trận", "Tạo đề (n câu) →", "+ Tạo đề mới", "⇪ Nhập nhanh từ Word / Excel".
+- **Test chạy lại**:
+  - `scan-secrets` sạch. `pha6.test.js` 10/10.
+  - `backend` 13, `bank` 30, `cache` 17, `common-cache` 5, `pha4` 22, `pha4-kiem-thu` 33, `pha5` 11, `pha1-kiem-thu` 29, `docx` 29: đều đạt. `importer`: đạt.
+  - `e2e.js` (8795): đạt ở cả hai chế độ máy chủ.
+
+### Phát hiện vòng 2
+| Mã | Mức | Vị trí | Vấn đề | Đề xuất |
+|---|---|---|---|---|
+| R2-1 | Nhẹ | `Code.gs:662–663` (`getResult`, vai giáo viên), `Code.gs:1213` (`adminDeleteResult`) | Dữ liệu cũ của 1.0.0 có thể có hai bài trùng mã (mã cũ chỉ có 3 chữ số ngẫu nhiên). Khi đó giáo viên xem hay xóa sẽ trúng **hàng đầu**, có thể không phải hàng thầy bấm. Không lộ dữ liệu cho học sinh. Mã mới không còn trùng. | Chấp nhận. Nếu muốn: `kiemTraSauTrienKhai` báo ⚠️ khi KetQua có mã trùng. |
+| R2-2 | Nhẹ | `Code.gs:632–634` | Mỗi lần nộp bài, máy chủ đọc thêm cả cột "Mã bài" của KetQua trong khóa (2 lần gọi Sheet). Với vài nghìn hàng thì nhanh, nhưng chưa đo trên Apps Script thật. | Đưa vào B1/B2: ghi thời gian nộp bài khi KetQua đã lớn. |
+| R2-3 | Nhẹ | `app.js:28`, `admin.js:31` | Trong thời gian máy chủ thật còn chạy 1.0.0 (trước A5, hoặc sau khi quay về ở A7), bản lưu luôn thiếu `features`, nên mỗi lần mở trang lại gọi thêm `publicConfig` (1 request chạy ngầm). Cái giá này chấp nhận được, đổi lại F5 thấy ngay máy chủ mới. | Chấp nhận. Khi dọn mã dự phòng (nhóm D) thì bỏ luôn nhánh này. |
