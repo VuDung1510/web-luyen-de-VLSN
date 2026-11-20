@@ -53,7 +53,41 @@ Trên Sheet cũ chưa chạy `setup`, nhật ký có dòng ❌ "Thiếu trang t�
 `apps-script/Code.gs`, `assets/js/docx-reader.js`, `assets/js/importer.js`, `assets/js/admin.js` (chỉ chữ gợi ý email), `README.md`, `docs/VIEC-GIAO-VIEN.md` (mới), `docs/bao-cao/pha-6.md` (mới), `docs/bao-cao/anh/pha-6/*` (mới), `tests/pha6.test.js` (mới), `tests/scan-secrets.js` (mới), `tests/gas-shim.js` (thêm `_formats()`), `tests/docx.test.js`, `tests/backend.test.js`, `tests/bank.test.js`, `tests/cache.test.js`, `tests/pha4.test.js`, `tests/pha4.e2e.js`, `tests/pha5.test.js`, `tests/pha5-kiem-thu.test.js`.
 
 ### Kết quả test (TC-6.2)
-KẾT_QUẢ_TEST
+Chạy trên nhánh `pha-6-phat-hanh` (commit có Code.gs 1.5.0), ngày 20/11/2026. Ảnh của các e2e ghi ra thư mục nháp (không ghi đè ảnh các pha trước).
+
+**Node**
+| Lệnh | Kết quả |
+|---|---|
+| `backend.test.js` | 13/13 đạt |
+| `importer.test.js` | đạt |
+| `bank.test.js` | 30/30 đạt |
+| `cache.test.js` | 17/17 đạt |
+| `common-cache.test.js` | 5/5 đạt |
+| `docx.test.js` (`LIBS_DIR`) | 29/29 đạt (thêm N-2, N-3) |
+| `pha1-kiem-thu.test.js` | 29/29 đạt |
+| `pha2-kiem-thu.test.js` | 31/31 đạt |
+| `pha3-kiem-thu.test.js` | 17/17 nhóm đạt |
+| `pha4-kiem-thu.test.js` | 33/33 đạt |
+| `pha5-kiem-thu.test.js` | 27/27 đạt (sau khi sửa TC-5.14, chỗ lệch 1) |
+| `pha4.test.js` | 22/22 đạt |
+| `pha5.test.js` | 11/11 đạt (sau khi sửa TC-5.14) |
+| `pha6.test.js` | 8/8 đạt |
+| `scan-secrets.js` | sạch, 0 phát hiện |
+
+**E2E** (mỗi lần chạy một dev-server khởi động mới; Playwright Chromium)
+| Lệnh | Máy chủ mới | `SERVER_COMPAT=1.0.0` |
+|---|---|---|
+| `e2e.js` | đạt | đạt |
+| `bank.e2e.js` | đạt | đạt |
+| `docx.e2e.js` | đạt | đạt |
+| `pha1-r1.e2e.js` | đạt | đạt |
+| `pha1-kiem-thu.e2e.js all` (tự chạy 2 dev-server) | 57 ✓, 0 ✗ — 12/12 nhóm ĐẠT (cả hai chế độ) | ↔ |
+| `pha2-kiem-thu.e2e.js all` | 16/16 nhóm đạt (cả hai chế độ) | ↔ |
+| `pha3-kiem-thu.e2e.js all` | 23/23 nhóm đạt (cả hai chế độ) | ↔ |
+| `pha4-kiem-thu.e2e.js all` | 22/22 nhóm đạt (mới, tắt luyện tập, 1.0.0) | ↔ |
+| `pha4.e2e.js all` | tất cả đạt (cả hai chế độ) | ↔ |
+| `pha5.e2e.js all` | tất cả đạt (cả hai chế độ) | ↔ |
+| `pha5-kiem-thu.e2e.js all` (`MAIN_DIR` = worktree `origin/main`) | 17/17 nhóm đạt (cả hai chế độ); không có `FONTS_DIR`/`WIDE_DIR` nên bỏ phần phông tải thật và logo ngang (Pha 6 không đổi CSS/HTML) | ↔ |
 
 ### Ảnh (`docs/bao-cao/anh/pha-6/`, dev-server máy chủ mới)
 - `01-cai-dat-phien-ban-1280.png`: trang Cài đặt, khung Dữ liệu ghi "Phiên bản máy chủ 1.5.0".
