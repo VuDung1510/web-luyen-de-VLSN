@@ -47,8 +47,8 @@ Học sinh / Giáo viên ──► Trang web (GitHub Pages) ──► Máy chủ
 3. Xóa hết nội dung có sẵn trong `Code.gs`, rồi dán **toàn bộ** nội dung file [`apps-script/Code.gs`](apps-script/Code.gs) vào. Bấm 💾 **Lưu**.
 4. Trên thanh công cụ, chọn hàm **`setup`** rồi bấm ▶ **Chạy**.
    - Google sẽ hỏi cấp quyền: **Xem xét quyền → chọn tài khoản → Nâng cao → Đi tới … (không an toàn) → Cho phép**. Cảnh báo này xuất hiện vì đây là script do chính thầy/cô tạo.
-   - Chạy xong, quay lại Google Sheet sẽ thấy 5 trang tính, một học sinh mẫu và một đề mẫu.
-   - **Mật khẩu trang quản trị** nằm ở trang tính `CaiDat`, dòng `MAT_KHAU_QUAN_TRI`.
+   - Chạy xong, quay lại Google Sheet sẽ thấy 7 trang tính, một học sinh mẫu và một đề mẫu.
+   - **Mật khẩu trang quản trị** nằm ở trang tính `CaiDat`, dòng `MAT_KHAU_QUAN_TRI` (nhật ký của `setup` cũng in mật khẩu: đừng chụp gửi ai).
 5. Bấm **Triển khai → Tùy chọn triển khai mới**:
    - Bấm ⚙ cạnh "Chọn loại", chọn **Ứng dụng web**.
    - **Thực thi với tư cách:** *Tôi*
@@ -61,11 +61,12 @@ Học sinh / Giáo viên ──► Trang web (GitHub Pages) ──► Máy chủ
 
 Danh sách từng bước có ô đánh dấu: [`docs/VIEC-GIAO-VIEN.md`](docs/VIEC-GIAO-VIEN.md). Tóm tắt:
 
+0. Trước khi dán: đo tốc độ trang đang chạy (bước A0) để so sau khi cập nhật.
 1. Sao lưu: trong Google Sheet, **Tệp → Tạo bản sao**.
-2. Mở **Tiện ích mở rộng → Apps Script**, xóa hết `Code.gs` cũ, dán **toàn bộ** `apps-script/Code.gs` mới, bấm 💾 **Lưu**.
+2. Mở **Tiện ích mở rộng → Apps Script**, mở file .gs đang có code (`Code.gs` hoặc `Mã.gs`), xóa hết nội dung cũ, dán **toàn bộ** `apps-script/Code.gs` mới, bấm 💾 **Lưu**.
 3. Chạy hàm **`setup`** một lần. Dữ liệu cũ giữ nguyên; `setup` chỉ **thêm** trang tính, cột và dòng cài đặt còn thiếu. Chạy lại nhiều lần cũng không trùng. Nếu Google hỏi quyền mới (đọc file khác, Drive): **Nâng cao → Đi tới … (không an toàn) → Cho phép**.
 4. **Triển khai → Quản lý các bản triển khai → ✏ Chỉnh sửa → Phiên bản: Phiên bản mới → Triển khai.** URL giữ nguyên, không sửa `config.js`. Quên chọn "Phiên bản mới" thì học sinh vẫn dùng máy chủ cũ.
-5. Chạy hàm **`kiemTraSauTrienKhai`**, rồi mở trang quản trị → **Cài đặt** → khung **Dữ liệu** (cuối trang): dòng "Phiên bản máy chủ" phải là số mới (hiện là **1.5.0**).
+5. Chạy hàm **`kiemTraSauTrienKhai`** (chỉ gửi nhật ký của hàm này, không gửi nhật ký `setup`), rồi mở trang quản trị → **Cài đặt** → khung **Dữ liệu** (cuối trang): dòng "Phiên bản máy chủ" phải là số mới (hiện là **1.5.0**). Trang đang mở từ trước: bấm F5 một lần là web nhận máy chủ mới.
 6. Hỏng thì quay về: **Triển khai → Quản lý các bản triển khai → ✏ → Phiên bản:** chọn số phiên bản cũ → **Triển khai**. Giao diện web vẫn chạy được với máy chủ cũ (tự ẩn nút cần máy chủ mới).
 
 ### Bước 2. Nối trang web với máy chủ
