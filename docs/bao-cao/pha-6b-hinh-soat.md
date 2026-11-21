@@ -45,3 +45,29 @@ Một dòng phương án có công thức kết thúc bằng `}}` dính liền "
 ## Kết luận
 
 **ĐẠT, có lưu ý.** Bản sửa đúng mục tiêu: hình thuộc đúng câu, hình ở dòng PHẦN chuyển sang câu kế, không lặp hình. Văn bản không có mốc và 4 file Word thật khác cho kết quả y hệt bản cũ. Hiệu năng tốt, Code.gs không đổi. Nên sửa R-1 trước khi gộp vì nó làm lộ hình lời giải cho học sinh, dù chưa gặp trong file thật. R-2 và R-3 có thể để sau.
+
+## Vòng 2 (soát commit `34bd21b`, diff `665a3e0..34bd21b`)
+
+**Tóm tắt cho giáo viên:** hình nằm ở dòng "Lời giải / Chọn B / Đáp án" nay vào phần lời giải, học sinh không còn thấy lúc làm bài. Hình ở dòng "PHẦN …" không còn bị mất. Công thức có "}}" không còn bị tách nhầm thành phương án. Đề thầy và 4 file Word thật khác vẫn cho kết quả như vòng 1.
+
+- **R-1: đã sửa.**
+  - Dòng `{{HINH}}Lời giải: …`, `{{HINH}}Chọn B`, `{{HINH}}Chọn B. Lời giải: …` và `{{HINH}} Đáp án: C`: hình vào `loiGiai` qua `addSolImg` (`importer.js:224–231`), đáp án vẫn nhận đúng.
+  - Sau HẾT, dòng có nhãn được nhận nhãn trước rồi mới nối hình (`:210–214`): "Lời giải:" bỏ nhãn đúng cách, "Đáp án: B" ghi được đáp án. Đây cũng là ghi chú nhỏ ở vòng 1, nay đã giải quyết.
+  - Lời giải bắt đầu bằng một dòng chỉ có hình không còn che việc tìm "Chọn B" hay "a) Đúng …", nhờ `HINH_LINE` (`:129`, `:282`, `:288`). Đã thử cả câu trắc nghiệm lẫn câu Đúng/Sai.
+- **R-2: đã sửa.**
+  - Hình ở dòng "PHẦN …" mà không có "Câu n" theo sau được `flushPending` (`:138`, gọi ở HẾT, HƯỚNG DẪN GIẢI, BẢNG ĐÁP ÁN và cuối văn bản) gắn vào câu vừa đóng. Trước HẾT thì vào nội dung câu, sau HẾT thì vào lời giải. Không có câu nào thì có cảnh báo.
+  - Dòng PHẦN đầu đề (trước Câu 1) và dòng PHẦN trong bảng đáp án: bỏ như cũ (`:167`).
+  - Hình ở dòng "PHẦN IV" đi theo câu Phần IV và bị bỏ cùng các câu đó. Cảnh báo "Bỏ qua Phần IV" chung đã bao trường hợp này, chấp nhận được.
+- **R-3: đã sửa.** `splitOptions` chỉ nhận nhãn ngay sau đúng mốc `{{HINH:n}}` (`:334`). `A. $\frac{1}{2}}B. x$` không còn bị tách; `A. 1{{HINH:6}}B. 2 …` vẫn tách đúng.
+- **Không hồi quy:**
+  - Bộ test: `importer.test.js` đạt, `docx.test.js` 30/30 đạt, `backend.test.js` 13/13 đạt.
+  - So ngẫu nhiên lại với bản `main`: không có mốc, có mốc giữa dòng, dòng chỉ có mốc, và cả dòng `x}}B.` lẫn `A. a}}B. b …`: **0 khác biệt**.
+  - Không lặp hình: khoảng 233 000 mốc ngẫu nhiên, không mốc nào xuất hiện quá 1 lần. Mốc còn rơi ngoài câu chỉ là những dòng thuộc Phần IV, đứng trước Câu 1, hoặc là lời giải cho câu không có trong đề. Chữ của các dòng này cũng bị bỏ như văn bản thường.
+  - 5 file thật: `de.docx` vẫn 28 câu, 4/4 hình vào đúng câu, không câu nào thiếu phương án. `f1`–`f4` giống hệt bản cũ.
+  - `apps-script/Code.gs` không đổi.
+
+**Phát hiện mới:** không có lỗi Nặng hay Vừa. Có một điểm Nhẹ, không cần sửa: sau HẾT, dòng bắt đầu bằng "Giải thích…" (không có dấu ":") cũng khớp nhãn ở `:212`, nên hình bị chuyển xuống sau dòng chữ. Hình vẫn nằm trong đúng lời giải.
+
+### Kết luận vòng 2
+
+**ĐẠT.** R-1, R-2 và R-3 đều đã sửa đúng, có test đi kèm, không thấy hồi quy. Có thể gộp.
