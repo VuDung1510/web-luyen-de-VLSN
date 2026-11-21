@@ -47,3 +47,11 @@ Lượt đo: đăng nhập học sinh → Lịch sử → Thống kê → Xếp 
 **Kết quả trên file thật** (file không đưa vào repo):
 - Đề giáo viên gặp lỗi: 25 câu (15–4–6) → **28 câu (18–4–6)**; câu 6, 13, 16 Phần I có hình; Phần II câu 3 có đủ 4 ý và có hình; mọi câu trắc nghiệm đủ 4 phương án, mọi câu Đúng/Sai đủ 4 ý.
 - 4 file Word Pha 3: vẫn 28/44/22/28 câu, 525/525 công thức; danh sách câu hỏi giống hệt trước khi sửa (so băm toàn bộ kết quả).
+
+### Vòng 2 (sửa theo soát `pha-6b-hinh-soat.md`)
+- R-1 (Vừa): hình ở đầu dòng "Lời giải:", "Chọn B", "Đáp án: …" nay vào `loiGiai` (đặt sau chữ của dòng), không vào nội dung câu, nên học sinh không thấy hình lời giải lúc làm bài. Khi tìm "Chọn B" hay "a) Đúng" trong lời giải thì bỏ qua dòng chỉ có mốc. Sau HẾT, dòng `{{HINH}}Lời giải: …` / `{{HINH}}Đáp án: B` nay nhận được nhãn, hình nối vào sau.
+- R-2 (Nhẹ): hình ở dòng "PHẦN …" mà không có "Câu n" theo sau (gặp HẾT, bảng đáp án, HƯỚNG DẪN GIẢI hoặc hết văn bản) nay gắn vào câu vừa đóng: trước HẾT thì vào nội dung, sau HẾT thì vào lời giải của câu vừa ghép. Nếu không có câu nào thì có cảnh báo. Hình ở dòng "PHẦN …" trước câu đầu tiên (logo) hoặc trong bảng đáp án thì bỏ như cũ.
+- R-3 (Nhẹ): `splitOptions` chỉ nhận nhãn đứng sát sau đúng mốc `{{HINH:n}}`, không nhận sau `}}` của công thức.
+- Test: đã sửa kỳ vọng trong `tests/docx.test.js` (hình lời giải vào `loiGiai`) và thêm ca cho "Chọn B" / "Lời giải: Chọn D." có hình, hình ở dòng PHẦN trước HẾT hoặc ở cuối văn bản, hình ở PHẦN I trước câu 1, và `A. $\frac{1}{2}}B. x$`.
+- Kết quả test: `docx.test.js` 30/30; `importer.test.js` đạt; `pha3-kiem-thu.test.js` 17/17; `pha6b-hinh-kiem-thu.test.js` (có DE_THAY, WORD_THAT) 35/35; `scan-secrets.js` sạch.
+- File thật không đổi so với vòng 1: đề giáo viên ra 28 câu (18–4–6), 4 hình ở câu 6/13/16 Phần I và câu 3 Phần II. 4 file Pha 3 cho kết quả y hệt (băm trùng).

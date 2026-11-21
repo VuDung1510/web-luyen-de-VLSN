@@ -287,13 +287,25 @@ const strip = (q) => { const o = Object.assign({}, q); delete o.hinhAnh; return 
     assert.strictEqual(qs[5].hinhAnh, u(8));
     assert.strictEqual(qs[5].noiDung, 'Dẫn hai.');
     assert.strictEqual(qs[5].dapAn, 'ĐĐSS');
-    // dán văn bản có mốc đầu dòng: "Đáp án:" / "Lời giải:" vẫn nhận; dòng chỉ có mốc giữ nguyên chỗ cũ
+    // dán văn bản có mốc đầu dòng: "Đáp án:" / "Lời giải:" vẫn nhận, hình của chúng vào LỜI GIẢI (vòng 2, R-1:
+    // học sinh không thấy hình lời giải lúc làm bài); dòng chỉ có mốc giữ nguyên chỗ cũ
     const t = I.fromText('Câu 1. Hỏi?\n{{HINH:1}}A. 1\tB. 2\tC. 3\tD. 4\n{{HINH:2}} Đáp án: C\n{{HINH:3}}Lời giải: vì thế\nCâu 2. Hai?\n{{HINH:4}}\nA. 5\tB. 6\tC. 7\tD. 8');
-    assert.strictEqual(t.questions[0].noiDung, 'Hỏi?\n{{HINH:1}}\n{{HINH:2}}\n{{HINH:3}}');
+    assert.strictEqual(t.questions[0].noiDung, 'Hỏi?\n{{HINH:1}}');
     assert.strictEqual(t.questions[0].dapAn, 'C');
-    assert.strictEqual(t.questions[0].loiGiai, 'vì thế');
+    assert.strictEqual(t.questions[0].loiGiai, '{{HINH:2}}\nvì thế\n{{HINH:3}}');
     assert.strictEqual(t.questions[1].noiDung, 'Hai?\n{{HINH:4}}');
     assert.strictEqual(t.questions[1].A, '5');
+    // "Chọn B" / "Lời giải: Chọn B." có hình đầu dòng: hình vào lời giải, vẫn lấy được đáp án
+    const t2 = I.fromText('Câu 1. Hỏi?\nA. 1\tB. 2\tC. 3\tD. 4\n{{HINH:1}}Chọn B\nCâu 2. Hai?\nA. 1\tB. 2\tC. 3\tD. 4\n{{HINH:2}}Lời giải: Chọn D.');
+    assert.deepStrictEqual(t2.questions.map((q) => [q.noiDung, q.dapAn, q.loiGiai]), [['Hỏi?', 'B', '{{HINH:1}}'], ['Hai?', 'D', 'Chọn D.\n{{HINH:2}}']]);
+    // R-2: hình ở dòng "PHẦN …" không có "Câu n" theo sau → gắn vào câu vừa đóng (trước HẾT), không mất; trước câu 1 → bỏ
+    const t3 = I.fromText('{{HINH:1}}PHẦN I\nCâu 1. Hỏi?\nA. 1\tB. 2\tC. 3\tD. 4\n{{HINH:2}}PHẦN II\n---- HẾT ----\nCâu 1. Lời giải: Chọn A.');
+    assert.deepStrictEqual(t3.questions.map((q) => [q.noiDung, q.dapAn, q.loiGiai]), [['Hỏi?\n{{HINH:2}}', 'A', 'Chọn A.']]);
+    const t4 = I.fromText('Câu 1. Hỏi?\nA. 1\tB. 2\tC. 3\tD. 4\n{{HINH:5}}PHẦN II');
+    assert.strictEqual(t4.questions[0].noiDung, 'Hỏi?\n{{HINH:5}}');
+    // R-3: nhãn phương án chỉ nhận sau đúng mốc hình, không sau "}}" của công thức
+    assert.deepStrictEqual(I.splitOptions('A. $\\frac{1}{2}}B. x$').map((o) => o.k), ['A']);
+    assert.deepStrictEqual(I.splitOptions('A. 1{{HINH:6}}B. 2 C. 3 D. 4').map((o) => o.k + '=' + o.v), ['A=1{{HINH:6}}', 'B=2', 'C=3', 'D=4']);
   });
 
   await test('TC-3.8 .xlsx có và không có hàng tiêu đề → giống dán TSV', async () => {
