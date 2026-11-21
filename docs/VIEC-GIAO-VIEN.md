@@ -101,7 +101,7 @@ Claude không mở được trang thật từ môi trường làm việc (mạng
 
 ## C. Việc nội dung (thầy làm khi tiện)
 
-- ☐ **Logo:** gửi file logo VLSN chuẩn (ảnh góc trên khung bài học trên vatly.ai, PNG nền trong suốt hoặc SVG), hoặc xác nhận dùng tiếp logo tạm (mê cung chữ Q). Đổi logo = thay đúng file `assets/img/logo-vlsn.png`, giữ tên file.
+- ☑ **Logo:** giáo viên chốt dùng logo hiện tại (mê cung chữ Q), 21/11/2026. Đổi logo về sau = thay đúng file `assets/img/logo-vlsn.png`, giữ tên file.
 - ☐ **Trả lời 4 câu hỏi của Pha 5** (`docs/bao-cao/pha-5.md`, mục "Câu hỏi cho giáo viên"; chưa trả lời thì web giữ mặc định):
   - ☐ Câu 1: tiêu đề có in hoa toàn bộ không (mặc định: không).
   - ☐ Câu 2: slogan ở đầu trang hay chân trang (mặc định: chân trang).

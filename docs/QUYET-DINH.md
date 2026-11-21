@@ -76,7 +76,7 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 
 ## 9. Câu hỏi mở / việc đang chờ
 - ~~Code.gs 1.1.0 chưa dán vào Apps Script — dán một lần ở Pha 6.~~ Đã dán Code.gs 1.5.0 ngày 21/11/2026.
-- Logo VLSN chuẩn từ vatly.ai: chưa có file (mạng bị chặn). Logo trong file Word mẫu là logo mê cung chữ Q — giáo viên xác nhận dùng logo này hay gửi file logo vatly.ai (19/11/2026). Pha 5 tạm dùng logo mê cung, thay sau bằng một file.
+- ~~Logo VLSN chuẩn từ vatly.ai: chưa có file (mạng bị chặn).~~ Đã chốt 21/11/2026: dùng logo hiện tại (mê cung chữ Q). Logo trong file Word mẫu là logo mê cung chữ Q — giáo viên xác nhận dùng logo này hay gửi file logo vatly.ai (19/11/2026). Pha 5 tạm dùng logo mê cung, thay sau bằng một file.
 - 12 đề xuất tham khảo giao diện từ vatly.ai, Azota, OnLuyen, SHub, Moon: chưa chốt, xem lại sau.
 
 ## 10. Nhật ký thay đổi
@@ -93,3 +93,4 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - 20/11/2026 — Claude Code: gộp Pha 5 (màu xanh #1D6B3E, logo VLSN TẠM, chân trang thương hiệu + hotline + slogan, bỏ tên giáo viên; giữ bố cục). Tiêu đề Montserrat 800 không in hoa toàn bộ (mặc định, chờ giáo viên). Thay logo chuẩn = thay file assets/img/logo-vlsn.png. Bắt đầu Pha 6a.
 - 21/11/2026 — Claude Code: gộp Pha 6a (Code.gs bản cuối 1.5.0, README, docs/VIEC-GIAO-VIEN.md); soát code và kiểm thử vòng 2 ĐẠT. Chờ giáo viên làm Pha 6b (dán Code.gs một lần).
 - 21/11/2026 — Claude Code: Pha 6b xong cùng giáo viên — máy chủ thật lên Code.gs 1.5.0; TC-6.7, 6.8 ĐẠT; sửa bảng kẻ gạch và hình đặt nổi trong file Word. Lỗi dữ liệu kho (mất Φ, hình nghiêng) ghi cho Cowork (mục 9). Hoàn tất Pha 0–6.
+- 21/11/2026 — Claude Code: giáo viên chốt dùng logo hiện tại (mê cung chữ Q) cho web (mục 6, mục 9).
