@@ -97,7 +97,7 @@ function checkShape(r, label) {
   assert.deepStrictEqual(qs.map((q) => q.loai).join(','), 'TN,TN,TN,TN,DS,DS,TL,TL', label);
   qs.slice(0, 4).forEach((q, i) => {
     assert.ok(opts4(q), label + ': câu ' + (i + 1) + ' P1 thiếu phương án ' + JSON.stringify([q.A, q.B, q.C, q.D]));
-    assert.ok(/Nội dung câu trắc nghiệm/.test(q.noiDung), label + ': câu ' + (i + 1) + ' mất nội dung: ' + q.noiDung);
+    assert.ok(/Nội dung câu trắc nghiệm/.test(noMark(q.noiDung)), label + ': câu ' + (i + 1) + ' mất nội dung: ' + q.noiDung);
   });
   qs.slice(4, 6).forEach((q, i) => {
     assert.ok(opts4(q), label + ': câu ĐS ' + (i + 1) + ' thiếu ý ' + JSON.stringify([q.A, q.B, q.C, q.D]));
@@ -272,7 +272,9 @@ function checkImgs(r, k, expect, label) {
       const buf = fs.readFileSync(DE);
       const z = await JSZip.loadAsync(buf);
       const xml = await z.file('word/document.xml').async('string');
-      const blips = (xml.match(/<a:blip\b[^>]*r:embed=/g) || []).length + (xml.match(/<v:imagedata\b[^>]*r:id=/g) || []).length;
+      const cnt = (s) => (s.match(/<a:blip\b[^>]*r:embed=/g) || []).length + (s.match(/<v:imagedata\b[^>]*r:id=/g) || []).length;
+      // hình trong khung đầu đề (bảng trước câu đầu tiên, vd. logo) bị bỏ qua theo thiết kế Pha 3 → chỉ đếm từ chữ "Câu" đầu tiên
+      const blipsAll = cnt(xml), blips = cnt(xml.slice(xml.indexOf('Câu')));
       const r = await read(buf);
       const qs = r.questions;
       const p1 = qs.filter((q) => q.phan === 1), p2 = qs.filter((q) => q.phan === 2);
@@ -289,7 +291,7 @@ function checkImgs(r, k, expect, label) {
       assert.strictEqual(ks.length, blips, 'số hình gắn ' + ks.length + ' ≠ số hình trong document.xml ' + blips);
       ks.forEach((k) => assert.strictEqual(w[k].length, 1, 'hình ' + k + ' ở ' + w[k].length + ' câu'));
       const rm = await read(buf, libsMain);
-      return `${qs.length} câu (${byPart(qs)}); a:blip=${blips}, hình gắn=${ks.length}, mỗi hình 1 câu; P1 có hình: ${p1img.join(',')}; P2 có hình: ${p2img.join(',')}; P3 có hình: ${qs.filter((q) => q.phan === 3).map((q, i) => (has(q) ? i + 1 : 0)).filter(Boolean).join(',') || '—'}; cảnh báo: ${r.warnings.length}. origin/main: ${rm.questions.length} câu (${byPart(rm.questions)}), hình gắn=${Object.keys(where(rm.questions)).length}`;
+      return `${qs.length} câu (${byPart(qs)}); a:blip toàn file=${blipsAll}, trong phần câu hỏi=${blips}, hình gắn=${ks.length}, mỗi hình 1 câu; P1 có hình: ${p1img.join(',')}; P2 có hình: ${p2img.join(',')}; P3 có hình: ${qs.filter((q) => q.phan === 3).map((q, i) => (has(q) ? i + 1 : 0)).filter(Boolean).join(',') || '—'}; cảnh báo: ${r.warnings.length}. origin/main: ${rm.questions.length} câu (${byPart(rm.questions)}), hình gắn=${Object.keys(where(rm.questions)).length}`;
     });
   } else console.log('  (bỏ qua K7: không có DE_THAY)');
 
