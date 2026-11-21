@@ -68,6 +68,6 @@ Gộp vào `main` ngày 19/11/2026. Soát code vòng 2 ĐẠT; kiểm thử vòn
 | 4 — Luyện tập | Đã gộp `main` 19/11, Code.gs 1.4.0. Đã chốt: câu đề thi chỉ vào luyện tập khi đề đã đóng và cho xem lời giải |
 | 5 — Màu xanh + logo | Đã gộp `main` 20/11. Logo là logo TẠM (mê cung chữ Q từ file Word mẫu); thay = thay `assets/img/logo-vlsn.png`. 4 câu hỏi cho giáo viên trong `docs/bao-cao/pha-5.md` |
 | 6a — Chuẩn bị phát hành | Đã gộp `main` 21/11, **Code.gs bản cuối 1.5.0**, `docs/VIEC-GIAO-VIEN.md`, README, `tests/scan-secrets.js` |
-| 6b — Làm cùng giáo viên | **Việc tiếp theo.** Theo `docs/VIEC-GIAO-VIEN.md`: A0 đo tốc độ máy chủ 1.0.0 TRƯỚC khi dán; rồi nhóm A, B (TC-6.7, 6.8) |
+| 6b — Làm cùng giáo viên | **Xong 21/11.** Máy chủ thật 1.5.0; TC-6.7, 6.8 ĐẠT; sửa thêm bảng kẻ gạch và hình đặt nổi trong file Word. Báo cáo `docs/bao-cao/pha-6b.md` |
 
-Máy chủ thật vẫn là 1.0.0. Bài kiểm thử "Tạo đề" chập chờn của Pha 2 đã xác định là lỗi của test và đã sửa.
+Máy chủ thật đã là **1.5.0** (21/11/2026; phiên bản triển khai trước: 2). Việc còn lại: nhóm C, D trong `docs/VIEC-GIAO-VIEN.md`. Bài kiểm thử "Tạo đề" chập chờn của Pha 2 đã xác định là lỗi của test và đã sửa.

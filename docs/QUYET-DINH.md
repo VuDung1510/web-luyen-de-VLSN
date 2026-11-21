@@ -1,4 +1,4 @@
-> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 20/11/2026 (đầu Pha 6).
+> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 21/11/2026 (kết thúc Pha 6).
 
 # WEB LUYỆN ĐỀ VLSN — QUYẾT ĐỊNH ĐÃ CHỐT
 
@@ -75,7 +75,7 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - Thứ tự pha: giữ nguyên 1 → 6. (18/11/2026)
 
 ## 9. Câu hỏi mở / việc đang chờ
-- Code.gs 1.1.0 chưa dán vào Apps Script — dán một lần ở Pha 6.
+- ~~Code.gs 1.1.0 chưa dán vào Apps Script — dán một lần ở Pha 6.~~ Đã dán Code.gs 1.5.0 ngày 21/11/2026.
 - Logo VLSN chuẩn từ vatly.ai: chưa có file (mạng bị chặn). Logo trong file Word mẫu là logo mê cung chữ Q — giáo viên xác nhận dùng logo này hay gửi file logo vatly.ai (19/11/2026). Pha 5 tạm dùng logo mê cung, thay sau bằng một file.
 - 12 đề xuất tham khảo giao diện từ vatly.ai, Azota, OnLuyen, SHub, Moon: chưa chốt, xem lại sau.
 
@@ -92,3 +92,4 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - 19/11/2026 — Claude Code: gộp Pha 4 (Luyện tập, Code.gs 1.4.0); soát và kiểm thử ĐẠT sau 3 vòng. Bắt đầu Pha 5.
 - 20/11/2026 — Claude Code: gộp Pha 5 (màu xanh #1D6B3E, logo VLSN TẠM, chân trang thương hiệu + hotline + slogan, bỏ tên giáo viên; giữ bố cục). Tiêu đề Montserrat 800 không in hoa toàn bộ (mặc định, chờ giáo viên). Thay logo chuẩn = thay file assets/img/logo-vlsn.png. Bắt đầu Pha 6a.
 - 21/11/2026 — Claude Code: gộp Pha 6a (Code.gs bản cuối 1.5.0, README, docs/VIEC-GIAO-VIEN.md); soát code và kiểm thử vòng 2 ĐẠT. Chờ giáo viên làm Pha 6b (dán Code.gs một lần).
+- 21/11/2026 — Claude Code: Pha 6b xong cùng giáo viên — máy chủ thật lên Code.gs 1.5.0; TC-6.7, 6.8 ĐẠT; sửa bảng kẻ gạch và hình đặt nổi trong file Word. Lỗi dữ liệu kho (mất Φ, hình nghiêng) ghi cho Cowork (mục 9). Hoàn tất Pha 0–6.

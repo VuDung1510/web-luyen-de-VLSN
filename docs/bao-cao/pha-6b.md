@@ -78,3 +78,15 @@ Lượt đo: đăng nhập học sinh → Lịch sử → Thống kê → Xếp 
 ## Gộp bản sửa hình đặt nổi (điều phối, 21/11/2026)
 - Soát: vòng 1 ĐẠT kèm R-1 Vừa (hình đầu dòng lời giải lọt vào nội dung câu); vòng 2 ĐẠT. Kiểm thử: ĐẠT (35/35 Node, e2e 16/16 hai chế độ).
 - Đề Word thật của giáo viên: trước 25 câu (15–4–6), sau 28 câu (18–4–6), 4/4 hình vào đúng câu. 4 đề thật của Pha 3: kết quả y hệt. Không đổi Code.gs.
+
+## Kết luận Pha 6b (giáo viên chốt 21/11/2026)
+| TC | Kết quả |
+|---|---|
+| TC-6.7 Đo tốc độ trước/sau | **ĐẠT** — 8 → 5 lời gọi mỗi lượt; mỗi lời gọi 3,0–4,4 s → 1,6–2,2 s; vòng xem thứ hai hiện ngay |
+| TC-6.8 Học sinh làm đề + luyện tập | **ĐẠT** — KetQua và KetQuaLuyenTap có hàng mới |
+| `kiemTraSauTrienKhai` | Tất cả ổn (1.5.0, đủ 7 trang tính, mở được kho và thư mục hình) |
+| Lỗi phát hiện trên trang thật | Đã sửa và lên trang: bảng kẻ gạch của kho; đề Word có hình đặt nổi. Lỗi dữ liệu kho (mất Φ, hình quét nghiêng) chuyển cho Cowork |
+
+- Máy chủ thật: **Code.gs 1.5.0** (phiên bản triển khai trước: 2).
+- Giáo viên chốt pha khi chưa báo kết quả thử lại đề Word sau bản sửa hình đặt nổi (bản sửa đã kiểm trên đúng file đó: 28 câu, 4/4 hình).
+- Việc còn lại của giáo viên: nhóm C (logo chuẩn, 4 câu hỏi giao diện Pha 5, sửa câu kho lỗi, đưa câu vào luyện tập) và nhóm D (sau ≥ 1 tháng: xác nhận dọn mã dự phòng máy chủ cũ) trong `docs/VIEC-GIAO-VIEN.md`; xem trên điện thoại thật (Pha 5 R-3, R-7).
