@@ -94,3 +94,4 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - 21/11/2026 — Claude Code: gộp Pha 6a (Code.gs bản cuối 1.5.0, README, docs/VIEC-GIAO-VIEN.md); soát code và kiểm thử vòng 2 ĐẠT. Chờ giáo viên làm Pha 6b (dán Code.gs một lần).
 - 21/11/2026 — Claude Code: Pha 6b xong cùng giáo viên — máy chủ thật lên Code.gs 1.5.0; TC-6.7, 6.8 ĐẠT; sửa bảng kẻ gạch và hình đặt nổi trong file Word. Lỗi dữ liệu kho (mất Φ, hình nghiêng) ghi cho Cowork (mục 9). Hoàn tất Pha 0–6.
 - 21/11/2026 — Claude Code: giáo viên chốt dùng logo hiện tại (mê cung chữ Q) cho web (mục 6, mục 9).
+- 21/11/2026 — Claude Code: giáo viên chốt giao diện (mục 6): tiêu đề không in hoa (Montserrat đậm 700); chữ chế độ tối dịu hơn để không chói; slogan ở chân trang; tên trang web không có tên giáo viên (giáo viên tự sửa ở Cài đặt).

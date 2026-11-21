@@ -25,14 +25,14 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0f1420; --surface: #171e2e; --surface-2: #1f2840; --text: #e7ebf3; --muted: #9aa4b8; --border: #2a3450;
+    --bg: #0f1420; --surface: #171e2e; --surface-2: #1f2840; --text: #dde3ec; --muted: #9aa4b8; --border: #2a3450;
     --primary: #5fbf87; --primary-hover: #7fd3a2; --primary-ink: #0b1020; --primary-soft: #183826; --good: #a3e635; --good-soft: #1a2e05; --on-status: #0b1020;
     --bad: #fb923c; --bad-soft: #3a2314; --warn: #fbbf24; --info-soft: #132c3d; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0f1420; --surface: #171e2e; --surface-2: #1f2840; --text: #e7ebf3; --muted: #9aa4b8; --border: #2a3450;
+  --bg: #0f1420; --surface: #171e2e; --surface-2: #1f2840; --text: #dde3ec; --muted: #9aa4b8; --border: #2a3450;
   --primary: #5fbf87; --primary-hover: #7fd3a2; --primary-ink: #0b1020; --primary-soft: #183826; --good: #a3e635; --good-soft: #1a2e05; --on-status: #0b1020;
   --bad: #fb923c; --bad-soft: #3a2314; --warn: #fbbf24; --info-soft: #132c3d; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
   color-scheme: dark;
@@ -43,7 +43,7 @@ html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.55; }
 a { color: var(--primary); }
 img { max-width: 100%; }
-h1, h2, h3 { line-height: 1.25; margin: 0 0 .5em; font-family: var(--font-head); font-weight: 800; }
+h1, h2, h3 { line-height: 1.25; margin: 0 0 .5em; font-family: var(--font-head); font-weight: 700; }
 h1 { font-size: 1.6rem; } h2 { font-size: 1.25rem; } h3 { font-size: 1.05rem; }
 .muted { color: var(--muted); }
 .small { font-size: .875rem; }
@@ -63,7 +63,7 @@ h1 { font-size: 1.6rem; } h2 { font-size: 1.25rem; } h3 { font-size: 1.05rem; }
 .container { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
 .narrow { max-width: 460px; margin: 6vh auto 0; }
 .footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 24px 16px 40px; }
-.footer-brand { font-family: var(--font-head); font-weight: 800; color: var(--primary); }
+.footer-brand { font-family: var(--font-head); font-weight: 700; color: var(--primary); }
 .footer-slogan { font-size: .78rem; letter-spacing: .02em; }
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
@@ -138,7 +138,7 @@ tr.me td { background: var(--primary-soft); font-weight: 600; }
 .part-title { margin: 24px 0 10px; font-size: 1.05rem; color: var(--primary); }
 .q { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; scroll-margin-top: 70px; }
 .q-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
-.q-num { font-weight: 800; color: var(--primary); }
+.q-num { font-weight: 700; color: var(--primary); }
 .q-body { margin-bottom: 12px; overflow-wrap: anywhere; }
 .q-body img, .q-img { display: block; max-height: 360px; margin: 8px auto; border-radius: 8px; }
 .flag-btn { border: 0; background: transparent; color: var(--muted); cursor: pointer; font: inherit; font-size: .85rem; padding: 4px 8px; border-radius: 8px; }

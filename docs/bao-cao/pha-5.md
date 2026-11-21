@@ -180,3 +180,6 @@ Chưa trả lời thì web chạy theo mặc định.
 
 ## Trả lời của giáo viên (21/11/2026)
 - Câu 3 (logo): **dùng logo hiện tại** (mê cung chữ Q). Logo không còn là logo tạm; chú thích trong `index.html`, `admin.html` đã sửa.
+- Câu 1 (tiêu đề): **không in hoa**; giáo viên để Claude chọn cho dễ nhìn, không chói ở cả sáng và tối → tiêu đề Montserrat đậm 700 (thay 800); chữ chính chế độ tối #dde3ec (thay #e7ebf3), tương phản 11,3–14,3:1. `pha5.test.js` 11/11, `pha5-kiem-thu.test.js` 27/27 (điều phối cập nhật 3 chỗ kiểm theo đặc tả sửa ngày 21/11), `pha5.e2e.js all` đạt.
+- Câu 2 (slogan): **để ở chân trang** (giữ mặc định).
+- Câu 4 (tên trang web): giáo viên tự kiểm, sửa sau ở Cài đặt → Tên trang web.

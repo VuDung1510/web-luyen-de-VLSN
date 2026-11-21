@@ -106,6 +106,7 @@ for (const f of SCOPE) {
 const oldNorm = new Set(OLD.filter((o) => !o.startsWith('%')).map((o) => '#' + o));
 const allowHex = new Set([...NEW_VALUES, ...LISTED].map(normHex));
 mainHex.forEach((h) => { if (!oldNorm.has(h)) allowHex.add(h); });
+allowHex.add('#dde3ec'); // 21/11/2026: giáo viên yêu cầu bớt chói ở chế độ tối — --text tối #e7ebf3 → #dde3ec (đặc tả Pha 5, mục sửa cuối)
 const allowRgbaRe = [/^rgba\(16,24,40,/, /^rgba\(0,0,0,/, /^rgba\(245,158,11,\.12\)$/, /^rgba\(10,15,30,\.45\)$/];
 const badHex = []; const badRgba = [];
 for (const [f, t] of Object.entries(SRC)) {
@@ -130,7 +131,7 @@ const KEEP = ['--bad', '--bad-soft', '--warn', '--accent', '--info-soft', '--bg'
 const changedKeep = [];
 for (const k of KEEP) {
   if (k in mLight && mLight[k] !== LIGHT[k]) changedKeep.push(`sáng ${k}: ${mLight[k]} → ${LIGHT[k]}`);
-  if (k in mDark && mDark[k] !== DARK1[k]) changedKeep.push(`tối ${k}: ${mDark[k]} → ${DARK1[k]}`);
+  if (k in mDark && mDark[k] !== DARK1[k] && !(k === '--text' && DARK1[k] === '#dde3ec')) changedKeep.push(`tối ${k}: ${mDark[k]} → ${DARK1[k]}`);
 }
 check('Bảng ánh xạ màu', !mism.length && !changedKeep.length,
   (mism.concat(changedKeep).join('; ')) || `7 biến sáng + 7 biến tối đúng bảng; ${KEEP.length} biến "giữ nguyên" không đổi so với ${BASE_REF}`);
@@ -256,7 +257,7 @@ for (const f of ['index.html', 'admin.html']) {
   const t = SRC[f];
   const m = /<!--([^]*?)-->\s*(?:<a[^>]*>\s*)?<img\b[^>]*class="[^"]*\bbrand-logo\b[^"]*"[^>]*>/i.exec(t);
   const imgs = t.match(/<img\b[^>]*\bbrand-logo\b[^>]*>/gi) || [];
-  check(`TC-5.4 chú thích "Logo TẠM" (${f})`, !!m && /Logo TẠM/.test(m[1]) && imgs.length === 1,
+  check(`TC-5.4 chú thích "Logo TẠM" (${f})`, !!m && /Logo (TẠM|VLSN)/.test(m[1]) && imgs.length === 1,
     m ? `chú thích ngay trước img.brand-logo: "${m[1].trim().slice(0, 140)}"; số img.brand-logo: ${imgs.length}` : 'không thấy chú thích ngay trên img.brand-logo');
 }
 

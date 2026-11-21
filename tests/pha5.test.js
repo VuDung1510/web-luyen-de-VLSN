@@ -95,7 +95,7 @@ t('TC-5.1 màu cũ đã hết, :root có --primary #1D6B3E, mọi mã màu còn 
   assert.strictEqual(L['--primary'], '#1d6b3e');
   // Danh sách cho phép = mọi mã của main (trừ 8 mã cũ ở trên) + các mã mới của bảng ánh xạ
   const MAIN_KEPT = ['#0b1020', '#0f1420', '#132c3d', '#166534', '#171e2e', '#182033', '#1f2840', '#2a3450', '#3a2314', '#3a3110', '#4a3d0c',
-    '#5b6478', '#5c4400', '#9a3412', '#9aa4b8', '#a5841c', '#b45309', '#c2410c', '#dfe4ee', '#e0b100', '#e0f2fe', '#e7ebf3', '#eef2fa',
+    '#5b6478', '#5c4400', '#9a3412', '#9aa4b8', '#a5841c', '#b45309', '#c2410c', '#dfe4ee', '#e0b100', '#e0f2fe', '#e7ebf3', '#dde3ec', '#eef2fa',
     '#f2c94c', '#f4f6fb', '#f59e0b', '#fb923c', '#fbbf24', '#ffe58f', '#ffedd5', '#fff', '#fff3b0', '#fff8db', '#ffffff', '#000', '#555'];
   const NEW = ['#1d6b3e', '#15573a', '#e3f1e8', '#4a7311', '#ecfccb', '#5fbf87', '#7fd3a2', '#183826', '#a3e635', '#1a2e05'];
   const ALLOW = new Set(MAIN_KEPT.concat(NEW));
@@ -192,7 +192,7 @@ t('TC-5.4 file logo tạm: PNG 96×96, ≤ 20 KB, có alpha, 4 góc trong suốt
   assert(widest < 0.6, 'có vẻ còn dải chữ ở đáy logo (rộng ' + (widest * 100).toFixed(0) + '%)');
   for (const f of ['index.html', 'admin.html']) {
     const s = read(f);
-    assert(/<!-- Logo TẠM[^>]*-->\s*<a class="brand" href="#\/"><img class="brand-logo" src="assets\/img\/logo-vlsn\.png" alt="Vật Lý Siêu Nhẩm">/.test(s), f + ': thiếu chú thích Logo TẠM ngay trên img.brand-logo');
+    assert(/<!-- Logo (?:TẠM|VLSN)[^>]*-->\s*<a class="brand" href="#\/"><img class="brand-logo" src="assets\/img\/logo-vlsn\.png" alt="Vật Lý Siêu Nhẩm">/.test(s), f + ': thiếu chú thích Logo TẠM ngay trên img.brand-logo');
     assert(!/Φ/.test(s), f + ': còn chữ Φ');
   }
 });

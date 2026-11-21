@@ -221,3 +221,9 @@ Viết lại đặc tả ngày 19/11/2026 theo quyết định Cowork 18/11/2026
 Sửa đặc tả ngày 19/11/2026 theo soat-pha-5.md S-1…S-12 (S-6: điều phối chép QUYET-DINH khi gộp).
 
 Sửa đặc tả ngày 19/11/2026 (theo kiểm thử Pha 5, N-1): TC-5.8 miễn trừ thêm thẻ Cài đặt của trang quản trị — được cao thêm đúng phần dòng gợi ý dưới ô "Tên giáo viên" (S-8); các khối bên dưới thẻ đó được dời xuống đúng chừng ấy.
+
+Sửa đặc tả ngày 21/11/2026 theo trả lời của giáo viên (sau Pha 6b):
+- Logo: dùng logo hiện tại (mê cung chữ Q) làm logo chính thức; chú thích trong `index.html`/`admin.html` đổi từ "Logo TẠM" thành "Logo VLSN …". TC-5.4 chấp nhận cả hai.
+- Tiêu đề: không in hoa; Montserrat độ đậm **700** (thay 800) cho h1–h3, `.footer-brand`, số câu `.q-num` để dễ nhìn.
+- Chế độ tối: `--text` #e7ebf3 → **#dde3ec** để bớt chói (vẫn ≥ 4,5:1 trên `--bg`, `--surface`, `--surface-2`).
+- Slogan: để ở chân trang (giữ mặc định).
