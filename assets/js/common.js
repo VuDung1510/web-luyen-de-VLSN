@@ -269,6 +269,8 @@
   /**
    * Nội dung câu hỏi: giữ xuống dòng, cho phép **đậm**, *nghiêng*, ảnh ![](url); công thức $...$ do KaTeX hiển thị.
    * Khối bảng (định dạng kho câu hỏi): dòng "[BẢNG] Cột 1 | Cột 2" rồi các dòng "ô | ô" liền sau → <table>.
+   * Bảng kẻ gạch (bảng đơn giản kiểu pandoc, gạch có thể đã thành "–" và khoảng trắng canh cột bị gộp) → <table>,
+   * xem dashTable() bên dưới.
    */
   function rich(text) {
     // tách công thức ra trước để không bị định dạng nhầm
@@ -281,25 +283,116 @@
       h = h.replace(/(^|[^*\\])\*([^*\n]+)\*/g, '$1<i>$2</i>');
       return h.replace(/\n/g, '<br>');
     };
-    const lines = s.split('\n');
+    const lines = s.split('\n').map((l) => l.replace(/\r$/, ''));
     const out = [];
     let buf = [];
     const flush = () => { if (buf.length) out.push(inline(buf.join('\n'))); buf = []; };
+    const table = (head, body, n) => {
+      const tr = (r, tag) => `<tr>${Array.from({ length: n }, (_, j) => `<${tag}>${inline(r[j] || '')}</${tag}>`).join('')}</tr>`;
+      return `<div class="table-wrap q-table-wrap"><table class="q-table">${head ? `<thead>${tr(head, 'th')}</thead>` : ''}<tbody>${body.map((r) => tr(r, 'td')).join('')}</tbody></table></div>`;
+    };
+    const blank = () => { if (buf.length && buf[buf.length - 1].trim() === '') buf.pop(); }; // dòng trống ngay trước bảng
     for (let i = 0; i < lines.length; i++) {
       const m = lines[i].match(/^\s*\[BẢNG\]\s*(.*)$/i);
-      if (!m) { buf.push(lines[i]); continue; }
-      if (buf.length && buf[buf.length - 1].trim() === '') buf.pop(); // dòng trống ngay trước bảng
+      if (!m) {
+        const t = dashTable(lines, i, buf.length ? buf[buf.length - 1] : null, keep);
+        if (!t) { buf.push(lines[i]); continue; }
+        if (t.popPrev) buf.pop(); // dòng gạch viền trên
+        blank();
+        flush();
+        out.push(table(t.head, t.body, t.n));
+        i = t.end;
+        continue;
+      }
+      blank();
       flush();
       const rows = m[1].trim() ? [m[1]] : [];
       while (i + 1 < lines.length && lines[i + 1].indexOf('|') >= 0 && lines[i + 1].trim()) rows.push(lines[++i]);
       const cells = rows.map((r) => r.split('|').map((c) => c.trim()));
-      const n = Math.max(1, ...cells.map((r) => r.length));
-      const tr = (r, tag) => `<tr>${Array.from({ length: n }, (_, j) => `<${tag}>${inline(r[j] || '')}</${tag}>`).join('')}</tr>`;
-      out.push(`<div class="table-wrap q-table-wrap"><table class="q-table">${cells.length ? `<thead>${tr(cells[0], 'th')}</thead>` : ''}<tbody>${cells.slice(1).map((r) => tr(r, 'td')).join('')}</tbody></table></div>`);
+      out.push(table(cells[0], cells.slice(1), Math.max(1, ...cells.map((r) => r.length))));
     }
     flush();
     // dấu phẩy thập phân kiểu Việt Nam trong công thức: 2,67 → 2{,}67 để KaTeX không chèn khoảng trắng
     return out.join('').replace(/\u0000(\d+)\u0000/g, (m, i) => esc(keep[+i].replace(/(\d),(?=\d)/g, '$1{,}')));
+  }
+
+  /* ---------- bảng kẻ gạch (bảng đơn giản kiểu pandoc, đã hỏng khoảng trắng) ----------
+   * Dòng gạch: chỉ gồm "-", "–", "—" và khoảng trắng, có ít nhất một đoạn gạch dài ≥ 3.
+   *   1 đoạn = dòng viền; ≥ 2 đoạn = dòng chia cột (số đoạn = số cột).
+   * Có tiêu đề: [viền] → tiêu đề → chia cột → dữ liệu → viền. Thiếu viền trên thì bắt buộc có viền dưới (1 đoạn);
+   *   có viền trên thì bảng cũng có thể kết thúc ở dòng trống / hết đoạn.
+   * Không tiêu đề: chia cột → dữ liệu → dòng gạch đóng (bắt buộc).
+   * Một dòng gạch đơn lẻ, "----- HẾT -----", bảng không có hàng dữ liệu nào: giữ nguyên là chữ.
+   * Dòng chữ đi vào đây đã thay công thức bằng \u0000k\u0000 (keep[k]) nên tách theo khoảng trắng không cắt công thức. */
+  function dashSegs(l) {
+    if (l == null || !/^[ \t]*[-–—]+(?:[ \t]+[-–—]+)*[ \t]*$/.test(l)) return null;
+    const segs = [];
+    l.replace(/[-–—]+/g, (m, off) => { segs.push({ s: off, e: off + m.length }); return m; });
+    return segs.some((x) => x.e - x.s >= 3) ? segs : null;
+  }
+  function dashTable(lines, i, prev, keep) {
+    const cur = lines[i];
+    if (!cur.trim()) return null;
+    const own = dashSegs(cur);
+    const ps = dashSegs(prev);
+    const topBorder = !!(ps && ps.length === 1);
+    let head = null, sep, k;
+    if (!own) {
+      const s1 = dashSegs(lines[i + 1]);
+      if (!s1 || s1.length < 2) return null;
+      head = cur; sep = s1; k = i + 2;
+    } else if (own.length >= 2) { sep = own; k = i + 1; }
+    else return null;
+    const rows = [];
+    let close = null;
+    for (; k < lines.length; k++) {
+      if (!lines[k].trim()) break;
+      const c = dashSegs(lines[k]);
+      if (c) { close = c; break; }
+      rows.push(lines[k]);
+    }
+    if (!rows.length) return null;
+    if (head) {
+      if (!topBorder && !(close && close.length === 1)) return null;
+    } else if (!close) return null;
+    const n = sep.length;
+    const split = (l) => splitCells(l, sep, keep);
+    return { head: head ? split(head) : null, body: rows.map(split), n, popPrev: topBorder, end: close ? k : k - 1 };
+  }
+  function splitCells(line, sep, keep) {
+    const n = sep.length;
+    const L = line.trimEnd();
+    const olen = (t) => t.replace(/\u0000(\d+)\u0000/g, (m, j) => keep[+j] || m).length; // độ dài theo chữ gốc (công thức chưa thay)
+    if (/\S[ \t]{2,}\S/.test(L)) {
+      // còn khoảng trắng canh cột: tách theo vị trí các đoạn gạch
+      const pieces = [];
+      L.replace(/\S+(?: \S+)*/g, (m, off) => { pieces.push({ t: m, s: olen(L.slice(0, off)) }); return m; });
+      if (pieces.length === n) return pieces.map((p) => p.t);
+      const cells = Array(n).fill('');
+      pieces.forEach((p) => {
+        const e = p.s + olen(p.t);
+        let best = 0, bestScore = -Infinity;
+        sep.forEach((g, j) => {
+          const ov = Math.min(e, g.e) - Math.max(p.s, g.s);
+          const score = ov > 0 ? ov : -Math.min(Math.abs(p.s - g.e), Math.abs(e - g.s));
+          if (score > bestScore) { bestScore = score; best = j; }
+        });
+        cells[best] = cells[best] ? cells[best] + ' ' + p.t : p.t;
+      });
+      return cells;
+    }
+    const tok = L.trim().split(/[ \t]+/);
+    if (tok.length <= n) return tok;
+    // nhóm theo công thức: "Lần đo $U$ (V) $I$ (mA)" → "Lần đo" | "$U$ (V)" | "$I$ (mA)"
+    const isF = (t) => /^\u0000\d+\u0000$/.test(t);
+    const groups = [];
+    tok.forEach((t) => { if (!groups.length || (isF(t) && groups[groups.length - 1].length)) groups.push([]); groups[groups.length - 1].push(t); });
+    if (groups.length === n) return groups.map((g) => g.join(' '));
+    // n − 1 ô cuối là số: phần đầu dồn vào ô đầu ("Lần thứ 1 5,88 120")
+    const isNum = (t) => isF(t) || /^[-+−–]?\d[\d.,]*%?$/.test(t);
+    const tail = tok.slice(tok.length - (n - 1));
+    if (tail.every(isNum)) return [tok.slice(0, tok.length - (n - 1)).join(' ')].concat(tail);
+    return [L.trim()]; // không tách được: cả dòng vào ô đầu, không làm mất chữ
   }
 
   function math(el) {

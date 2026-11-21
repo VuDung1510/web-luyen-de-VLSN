@@ -30,6 +30,25 @@ Lượt đo: đăng nhập học sinh → Lịch sử → Thống kê → Xếp 
 - Giáo viên thấy viên "Đang cập nhật" khi chuyển tab (đúng thiết kế Pha 1: hiện dữ liệu đã lưu rồi cập nhật ngầm; lần đầu trong cửa sổ ẩn danh chưa có dữ liệu lưu nên phải chờ). Rời trang > 60 s rồi quay lại thì lời gọi chậm hơn: hết đệm máy chủ 60 s và Apps Script "ngủ" (đã chốt không làm hẹn giờ giữ ấm).
 - Nút Đổi PIN đã hiện cho học sinh.
 
+## Sửa lỗi bảng kẻ gạch (Người làm)
+- **Lỗi:** một số câu trong kho ghi bảng kiểu "bảng đơn giản" của pandoc, nhưng gạch đã thành "–" (lẫn "-") và khoảng trắng canh cột bị gộp thành 1 dấu cách. `rich()` không nhận ra nên web in nguyên các dòng gạch và số liệu thành chữ.
+- **Cách sửa** (`assets/js/common.js`, chỉ giao diện, không đổi `Code.gs`): `rich()` nhận thêm "bảng kẻ gạch" và vẽ thành `<table class="q-table">` giống khối `[BẢNG]` (cùng CSS; công thức trong ô vẫn do KaTeX vẽ; ô được escape như phần còn lại).
+  - Dòng gạch = chỉ gồm `-`, `–`, `—` và khoảng trắng, có ít nhất một đoạn ≥ 3 gạch; 1 đoạn = dòng viền, ≥ 2 đoạn = dòng chia cột (số đoạn = số cột).
+  - Có tiêu đề: [viền] → tiêu đề → chia cột → dữ liệu → viền. Thiếu viền trên thì phải có viền dưới; có viền trên thì bảng cũng có thể dừng ở dòng trống / hết nội dung. Không tiêu đề: chia cột → dữ liệu → dòng gạch đóng (bắt buộc).
+  - Tách ô: dòng còn ≥ 2 khoảng trắng liền → theo vị trí các đoạn gạch; chỉ còn 1 dấu cách → theo dấu cách (không bao giờ cắt trong `$…$`); thừa mảnh thì nhóm theo công thức ("Lần đo $U$ (V) $I$ (mA)" → "Lần đo" | "$U$ (V)" | "$I$ (mA)"), hoặc dồn phần đầu vào ô 1 nếu n − 1 mảnh cuối là số; không được thì cả dòng vào ô đầu (không mất chữ).
+  - Giữ nguyên là chữ: dòng gạch đơn lẻ, "---------- HẾT ----------", chữ có dấu gạch, bảng không có hàng dữ liệu, chia cột không có dòng đóng. Khối `[BẢNG]` không đổi.
+- **Test:** `tests/bang-gach.test.js` (13 ca: ví dụ của giáo viên → 3 cột, 1 tiêu đề + 3 hàng; có/không viền trên; không tiêu đề; tách theo vị trí cột; ô `$…$` có dấu cách; không tách được; dòng gạch đơn lẻ/HẾT; `[BẢNG]` cũ giống hệt; `<script>` bị escape; 2 bảng + `\r\n`) — đạt. `tests/bang-gach.e2e.js` (học sinh làm đề có câu bảng kẻ gạch, KaTeX vẽ 2 công thức ở tiêu đề) — đạt. Chạy lại: backend, importer, docx (29/29), pha2-kiem-thu (31/31), pha2-kiem-thu.e2e all (16/16 nhóm), pha5 (11), common-cache, e2e.js máy chủ mới và 1.0.0, scan-secrets — đều đạt.
+- **Ảnh:** `docs/bao-cao/anh/pha-6b/01-bang-gach.png` (nội dung câu tự soạn).
+
+## TC-6.8 (21/11/2026)
+- Giáo viên tạo "Đề thử phát hành" từ kho (ma trận Lớp 12), đưa câu vào luyện tập, bật Luyện tập. Học sinh mẫu làm đề và làm một bài luyện: **KetQua và KetQuaLuyenTap đều có hàng mới. ĐẠT.**
+- Vòng xem thứ hai các tab hiện ngay (đệm trên máy chạy đúng).
+- Giáo viên thấy 3 lỗi hiển thị: (1) bảng kẻ gạch của kho chưa thành bảng → đã sửa (mục dưới); (2) một hình quét bị nghiêng → lỗi của file hình trong kho; (3) câu `L12C3B16-P1-07955` mất ký hiệu Φ → lỗi dữ liệu kho (mất khi nhập), đã ghi cho bên Cowork ở mục 9 file quyết định chung.
+
+## Gộp bản sửa bảng kẻ gạch (điều phối)
+- Soát code: ĐẠT (4 Nhẹ). Kiểm thử: ĐẠT (97/97 ca Node, e2e hai chế độ). R-1 (soát: `replace(/\s+$/)` chậm bậc hai) điều phối đã đổi thành `trimEnd()`, chạy lại test đạt.
+- Còn nhẹ, chấp nhận: bảng thiếu viền dưới mà câu viết liền thì câu bị cuốn vào bảng; tiêu đề không có công thức và nhiều chữ hơn số cột dồn vào ô đầu; dạng không viền trên + dòng đóng nhiều đoạn thì tiêu đề in thành chữ. Không mất chữ trong mọi trường hợp. Không đổi Code.gs.
+
 ## Sửa lỗi hình đặt nổi trong file Word (Người làm)
 **Lỗi.** Giáo viên tải một đề Word thật: trang chỉ nhận 15 câu Phần I (đúng là 18), 4 câu Phần II, 6 câu Phần III; Phần II câu 3 có ô a)–d) trống. Nguyên nhân: hình đặt nổi/neo (`wp:anchor`) nằm trong chính đoạn "Câu 6: …" (và câu 13, 16; Phần II câu 3 ở đoạn ý "a. …"). Bộ đọc Word đặt mốc `{{HINH:n}}` ở vị trí của hình trong đoạn — tức là ĐẦU dòng ("{{HINH:1}}Câu 6: …") — nên `Importer.fromText` không nhận ra nhãn "Câu n" / ý "a." → câu bị gộp vào câu trước, các ý dồn vào phần dẫn.
 
@@ -55,3 +74,7 @@ Lượt đo: đăng nhập học sinh → Lịch sử → Thống kê → Xếp 
 - Test: đã sửa kỳ vọng trong `tests/docx.test.js` (hình lời giải vào `loiGiai`) và thêm ca cho "Chọn B" / "Lời giải: Chọn D." có hình, hình ở dòng PHẦN trước HẾT hoặc ở cuối văn bản, hình ở PHẦN I trước câu 1, và `A. $\frac{1}{2}}B. x$`.
 - Kết quả test: `docx.test.js` 30/30; `importer.test.js` đạt; `pha3-kiem-thu.test.js` 17/17; `pha6b-hinh-kiem-thu.test.js` (có DE_THAY, WORD_THAT) 35/35; `scan-secrets.js` sạch.
 - File thật không đổi so với vòng 1: đề giáo viên ra 28 câu (18–4–6), 4 hình ở câu 6/13/16 Phần I và câu 3 Phần II. 4 file Pha 3 cho kết quả y hệt (băm trùng).
+
+## Gộp bản sửa hình đặt nổi (điều phối, 21/11/2026)
+- Soát: vòng 1 ĐẠT kèm R-1 Vừa (hình đầu dòng lời giải lọt vào nội dung câu); vòng 2 ĐẠT. Kiểm thử: ĐẠT (35/35 Node, e2e 16/16 hai chế độ).
+- Đề Word thật của giáo viên: trước 25 câu (15–4–6), sau 28 câu (18–4–6), 4/4 hình vào đúng câu. 4 đề thật của Pha 3: kết quả y hệt. Không đổi Code.gs.
