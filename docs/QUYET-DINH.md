@@ -1,4 +1,4 @@
-> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 21/11/2026 (kết thúc Pha 6).
+> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 24/11/2026 (thêm người cộng tác).
 
 # WEB LUYỆN ĐỀ VLSN — QUYẾT ĐỊNH ĐÃ CHỐT
 
@@ -73,6 +73,12 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 6. Pha 5 — Thiết kế VLSN: đổi màu xanh và logo VLSN, giữ bố cục hiện tại (18/11/2026).
 7. Pha 6 — Phát hành; giáo viên dán Code.gs một lần cho tất cả.
 - Thứ tự pha: giữ nguyên 1 → 6. (18/11/2026)
+- **Người cộng tác (chốt 24/11/2026):** giáo viên được mời thêm người cùng làm, gồm sửa code và dữ liệu web.
+  1. GitHub: thêm làm Collaborator với quyền Write. Người cộng tác làm trên nhánh riêng, gộp vào `main` qua pull request, giáo viên (chủ repo) duyệt trước khi gộp, vì `main` phát hành thẳng ra trang thật.
+  2. Sheet "web luyện đề": chia sẻ quyền Người chỉnh sửa. Người cộng tác vào trang quản trị bằng email Google ghi thêm vào `CaiDat` → `EMAIL_GIAO_VIEN` (nhiều email cách nhau dấu phẩy), hạn chế dùng chung mật khẩu quản trị.
+  3. Kho "KHO CÂU HỎI VẬT LÝ", thư mục "02. HÌNH VẼ" và thư mục "WEB LUYỆN ĐỀ – TÀI LIỆU CHUNG": chia sẻ theo việc được giao (quyền sửa hoặc chỉ xem).
+  4. Chỉ giáo viên (chủ máy chủ) bấm Triển khai → Phiên bản mới cho Apps Script. Người cộng tác sửa `Code.gs` trong repo, tăng `APP_VERSION`, ghi việc vào `docs/VIEC-GIAO-VIEN.md`.
+  5. Người mới (và Claude của họ) đọc theo thứ tự: `CLAUDE.md` → `docs/TONG-QUAN.md` → file Quyết định đã chốt. Quyết định chung vẫn ghi vào file trên Drive. Không ghi tên, email người cộng tác vào repo.
 
 ## 9. Câu hỏi mở / việc đang chờ
 - ~~Code.gs 1.1.0 chưa dán vào Apps Script — dán một lần ở Pha 6.~~ Đã dán Code.gs 1.5.0 ngày 21/11/2026.
@@ -95,3 +101,4 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - 21/11/2026 — Claude Code: Pha 6b xong cùng giáo viên — máy chủ thật lên Code.gs 1.5.0; TC-6.7, 6.8 ĐẠT; sửa bảng kẻ gạch và hình đặt nổi trong file Word. Lỗi dữ liệu kho (mất Φ, hình nghiêng) ghi cho Cowork (mục 9). Hoàn tất Pha 0–6.
 - 21/11/2026 — Claude Code: giáo viên chốt dùng logo hiện tại (mê cung chữ Q) cho web (mục 6, mục 9).
 - 21/11/2026 — Claude Code: giáo viên chốt giao diện (mục 6): tiêu đề không in hoa (Montserrat đậm 700); chữ chế độ tối dịu hơn để không chói; slogan ở chân trang; tên trang web không có tên giáo viên (giáo viên tự sửa ở Cài đặt).
+- 24/11/2026 — Claude Code: giáo viên chốt cho thêm người cộng tác (sửa code và dữ liệu web), ghi ở mục 8; thêm `docs/TONG-QUAN.md` (tóm tắt chức năng và tài liệu cho người mới).
