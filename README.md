@@ -244,6 +244,7 @@ assets/js/docx-reader.js Đọc file Word / Excel tải lên
 assets/img/logo-vlsn.png Logo (thay file này để đổi logo)
 apps-script/Code.gs   Máy chủ: dán vào Google Apps Script
 docs/                 Quyết định, đặc tả, báo cáo từng pha, việc giáo viên cần làm
+docs/TONG-QUAN.md     Tóm tắt dự án cho người cộng tác mới
 tests/                Kiểm thử (dành cho lập trình viên)
 ```
 

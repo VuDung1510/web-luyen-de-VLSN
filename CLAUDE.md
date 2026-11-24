@@ -9,3 +9,5 @@
 4. Kiểm thử: `node tests/backend.test.js`, `node tests/importer.test.js`, `node tests/dev-server.js` + `node tests/e2e.js`.
 5. Không ghi mật khẩu, PIN học sinh hay dữ liệu cá nhân vào repo (repo có thể công khai).
 6. Đổi `apps-script/Code.gs` thì tăng `APP_VERSION` và ghi vào danh sách "việc giáo viên cần làm" (dán lại Code.gs, triển khai Phiên bản mới).
+7. Người mới (kể cả người cộng tác được giáo viên chia sẻ): đọc `docs/TONG-QUAN.md` để nắm chức năng chính, kiến trúc và danh sách tài liệu.
+   Người cộng tác làm trên nhánh riêng, gộp `main` qua pull request; chỉ giáo viên triển khai Apps Script (QUYET-DINH mục 8).
