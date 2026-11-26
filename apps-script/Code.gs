@@ -3071,6 +3071,7 @@ function nbCompute_(st) {
     var gens = ['DeThi', 'CauHoi', 'LuyenTap'].map(function (n) { return readGen_(cache, n); }); // Pha 7b: SoTay theo nbVer_ của từng học sinh
     var ver = nbVer_(st.id);
     if (ver && gens.every(Boolean)) ck = 'nb_' + st.id + '_' + ver + '_' + gens.join('_');
+    MEMO_['__nbck_' + st.id] = ck;
     if (ck) {
       try {
         var hit = parseJson_(cacheGetChunked_(cache, ck), null);
@@ -3191,9 +3192,9 @@ function nbKeywords_() {
 }
 
 /** Thời gian của bài chứa lần sai: phút làm đề + giây làm xong từng phần (lần sửa đáp án cuối trong phần). */
-function nbTimes_(ref, exams) {
+function nbTimes_(ref, exams, sid) {
   if (!ref || !ref.rid) return null;
-  var r = rowsWhere_(ref.luyen ? 'KetQuaLuyenTap' : 'KetQua', 'id', ref.rid)[0];
+  var r = rowsWhere_(ref.luyen ? 'KetQuaLuyenTap' : 'KetQua', 'studentId', sid).filter(function (x) { return x.id === ref.rid; })[0];
   if (!r) return null;
   var xong = {}, coT = false;
   parseJson_(r.chiTiet, []).forEach(function (d) {
@@ -3206,12 +3207,38 @@ function nbTimes_(ref, exams) {
   return { phut: e ? num_(e.thoiGian) : 0, daLam: num_(r.thoiGianGiay), xong: coT ? xong : null };
 }
 
-/** Ghi một hàng SoTay của học sinh (thêm mới hoặc sửa hàng có sẵn theo Mã HS + Khóa câu). Gọi trong withLock_. */
-function nbUpsert_(st, key, fields) {
-  var rows = readTable_('SoTay', { fresh: true }).filter(function (r) { return str_(r.studentId) === st.id && str_(r.key) === key; });
-  var obj = Object.assign({ capNhat: fmtDateTime_(new Date()) }, fields);
-  if (rows.length) updateRow_('SoTay', rows[0]._row, obj, 'key', key);
-  else appendRows_('SoTay', [Object.assign({ studentId: st.id, key: key, loai: '', nguon: '', chiTiet: '', ghiChu: '' }, obj)]);
+/**
+ * Ghi các hàng SoTay của MỘT học sinh: entries [{key, fields}]. Gọi trong withLock_.
+ * Vòng 2 (R-1): đọc trang một lần; hàng có sẵn được sửa tại chỗ sau khi kiểm ô Mã HS + Khóa câu của chính hàng đó (R-5);
+ * hàng mới gộp vào một lần appendRows_; đặt thế hệ đệm một lần.
+ */
+function nbWriteRows_(st, entries) {
+  if (!entries.length) return;
+  var have = {};
+  readTable_('SoTay', { fresh: true }).forEach(function (r) {
+    if (str_(r.studentId) === st.id && r.key && !have[str_(r.key)]) have[str_(r.key)] = r._row;
+  });
+  var now = fmtDateTime_(new Date());
+  var add = [], upd = [];
+  entries.forEach(function (en) {
+    var obj = Object.assign({ capNhat: now }, en.fields);
+    if (have[en.key]) upd.push({ row: have[en.key], key: en.key, obj: obj });
+    else add.push(Object.assign({ studentId: st.id, key: en.key, loai: '', nguon: '', chiTiet: '', ghiChu: '' }, obj));
+  });
+  if (upd.length) {
+    var sh = sheet_('SoTay');
+    var header = headerOf_(sh);
+    var cS = header.indexOf(labelOf_('SoTay', 'studentId')), cK = header.indexOf(labelOf_('SoTay', 'key'));
+    upd.forEach(function (u) {
+      var cur = sh.getRange(u.row, 1, 1, header.length).getValues()[0];
+      if (str_(cell_(cur[cS])) !== st.id || str_(cell_(cur[cK])) !== u.key) {
+        throw new Error('Dữ liệu trang tính "SoTay" vừa thay đổi, không xác định được dòng cần ghi. Hãy tải lại trang rồi thử lại.');
+      }
+      sh.getRange(u.row, 1, 1, header.length).setValues([rowFromObj_('SoTay', header, u.obj, cur)]);
+    });
+    if (!add.length) afterWrite_('SoTay');
+  }
+  if (add.length) appendRows_('SoTay', add);
 }
 
 /** Chi tiết lỗi học sinh gửi: chỉ giữ vài trường chữ ngắn (đại lượng, đơn vị…). */
@@ -3245,10 +3272,14 @@ function apiNotebookTag_(req) {
     var y = ma && NB_Y[ma] && NB_Y[ma].indexOf(str_(it.y)) >= 0 ? str_(it.y) : '';
     return { key: key, ma: ma, chiTiet: ma ? nbCleanDetail_(it.chiTiet, y) : {} };
   });
+  // trùng khóa trong một lần gửi: lấy mục cuối
+  var last = {};
+  clean.forEach(function (c) { last[c.key] = c; });
   withLock_(function () {
-    clean.forEach(function (c) {
-      nbUpsert_(st, c.key, { loai: c.ma, nguon: c.ma ? 'HS' : '', chiTiet: c.ma ? JSON.stringify(c.chiTiet) : '' });
-    });
+    nbWriteRows_(st, Object.keys(last).map(function (k) {
+      var c = last[k];
+      return { key: k, fields: { loai: c.ma, nguon: c.ma ? 'HS' : '', chiTiet: c.ma ? JSON.stringify(c.chiTiet) : '' } };
+    }));
   });
   nbVer_(st.id, true);
   return { n: clean.length };
@@ -3264,8 +3295,12 @@ function apiNotebookNote_(req) {
     if (!nb.items.some(function (x) { return x.key === key; })) throw new Error('Câu này không có trong sổ tay của em.');
   }
   var text = String(req.text == null ? '' : req.text).replace(/\r\n?/g, '\n').slice(0, NB_NOTE_MAX);
-  withLock_(function () { nbUpsert_(st, key, { ghiChu: text }); });
-  nbVer_(st.id, true);
+  withLock_(function () { nbWriteRows_(st, [{ key: key, fields: { ghiChu: text } }]); });
+  // Vòng 2 (R-3): ghi chú không đổi màu/loại lỗi → sửa luôn bản đệm, không bắt tính lại cả sổ tay
+  nbPatchCache_(st, function (nb) {
+    if (key === NB_CHUNG) nb.ghiChuChung = text;
+    else nb.items.forEach(function (x) { if (x.key === key) x.coGhiChu = !!str_(text); });
+  });
   return { ok: true, text: text };
 }
 
@@ -3283,17 +3318,25 @@ function apiNotebookResult_(req) {
   var nb = nbCompute_(st);
   var byKey = {};
   nb.items.forEach(function (x) { byKey[x.key] = x; });
-  var lap = {};
-  nb.tongHop.saiNgoo.forEach(function (x) { if (x.lapLai) lap[x.ma] = 1; });
+  var lap = {}, soLoai = {};
+  nb.tongHop.saiNgoo.forEach(function (x) { if (x.lapLai) lap[x.ma] = 1; soLoai[x.ma] = x.so; });
   var out = [];
   parseJson_(r.chiTiet, []).forEach(function (d) {
     if (!(num_(d.sc) < num_(d.m) - 1e-9)) return;
     var key = luyen ? (d.k || d.q) : (d.k || (r.examId + '#' + d.s));
     var x = byKey[key];
     if (!key || !x) return;
-    out.push({ stt: num_(d.s), key: key, loai: d.l, phan: d.p, loi: x.loi, lanSai: x.lanSai, lapLai: !!lap[x.loi.ma] });
+    out.push({ stt: num_(d.s), key: key, loai: d.l, phan: d.p, loi: x.loi, lanSai: x.lanSai, lapLai: !!lap[x.loi.ma], soCauLoai: soLoai[x.loi.ma] || 0 });
   });
   return { resultId: id, items: out, daPhanLoai: out.length > 0 && out.every(function (x) { return x.loi.nguon === 'HS'; }) };
+}
+
+/** Sửa bản sổ tay đang đệm của học sinh (cùng khóa đệm), không tính lại. Không có đệm thì thôi. */
+function nbPatchCache_(st, fn) {
+  var nb = nbCompute_(st);
+  fn(nb);
+  var ck = MEMO_['__nbck_' + st.id], cache = scriptCache_();
+  if (ck && cache) { try { cachePutChunked_(cache, ck, JSON.stringify(nb), CACHE_SECONDS, CACHE_MAX_BYTES); } catch (e) { /* bỏ qua */ } }
 }
 
 /** Bỏ trường nội bộ (_ref, _src) trước khi gửi cho học sinh. */
@@ -3352,13 +3395,13 @@ function apiNotebookItem_(req) {
       var tag = rows[x.key];
       var o = { key: x.key, loai: x.loai, phan: x.phan, answer: ref.a, nCorrect: ref.n == null ? null : ref.n, daSua: r.daSua,
         ghiChu: tag ? str_(tag.ghiChu) : '', chiTietLoi: tag ? (parseJson_(tag.chiTiet, {}) || {}) : {} };
-      if (!q) { o.go = true; o.noiDung = 'Câu đã bị gỡ khỏi đề hoặc ngân hàng.'; o.thoiGian = nbTimes_(ref, exams); return o; }
+      if (!q) { o.go = true; o.noiDung = 'Câu đã bị gỡ khỏi đề hoặc ngân hàng.'; o.thoiGian = nbTimes_(ref, exams, st.id); return o; }
       o.noiDung = q.noiDung; o.hinhAnh = q.hinhAnh; o.A = q.A; o.B = q.B; o.C = q.C; o.D = q.D;
       o.chuong = str_(q.chuong); o.bai = str_(q.bai) || x.bai; o.mucDo = q.mucDo || x.mucDo;
       if (pub) { o.dapAn = q.dapAn; o.loiGiai = q.loiGiai; }
       else { o.an = true; o.anNote = NB_HIDDEN_NOTE; }
       o.congThuc = nbFormulas_(q, o.bai);
-      o.thoiGian = nbTimes_(ref, exams);
+      o.thoiGian = nbTimes_(ref, exams, st.id);
       return o;
     })
   };

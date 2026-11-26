@@ -39,3 +39,18 @@
 
 ### Việc giáo viên cần làm
 Không có việc mới (dán Code.gs một lần sau 7c). Nên nhập dần trang tính `CongThuc` để thẻ công thức có nội dung.
+
+## Người làm — Vòng 2 (sau soát code CHƯA ĐẠT, kiểm thử ĐẠT)
+
+| Phát hiện | Đã sửa |
+|---|---|
+| R-1 (Vừa) lưu nhiều câu giữ khóa lâu | `nbWriteRows_`: trong khóa đọc `SoTay` **một lần**, hàng có sẵn sửa tại chỗ, hàng mới gộp một `appendRows_`, đặt thế hệ đệm một lần. Khóa câu trùng trong một lần gửi: lấy mục cuối. Kiểm thử: lưu 40 mục đọc cả trang ≤ 2 lần (`tests/pha7b.test.js`, "Vòng 2 (R-1, R-5)"). |
+| R-2 (Vừa) ghi chú vừa gõ có thể mất | Chữ đang gõ ghi ngay vào trạng thái trang; vẽ lại giữ ô đang có con trỏ và vị trí con trỏ (`nbKeepFocus`); lưu trễ 1,2 s; đổi màn, ẩn tab, rời trang thì gửi ngay ghi chú còn chờ (`fetch keepalive`); lưu lỗi thì giữ lại để gửi lần sau. |
+| R-3 (Nhẹ) lưu ghi chú bỏ đệm | Máy chủ vá thẳng bản đệm của học sinh (`nbPatchCache_`), máy khách cập nhật bản lưu thay vì xóa. |
+| R-4 (Nhẹ) `nbTimes_` đọc thừa, không lọc học sinh | Đọc bài theo Mã HS (một lần mỗi yêu cầu) rồi lọc theo mã bài. |
+| R-5 (Nhẹ) kiểm hàng chỉ theo khóa câu | Kiểm cả ô Mã HS và Khóa câu của chính hàng trước khi ghi. |
+| R-6 (Nhẹ) hộp Điều cần nhớ dùng bản lưu cũ | Luôn hỏi máy chủ (lỗi mạng thì không chặn nút). |
+| K-1 (Nhẹ) thiếu số lần | `notebookResult` trả `soCauLoai`; thẻ kết quả ghi "lỗi này em đã mắc n lần". |
+| K-2 (Nhẹ) chọn sai cặp đơn vị vẫn báo xanh | Khi đã biết đáp án lệch 10ⁿ, cặp đơn vị phải lệch đúng 10ⁿ; sai thì báo đỏ, không lưu. |
+
+Kiểm thử vòng 2: `pha7b` 11/11 (thêm 2 ca), `pha7b-kiem-thu` 16/16, `pha7b-kiem-thu.e2e.js all` ĐẠT (mọi TC), `pha7`, `pha7a-kiem-thu` (máy chủ + e2e) ĐẠT, `tests/e2e.js` ĐẠT, test cũ đạt, `scan-secrets` sạch.

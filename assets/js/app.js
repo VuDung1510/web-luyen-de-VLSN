@@ -802,8 +802,10 @@
     document.getElementById('nbActive').innerHTML = nb.filter.from ? `<div class="nb-active"><span class="muted">Đang xem:</span><button class="nb-pill" data-nbclear="1">${esc(nb.filter.from)} ✕</button></div>` : '';
     if (!all.length) { el.innerHTML = '<div class="card empty">Không có câu nào khớp bộ lọc.</div>'; return; }
     const groups = [['Sai ngoo', all.filter((i) => nbGroupOf(i) === 'ngoo')], ['Hổng kiến thức và chưa phân loại', all.filter((i) => nbGroupOf(i) !== 'ngoo')]];
+    const keep = nbKeepFocus(el);
     el.innerHTML = groups.filter((g) => g[1].length).map(([ten, its]) => `<div class="nb-group">${ten}</div><div class="nb-items">${its.map(nbItemHtml).join('')}</div>`).join('');
     math(el);
+    keep();
     const need = [...nb.open].filter((k) => !nb.detail[k] && !nb.loading[k] && all.some((x) => x.key === k));
     if (need.length) nbLoadDetail(need);
   }
@@ -959,13 +961,8 @@
     const st = nb.tools[tkey] || (nb.tools[tkey] = { dl: NB_DL[ct.dl] ? ct.dl : 'chieuDai', em: ct.dvEm || '', dung: ct.dvDung || '', wrong: '' });
     const d = NB_DL[st.dl];
     let h = `<label class="small nb-dl">Đại lượng${it ? ' em đổi sai' : ''}: <select data-unitdl="1" data-tool="${esc(tkey)}">${Object.keys(NB_DL).map((k) => `<option value="${k}"${k === st.dl ? ' selected' : ''}>${esc(NB_DL[k].ten)}</option>`).join('')}</select></label>`;
-    if (it && x && x.dapAn != null && it.loai === 'TL') {
-      const a = nbNum(x.answer), dd = nbNum(String(x.dapAn).split('|')[0]);
-      if (a && dd && a / dd > 0) {
-        const n = Math.round(Math.log10(a / dd));
-        if (n && Math.abs(a / dd / Math.pow(10, n) - 1) <= 0.01) h += `<div class="nb-fb bad">Đáp án của em lệch đúng ${pow10(n)} lần so với đáp án đúng.</div>`;
-      }
-    }
+    st.lech = nbLech(it, x);
+    if (st.lech) h += `<div class="nb-fb bad">Đáp án của em lệch đúng ${pow10(st.lech)} lần so với đáp án đúng.</div>`;
     if (d.dacBiet) return h + `<div class="nb-fb">${esc(d.dacBiet)}</div>`;
     const exp = {};
     d.thang.forEach(([u, e]) => { exp[u] = e; });
@@ -982,10 +979,20 @@
       <div class="muted small">Sang phải một bậc thì nhân với số ghi giữa hai bậc. Đơn vị chuẩn SI: <b>${esc(d.chuan)}</b> (khung đậm).</div>`;
     if (d.khac) h += `<div class="nb-other small muted">Đơn vị khác: ${d.khac.map(esc).join(' · ')}</div>`;
     const em = st.em && exp[st.em] != null ? st.em : '', dung = st.dung && exp[st.dung] != null ? st.dung : '';
-    if (em && dung) h += `<div class="nb-fb good">1 ${esc(em)} = ${pow10(exp[em] - exp[dung])} ${esc(dung)}${it ? `: số đo theo ${esc(em)} phải nhân với ${pow10(exp[em] - exp[dung])} để ra ${esc(dung)}.` : '.'}</div>`;
+    if (em && st.wrong && exp[st.wrong] != null) h += `<div class="nb-fb bad">Đổi từ ${esc(em)} sang ${esc(st.wrong)} chỉ lệch ${pow10(Math.abs(exp[em] - exp[st.wrong]))} lần, nhưng đáp án của em lệch ${pow10(Math.abs(st.lech))} lần. Em thử chọn lại nhé.</div>`;
+    else if (em && dung) h += `<div class="nb-fb good">1 ${esc(em)} = ${pow10(exp[em] - exp[dung])} ${esc(dung)}${it ? `: số đo theo ${esc(em)} phải nhân với ${pow10(exp[em] - exp[dung])} để ra ${esc(dung)}.` : '.'}</div>`;
     else if (em) h += `<div class="nb-fb">${it ? `Em đã dùng <b>${esc(em)}</b>. Bấm vào đơn vị đúng mà dữ kiện này phải đổi sang.` : `Đã chọn ${esc(em)}. Bấm đơn vị muốn đổi sang.`}</div>`;
     else h += `<div class="nb-fb">${it ? 'Bấm vào đơn vị <b>em đã dùng</b> khi làm câu này.' : 'Bấm hai đơn vị để xem cách đổi.'}</div>`;
     return h;
+  }
+
+  /** Số mũ n khi đáp án Phần III của em lệch đúng 10ⁿ lần so với đáp án đúng (chỉ khi đáp án đã công bố). */
+  function nbLech(it, x) {
+    if (!it || !x || x.dapAn == null || it.loai !== 'TL') return 0;
+    const a = nbNum(x.answer), d = nbNum(String(x.dapAn).split('|')[0]);
+    if (!a || !d || a / d <= 0) return 0;
+    const n = Math.round(Math.log10(a / d));
+    return n && Math.abs(a / d / Math.pow(10, n) - 1) <= 0.01 ? n : 0;
   }
 
   /** Thời gian đề xuất (tỉ lệ đề 50 phút: 15 / 15 / 12 / 8) và lúc em làm xong từng phần (nếu bài có t). */
@@ -1044,25 +1051,60 @@
     if (el) el.textContent = `${t.tong} câu đã sai · ${t.chuaKhacPhuc} câu chưa làm đúng lại · ${t.lapLai} lỗi đang lặp lại`;
   }
 
-  const nbNoteTimers = {};
-  function nbQueueNote(key, text, statusEl) {
+  /* Vòng 2 (R-2): chữ đang gõ ghi ngay vào trạng thái (vẽ lại không mất chữ, không mất con trỏ); lưu lên máy chủ sau 1,2 s;
+     rời trang / đổi màn / ẩn tab thì gửi ngay các ghi chú còn chờ. */
+  const nbNoteTimers = {}, nbNotePending = {};
+  function nbSetLocalNote(key, text) {
+    if (key === '_CHUNG') { if (nb.data) nb.data.ghiChuChung = text; return; }
+    if (nb.detail[key]) nb.detail[key].ghiChu = text;
+    const it = nb.data && nbFind(key);
+    if (it) it.coGhiChu = !!text.trim();
+  }
+  function nbStatusEl(key) {
+    return key === '_CHUNG' ? document.getElementById('nbGsaved') : document.querySelector(`[data-nbsaved="${CSS.escape(key)}"]`);
+  }
+  async function nbSendNote(key, keepalive) {
     clearTimeout(nbNoteTimers[key]);
-    if (statusEl) statusEl.textContent = 'Đang lưu…';
-    nbNoteTimers[key] = setTimeout(async () => {
-      try {
-        await api('notebookNote', { key, text });
-        App.cacheDel('notebook');
-        if (key === '_CHUNG') { if (nb.data) nb.data.ghiChuChung = text; } else {
-          if (nb.detail[key]) nb.detail[key].ghiChu = text;
-          const it = nb.data && nbFind(key);
-          if (it) it.coGhiChu = !!text.trim();
-        }
-        if (statusEl && statusEl.isConnected) statusEl.textContent = 'Đã lưu';
-      } catch (e) {
-        if (statusEl && statusEl.isConnected) statusEl.textContent = 'Chưa lưu được';
-        toast(e.message, 'err');
-      }
-    }, 1200);
+    delete nbNoteTimers[key];
+    if (!(key in nbNotePending)) return;
+    const text = nbNotePending[key];
+    delete nbNotePending[key];
+    try {
+      await api('notebookNote', { key, text }, { keepalive });
+      // R-3: không bỏ bản lưu sổ tay, chỉ cập nhật nó
+      if (nb.data) App.cacheSet('notebook', nb.data, App.cacheToken());
+      const st = nbStatusEl(key);
+      if (st && !(key in nbNotePending)) st.textContent = 'Đã lưu';
+    } catch (e) {
+      if (!(key in nbNotePending)) nbNotePending[key] = text; // giữ lại để thử lần sau
+      const st = nbStatusEl(key);
+      if (st) st.textContent = 'Chưa lưu được';
+      if (!keepalive) toast(e.message, 'err');
+    }
+  }
+  function nbQueueNote(key, text) {
+    nbSetLocalNote(key, text);
+    nbNotePending[key] = text;
+    const st = nbStatusEl(key);
+    if (st) st.textContent = 'Đang lưu…';
+    clearTimeout(nbNoteTimers[key]);
+    nbNoteTimers[key] = setTimeout(() => nbSendNote(key, false), 1200);
+  }
+  function nbFlushNotes() { Object.keys(nbNotePending).forEach((k) => nbSendNote(k, true)); }
+  window.addEventListener('pagehide', nbFlushNotes);
+  window.addEventListener('hashchange', nbFlushNotes);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') nbFlushNotes(); });
+  /** Ô ghi chú đang có con trỏ: sau khi vẽ lại thì đặt lại con trỏ đúng chỗ. */
+  function nbKeepFocus(root) {
+    const a = document.activeElement;
+    if (!a || !root.contains(a) || !a.dataset || a.dataset.nbnote == null) return () => {};
+    const key = a.dataset.nbnote, s0 = a.selectionStart, s1 = a.selectionEnd;
+    return () => {
+      const t = root.querySelector(`[data-nbnote="${CSS.escape(key)}"]`);
+      if (!t) return;
+      t.focus();
+      try { t.setSelectionRange(s0, s1); } catch (e) { /* bỏ qua */ }
+    };
   }
 
   /* ---------- sự kiện ---------- */
@@ -1082,7 +1124,11 @@
       const item = tkey.indexOf('u:') === 0 ? nbFind(tkey.slice(2)) : null;
       if (!st.em || (st.em && st.dung) || (!item && st.em === u)) { st.em = u; st.dung = ''; st.wrong = ''; }
       else if (u !== st.em) {
-        st.dung = u;
+        // Vòng 2 (K-2): đã biết đáp án lệch 10ⁿ thì cặp đơn vị phải lệch đúng 10ⁿ
+        const d = NB_DL[st.dl], exp = {};
+        (d.thang || []).forEach(([v, n]) => { exp[v] = n; });
+        if (st.lech && Math.abs(exp[st.em] - exp[u]) !== Math.abs(st.lech)) { st.wrong = u; st.dung = ''; return true; }
+        st.dung = u; st.wrong = '';
         if (item) nbSaveTag(item.key, 'TINH_TOAN', 'DON_VI', { dl: st.dl, dvEm: st.em, dvDung: u });
       }
       return true;
@@ -1122,8 +1168,8 @@
     const ta = e.target.closest('[data-nbnote]');
     if (!ta) return;
     const key = ta.dataset.nbnote;
-    if (key === '_CHUNG') { nbGrowNote(ta); nbQueueNote(key, ta.value, document.getElementById('nbGsaved')); return; }
-    nbQueueNote(key, ta.value, document.querySelector(`[data-nbsaved="${CSS.escape(key)}"]`));
+    if (key === '_CHUNG') nbGrowNote(ta);
+    nbQueueNote(key, ta.value.slice(0, 500));
   }
   function nbChange(e) {
     const s = e.target.closest('[data-unitdl]');
@@ -1215,8 +1261,10 @@
     }
     h += `<div class="nb-sec"><div class="nb-sec-h"><h3>Ghi chú của em</h3><span class="nb-saved" id="nbGsaved"></span></div>
       <textarea class="nb-notes" id="nbGnote" data-nbnote="_CHUNG" maxlength="500" aria-label="Ghi chú của em" placeholder="Viết điều em muốn nhớ trước mỗi bài kiểm tra…">${esc(nb.data.ghiChuChung || '')}</textarea></div>`;
+    const keep = nbKeepFocus(el);
     el.innerHTML = h;
     math(el);
+    keep();
     const det = document.getElementById('nbHkt');
     if (det) det.addEventListener('toggle', () => { nb.hkt = det.open; });
     nbSnapBook();
@@ -1258,7 +1306,7 @@
     if (!box || !btn) return;
     btn.disabled = true;
     let d = null;
-    try { d = await nbFetch(); } catch (e) { d = null; }
+    try { d = await nbFetch(true); } catch (e) { d = null; } // Vòng 2 (R-6): không dùng lời nhắc cũ lưu trên máy
     if (!document.getElementById('nbRemind')) return;
     const list = (d && d.nhacNho) || [];
     if (!list.length) { box.remove(); btn.disabled = false; return; }
@@ -1298,7 +1346,7 @@
       const lap = r.items.filter((x) => x.lapLai);
       let h = `<div class="card-title"><h2>Sổ tay</h2><div class="row">${st.open ? '' : '<button class="btn btn-sm btn-primary" data-why="open">Phân loại lỗi</button>'}<a class="btn btn-sm" href="#/so-tay">Mở sổ tay</a></div></div>
         <div>Bài này có <b>${r.items.length}</b> câu sai${r.daPhanLoai ? ', em đã phân loại đủ' : ''}.</div>
-        ${lap.length ? `<div class="nb-lap">${lap.map((x) => `Câu ${x.stt}: <b>${esc(NB_LOAI[x.loi.ma].ten)}</b>: lỗi này đang lặp lại trong sổ tay của em.`).join('<br>')}</div>` : ''}`;
+        ${lap.length ? `<div class="nb-lap">${lap.map((x) => `Câu ${x.stt}: <b>${esc(NB_LOAI[x.loi.ma].ten)}</b>: lỗi này em đã mắc ${x.soCauLoai || 'nhiều'} lần.`).join('<br>')}</div>` : ''}`;
       if (st.open) {
         h += `<h3 style="margin-top:14px">Em sai vì sao?</h3><p class="muted small" style="margin-top:-4px">Chọn lý do cho từng câu để sổ tay nhắc đúng lỗi của em. Có thể bỏ qua và chọn sau trong Sổ tay. Chip có dấu ? là máy đoán, chưa chắc chắn.</p>
           <div class="nb-why">${r.items.map((x) => `<div class="nb-why-item" data-key="${esc(x.key)}"><div class="small"><b>Câu ${x.stt}.</b> ${esc(snippet(x.stt))}${x.lapLai ? '<span class="nb-rep">Lỗi lặp lại</span>' : ''}</div>

@@ -209,4 +209,44 @@ t('Học sinh khác ghi sổ tay không làm mất đệm sổ tay của em', ()
   assert.ok(!w.g._stats.ranges.KetQua && !w.g._stats.ranges.SoTay, 'lấy từ đệm: ' + JSON.stringify(w.g._stats.ranges));
 });
 
+t('Vòng 2 (R-1, R-5): lưu 40 câu đọc trang SoTay một lần; sửa hàng có sẵn đúng học sinh; khóa trùng trong một lần gửi lấy mục cuối', () => {
+  const w = world();
+  const qs = Array.from({ length: 20 }, (_, i) => TN(i + 1));
+  const e = saveExam(w, { trangThai: 'MO', hienLoiGiai: 'NGAY' }, qs);
+  const ans = {}; qs.forEach((_, i) => { ans[i + 1] = 'B'; });
+  doExam(w, e, ans);
+  const tok2 = w.student2();
+  doExam(w, e, ans, null, tok2);
+  const keys = w.nb().items.map((x) => x.key);
+  ok(w.call('notebookTag', { items: keys.map((k) => ({ key: k, ma: 'SOT' })) }, tok2)); // B có hàng cùng khóa câu
+  ok(w.call('notebookTag', { items: keys.slice(0, 10).map((k) => ({ key: k, ma: 'DOC_DE' })) }));
+  w.g._resetStats();
+  const items = keys.map((k) => ({ key: k, ma: 'CONG_THUC' })).concat(keys.map((k) => ({ key: k, ma: 'SOT' })));
+  ok(w.call('notebookTag', { items }));
+  assert.ok((w.g._stats.reads.SoTay || 0) <= 2, 'đọc cả trang SoTay: ' + w.g._stats.reads.SoTay);
+  const rows = w.g._sheets.SoTay._data().slice(1);
+  assert.strictEqual(rows.filter((r) => r[0] === 'HS0001').length, 20, 'mỗi câu một hàng');
+  assert.ok(rows.filter((r) => r[0] === 'HS0001').every((r) => r[2] === 'SOT'), 'mục cuối thắng');
+  assert.ok(rows.filter((r) => r[0] !== 'HS0001').every((r) => r[2] === 'SOT'), 'không đụng hàng của học sinh khác');
+  assert.ok(w.nb().items.every((x) => x.loi.ma === 'SOT'));
+});
+
+t('Vòng 2 (R-3, K-1): lưu ghi chú không làm mất đệm (sổ tay vẫn đúng ngay); notebookResult có số câu của loại lỗi', () => {
+  const w = world();
+  const e = saveExam(w, { trangThai: 'MO', hienLoiGiai: 'NGAY' }, [TN(1), TN(2)]);
+  const r = doExam(w, e, { 1: 'B', 2: 'B' });
+  const keys = w.nb().items.map((x) => x.key);
+  ok(w.call('notebookTag', { items: keys.map((k) => ({ key: k, ma: 'DOC_DE' })) }));
+  w.nb(); // làm ấm đệm
+  ok(w.call('notebookNote', { key: keys[0], text: 'ghi chú' }));
+  ok(w.call('notebookNote', { key: '_CHUNG', text: 'chung' }));
+  w.g._resetStats();
+  const nb = w.nb();
+  assert.ok(!w.g._stats.ranges.KetQua, 'lấy từ đệm: ' + JSON.stringify(w.g._stats.ranges));
+  assert.strictEqual(nb.items.find((x) => x.key === keys[0]).coGhiChu, true);
+  assert.strictEqual(nb.ghiChuChung, 'chung');
+  const res = ok(w.call('notebookResult', { resultId: r.id }));
+  assert.ok(res.items.every((x) => x.soCauLoai === 2), JSON.stringify(res.items));
+});
+
 console.log(`\n${passed} kiểm thử đạt${failed ? ', ' + failed + ' KHÔNG ĐẠT' : '.'}`);
