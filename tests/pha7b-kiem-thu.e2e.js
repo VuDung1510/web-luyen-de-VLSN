@@ -350,6 +350,42 @@ async function runNew(browser) {
       verdict('TC-7.11', n2 && n2.ghiChu === want + ' gấp' && g3 === g2 + ' X', `vòng 2: gõ rồi chuyển trang sau 0,2–0,3 giây → ghi chú câu "${n2 && n2.ghiChu}", ghi chú chung kết thúc "${String(g3).slice(-12)}"`);
       await page.goto(srv.base + '/#/so-tay'); await page.waitForSelector('#nbSplit .nb-item'); await page.waitForTimeout(400);
     }
+    // ---- Vòng 3: gõ ghi chú chung rồi bấm chip / bậc thang trong 1–2 giây; bản gửi chồng nhau ----
+    {
+      await page.reload(); await page.waitForSelector('#nbSplit .nb-item'); await page.waitForTimeout(600);
+      for (const k of [S.K + '#2', kU]) { await page.click(`.nb-row[data-nbopen="${k}"]`); await page.waitForTimeout(900); }
+      const gv = () => page.$eval('#nbGnote', (t) => t.value);
+      const srvG = async () => (await api(srv.base, 'notebook', { token: S.st })).ghiChuChung;
+      const typeG = async (txt) => { await page.focus('#nbGnote'); await page.keyboard.press('Control+End'); await page.keyboard.type(txt, { delay: 20 }); };
+      await typeG(' V3a'); await page.waitForTimeout(400);
+      await page.click(`.nb-item[data-key="${S.K}#2"] [data-nbma="DOAN_MO"]`); await page.waitForTimeout(700);
+      const a1 = await gv();
+      await typeG(' V3b'); await page.waitForTimeout(900);
+      await page.click(`.nb-item[data-key="${kU}"] .nb-rung[data-unit="cm"]`); await page.waitForTimeout(700);
+      const a2 = await gv();
+      await page.waitForTimeout(2500);
+      const s1 = await srvG();
+      await page.reload(); await page.waitForSelector('#nbGnote'); await page.waitForTimeout(800);
+      const r1 = await gv();
+      verdict('TC-7.11', /V3a$/.test(a1) && /V3a V3b$/.test(a2) && /V3a V3b$/.test(s1) && r1 === s1,
+        `vòng 3 (1280 hai cột): gõ ghi chú chung rồi bấm chip loại lỗi sau 0,4 s → ô còn "…${a1.slice(-6)}"; gõ tiếp rồi bấm bậc thang đơn vị sau 0,9 s → "…${a2.slice(-10)}"; máy chủ "…${String(s1).slice(-10)}"; tải lại "…${r1.slice(-10)}"`);
+      // bản gửi chồng nhau: làm chậm lần gửi ghi chú đầu tiên 3 giây
+      let n = 0;
+      await page.route('**/exec', async (route) => {
+        const b = route.request().postData() || '';
+        if (/"notebookNote"/.test(b) && /_CHUNG/.test(b) && n++ === 0) { await sleep(3000); }
+        route.continue();
+      });
+      for (const x of [' r1', ' r2', ' r3']) { await typeG(x); await page.waitForTimeout(1500); }
+      await typeG(' r4');
+      await page.waitForTimeout(6000);
+      const s2 = await srvG(); const v2 = await gv();
+      await page.unroute('**/exec');
+      await page.reload(); await page.waitForSelector('#nbGnote'); await page.waitForTimeout(800);
+      const r2 = await gv();
+      verdict('TC-7.11', /r1 r2 r3 r4$/.test(s2) && s2 === v2 && r2 === s2, `vòng 3: gõ 4 lần cách 1,5 s, lần gửi đầu bị làm chậm 3 s (${n} lần gửi) → Sheet giữ bản cuối "…${String(s2).slice(-12)}", tải lại "…${r2.slice(-12)}"`);
+      await page.goto(srv.base + '/#/so-tay'); await page.waitForSelector('#nbSplit .nb-item'); await page.waitForTimeout(400);
+    }
     // TC-7.14 thẻ công thức
     await api(srv.base, 'notebookTag', { token: S.st, items: [{ key: S.K + '#1', ma: 'CONG_THUC' }, { key: S.K + '#2', ma: 'CONG_THUC' }] });
     await page.reload(); await page.waitForSelector('#nbSplit .nb-item'); await page.waitForTimeout(500);
