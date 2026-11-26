@@ -1,4 +1,4 @@
-> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 24/11/2026 (thêm người cộng tác).
+> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 26/11/2026 (Sổ tay cá nhân — Pha 7; quy tắc nhập Lớp 10 của Cowork).
 
 # WEB LUYỆN ĐỀ VLSN — QUYẾT ĐỊNH ĐÃ CHỐT
 
@@ -49,6 +49,15 @@
 - Câu tự luận vẫn nhập kho, nhãn "Phần IV – Tự luận" (mã P4). Trắc nghiệm 4 lựa chọn kiểu cũ xếp Phần I. (11/2026)
 - Nhập xong mỗi đề: báo thống kê các câu vừa thêm.
 - Kho lưu trên Drive, thư mục TÀI LIỆU ONLINE / KHO TÀI LIỆU; bản sao trên máy tại D:\VLSN\KHO ĐỀ\KHO ĐỀ MẪU.
+- Nhập Lớp 10 (Cowork, 26/11/2026): danh mục Lớp 10 theo SGK Kết nối tri thức (7 chương, 34 bài, mã L10C{chương}B{bài}); số thứ tự mã câu đánh riêng theo từng lớp. Câu đo g có tính sai số xếp Bài 11. Câu Phần III dùng chung đoạn dẫn thì chép đoạn dẫn vào từng câu. Chỉ nhập bản có lời giải; bỏ câu thiếu đáp án hoặc đáp án nhập nhằng. Bài, mức độ, năng lực đợt này gán tự động, ghi chú ở cột "Ghi chú phân loại" để soát dần. Hình lưu ở 02. HÌNH VẼ/Lớp 10, tên file theo mã câu.
+- **Sổ tay cá nhân (chốt 26/11/2026, Pha 7):** tab mới cho học sinh, lưu mọi câu làm sai, phân loại lỗi, nhắc lỗi lặp lại, gợi ý cách sửa và tạo đề ngắn để khắc phục.
+  - Giao diện hai nửa: trái là danh sách câu sai để tra cứu (chi tiết mở rộng/thu gọn); phải là sổ tay, chỉ hiện tên lỗi, mức độ theo màu, tỉ lệ từng loại lỗi và ghi chú của học sinh; giải pháp và bản đồ lỗi chỉ hiện khi bấm vào.
+  - Hai nhóm lỗi: **"Sai ngoo"** (ưu tiên, hiện trước): nhớ nhầm công thức, đọc sai đề/bỏ sót dữ kiện, tính toán/quên đổi đơn vị, sót ý/sót câu/quên không làm. **"Hổng kiến thức"** (theo chương/bài, gồm cả câu đoán mò): để xuống cuối.
+  - Máy tự đoán loại lỗi khi chắc chắn, không chắc thì hỏi học sinh; học sinh tự sửa được loại lỗi của từng câu.
+  - Câu thuộc đề chưa công bố lời giải vẫn hiện nội dung, chỉ ẩn đáp án và lời giải.
+  - Sau khi nộp bài, web hiện một lần toàn bộ câu sai để học sinh chọn lý do từng câu, được bỏ qua.
+  - Một lỗi tính là đã khắc phục khi làm đúng 2 lần ở 2 ngày khác nhau.
+  - Trước khi làm đề, học sinh bắt buộc đánh dấu đã đọc phần "điều cần nhớ" lấy từ sổ tay.
 
 ## 6. Thiết kế
 - ~~Phương án B: nền sáng cho phần làm bài, đầu trang/kết quả phong cách bảng đen, chế độ tối.~~
@@ -79,6 +88,7 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
   3. Kho "KHO CÂU HỎI VẬT LÝ", thư mục "02. HÌNH VẼ" và thư mục "WEB LUYỆN ĐỀ – TÀI LIỆU CHUNG": chia sẻ theo việc được giao (quyền sửa hoặc chỉ xem).
   4. Chỉ giáo viên (chủ máy chủ) bấm Triển khai → Phiên bản mới cho Apps Script. Người cộng tác sửa `Code.gs` trong repo, tăng `APP_VERSION`, ghi việc vào `docs/VIEC-GIAO-VIEN.md`.
   5. Người mới (và Claude của họ) đọc theo thứ tự: `CLAUDE.md` → `docs/TONG-QUAN.md` → file Quyết định đã chốt. Quyết định chung vẫn ghi vào file trên Drive. Không ghi tên, email người cộng tác vào repo.
+- **Pha 7 — Sổ tay cá nhân (chốt 26/11/2026):** 7a sổ tay tự động (danh sách câu sai, phân loại lỗi máy tự đoán, mức độ theo màu); 7b học sinh tự phân loại lỗi, ghi chú, lời nhắc trước khi làm đề và công cụ khắc phục từng loại lỗi; 7c đề khắc phục và trạng thái đã khắc phục. Đặc tả: `docs/spec/pha-7-so-tay.md`.
 
 ## 9. Câu hỏi mở / việc đang chờ
 - ~~Code.gs 1.1.0 chưa dán vào Apps Script — dán một lần ở Pha 6.~~ Đã dán Code.gs 1.5.0 ngày 21/11/2026.
@@ -102,3 +112,5 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - 21/11/2026 — Claude Code: giáo viên chốt dùng logo hiện tại (mê cung chữ Q) cho web (mục 6, mục 9).
 - 21/11/2026 — Claude Code: giáo viên chốt giao diện (mục 6): tiêu đề không in hoa (Montserrat đậm 700); chữ chế độ tối dịu hơn để không chói; slogan ở chân trang; tên trang web không có tên giáo viên (giáo viên tự sửa ở Cài đặt).
 - 24/11/2026 — Claude Code: giáo viên chốt cho thêm người cộng tác (sửa code và dữ liệu web), ghi ở mục 8; thêm `docs/TONG-QUAN.md` (tóm tắt chức năng và tài liệu cho người mới).
+- 26/11/2026 — Cowork: nhập Lớp 10 (13 đề chính thức + 41 đề cương, bản có lời giải) vào kho; ghi quy tắc nhập Lớp 10 vào mục 5. Kho trên máy đã chốt (2.674 câu L10); chưa đồng bộ lên Google Sheet kho.
+- 26/11/2026 — Claude Code: giáo viên chốt tính năng Sổ tay cá nhân cho học sinh (Pha 7a–7c), ghi ở mục 5 và mục 8. Đặc tả `docs/spec/pha-7-so-tay.md` chờ giáo viên duyệt.
