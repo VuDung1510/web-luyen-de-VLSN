@@ -71,6 +71,7 @@ Mỗi học sinh có một nơi xem lại mọi câu đã làm sai, biết mình
 | `notebookItem` | HS | `{keys[] ≤ 20}` | nội dung câu, hình, phương án, đáp án em chọn; `dapAn`, `loiGiai` **chỉ khi** được công bố; `congThuc[]` của bài; `ghiChu`; `chiTiet` lỗi |
 | `notebookTag` | HS | `{items:[{key, ma, y?, chiTiet?}] ≤ 40}` | `{n}`. Từ chối key không phải câu sai của chính học sinh |
 | `notebookNote` | HS | `{key \| "_CHUNG", text}` | `{ok}`; cắt 500 ký tự |
+| `notebookResult` (7b) | HS | `{resultId}` | các câu sai của MỘT bài của chính em: `{items:[{stt, key, loai, phan, loi, lanSai, lapLai}], daPhanLoai}` — không có nội dung câu (trang kết quả đã có) |
 | `practiceStart` (sửa, 7c) | HS | `kieu: "KHAC_PHUC"`, `mau: "ON_NHANH" \| "MUOI_CAU" \| "MOT_LOI"`, `ma?` | như Pha 4; token `p` mang thêm `goc` cho từng câu |
 - `BAT_SO_TAY = KHONG`: các action trên báo lỗi "Giáo viên đang tắt sổ tay" (chặn ở máy chủ); giao diện ẩn mục Sổ tay, khung "Em sai vì sao?" và lời nhắc.
 - Tính sổ tay đọc `KetQua` và `KetQuaLuyenTap` của **một** học sinh (`rowsWhere_`), có đệm 60 giây theo học sinh, xóa đệm khi học sinh nộp bài hoặc gắn nhãn.
@@ -89,7 +90,7 @@ Mỗi học sinh có một nơi xem lại mọi câu đã làm sai, biết mình
 - Mỗi câu thu gọn là một dòng: đèn màu · "Câu 14 · Tên đề · 20/11" · chip loại lỗi (chip "máy đoán" viền đứt) · số lần sai.
 - Mở ra (gọi `notebookItem`): nội dung câu, đáp án em chọn, đáp án đúng hoặc dòng "Đáp án hiện khi đề công bố lời giải", lời giải (thu gọn), **đổi loại lỗi**, ghi chú riêng của câu, công cụ sửa đúng loại lỗi (§5), nút "Làm lại câu này" (chỉ khi câu vào được luyện tập).
 
-**Khung "Em sai vì sao?" (7b).** Ở trang kết quả (đề thi và luyện tập), nếu có câu sai và bài này chưa được phân loại thì hiện **một lần** danh sách toàn bộ câu sai. Mỗi câu có các chip: 4 loại Sai ngoo + "Chưa biết làm" + "Đoán mò". Chip máy đoán chắc được chọn sẵn, chip máy đoán chưa chắc có dấu "?". Nút "Lưu" và "Bỏ qua". Đã hiện thì không tự hiện lại (lưu ở máy khách theo `resultId`), nhưng trang kết quả có nút "Phân loại lỗi" để mở lại.
+**Khung "Em sai vì sao?" (7b).** Ở trang kết quả (đề thi và luyện tập), nếu có câu sai và bài này chưa được phân loại thì hiện **một lần** danh sách toàn bộ câu sai. Mỗi câu có các chip: 4 loại Sai ngoo + "Chưa biết làm" + "Đoán mò". Chip máy đoán chắc được chọn sẵn, chip máy đoán chưa chắc có dấu "?". Nút "Lưu" và "Bỏ qua". Đã hiện thì không tự hiện lại (lưu ở máy khách theo `resultId`), nhưng trang kết quả có nút "Phân loại lỗi" để mở lại. *(Làm 7b: khung là thẻ "Sổ tay" mở sẵn ngay trong trang kết quả, dưới khung điểm, không phải hộp nổi che trang — học sinh vẫn xem điểm, lời giải được.)*
 
 **Lời nhắc (7b):**
 - Trang chủ: dải "Em có n lỗi đang lặp lại · Xem sổ tay" khi có loại lỗi 🔴.
@@ -162,3 +163,5 @@ Sửa đặc tả ngày 26/11/2026: giáo viên duyệt đặc tả và chốt Q
 Sửa đặc tả ngày 26/11/2026 (Pha 7a, người làm): TC-7.1 ghi rõ danh sách gồm mọi câu từng sai (câu đã làm đúng lại vẫn hiện, màu vàng/xanh), khớp §4 và trang mẫu; câu chữ cũ "lần làm gần nhất" mâu thuẫn với đèn xanh "đã khắc phục".
 
 Sửa đặc tả ngày 26/11/2026 (Pha 7a vòng 2, theo `docs/bao-cao/pha-7a-soat.md` R-8, R-10 và `pha-7a-kiem-thu.md` K-2, K-3): "đề" khi đếm lặp lại (mỗi bài luyện là một đề); dạng `tongHop` đúng như máy chủ trả; thứ tự danh sách và phạm vi lọc theo chương. Đã biết, chấp nhận: nhãn loại lỗi máy đoán có thể chậm tối đa 60 giây (đệm) sau khi đề tự đóng theo giờ — không lộ đáp án vì chi tiết câu luôn kiểm tra lại lúc xem (R-4).
+
+Sửa đặc tả ngày 27/11/2026 (Pha 7b, người làm): thêm API `notebookResult` cho khung "Em sai vì sao?"; khung là thẻ trong trang kết quả thay cho hộp nổi; `notebook` trả thêm `tuKhoa` (từ `TU_KHOA_DOC_SAI`), `nhacNho` (tối đa 3 loại sai ngoo còn đỏ/vàng, kèm câu nhắc); `notebookItem` trả thêm `thoiGian {phut, daLam, xong:{phần: giây}}`. Đệm sổ tay không còn theo thế hệ chung của `SoTay` mà theo phiên bản riêng của từng học sinh (ghi sổ tay của em B không làm mất đệm của em A).

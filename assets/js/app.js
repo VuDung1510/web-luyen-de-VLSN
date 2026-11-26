@@ -290,7 +290,7 @@
     const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
     const open = exams.filter((e) => e.open);
     const other = exams.filter((e) => !e.open);
-    let h = `<h1>Xin chào, ${esc(user.hoTen.split(' ').slice(-1)[0])} 👋</h1>`;
+    let h = `<h1>Xin chào, ${esc(user.hoTen.split(' ').slice(-1)[0])} 👋</h1>` + (notebookAllowed() ? '<div id="nbBanner"></div>' : '');
     if (pending && pending.endAt > Date.now() && pending.studentId === user.id) {
       h += `<div class="notice warn" style="margin-bottom:16px"><b>Bạn đang làm dở ${pending.practice ? 'bài luyện' : 'đề'} "${esc(pending.exam.tieuDe)}".</b>
         Còn khoảng ${fmtClock((pending.endAt - Date.now()) / 1000)}. <a href="${resumeHref(pending)}">Tiếp tục làm bài →</a></div>`;
@@ -311,6 +311,7 @@
       h += `<div class="card-title section-gap"><h2>Bài làm gần đây</h2><a href="#/lich-su">Xem tất cả →</a></div>` + resultsTable(results.slice(0, 5));
     }
     $app.innerHTML = h;
+    nbHomeBanner();
   }
 
   const resumeHref = (p) => (p.practice ? '#/luyen-tap/lam' : '#/lam-bai/' + encodeURIComponent(p.exam.id));
@@ -359,7 +360,7 @@
           <li>Bài làm được lưu trên máy — lỡ tải lại trang vẫn làm tiếp được.</li>
           <li>Phần trả lời ngắn: ghi số, dùng dấu phẩy cho phần thập phân (ví dụ <b>12,5</b>).</li>
           <li>Phần Đúng/Sai: chọn Đ hoặc S cho từng ý a, b, c, d.</li></ul>
-        ${e.canStart ? (App.has('goal') ? goalBoxHtml(e) : '') + '<button class="btn btn-primary btn-block" id="btnStart">Bắt đầu làm bài</button>' : `<div class="notice warn">${esc(e.trangThaiText)} — bạn không thể làm đề này lúc này.</div>`}
+        ${e.canStart ? (App.has('goal') ? goalBoxHtml(e) : '') + (notebookAllowed() ? '<div id="nbRemind"></div>' : '') + '<button class="btn btn-primary btn-block" id="btnStart">Bắt đầu làm bài</button>' : `<div class="notice warn">${esc(e.trangThaiText)} — bạn không thể làm đề này lúc này.</div>`}
         <div style="text-align:center;margin-top:12px"><a href="#/">← Quay lại</a></div></div>`;
       const goalIn = document.getElementById('goal');
       if (goalIn) {
@@ -369,7 +370,10 @@
         markChips();
       }
       const b = document.getElementById('btnStart');
+      nbExamReminder(b); // Pha 7b: "Điều cần nhớ" từ sổ tay, phải tick "Em đã đọc" mới bắt đầu được
       if (b) b.onclick = () => withBusy(b, async () => {
+        const rb = document.getElementById('nbReadOk');
+        if (rb && !rb.checked) { toast('Hãy đọc "Điều cần nhớ" và tick "Em đã đọc" trước khi bắt đầu', 'err'); return; }
         // Ô mục tiêu chỉ có khi máy chủ hỗ trợ (cờ "goal"); máy chủ cũ thì bắt đầu luôn, không gửi mục tiêu
         const pend = store.get(ATTEMPT_KEY, null);
         if (pend && pend.practice && pend.studentId === user.id && pend.endAt > Date.now()) { toast('Bạn đang làm dở một bài luyện — hãy nộp bài đó trước.', 'err'); return; }
@@ -595,6 +599,7 @@
       setNav('practice');
       $app.innerHTML = App.resultHtml(v, { actions: acts });
       math($app);
+      nbAfterResult(v);
       return;
     }
     const actions = `<div class="row no-print" style="margin-top:12px"><a class="btn" href="#/">← Trang chủ</a>
@@ -603,9 +608,10 @@
       <button class="btn" onclick="window.print()">In / Lưu PDF</button></div>`;
     $app.innerHTML = App.resultHtml(v, { actions });
     math($app);
+    nbAfterResult(v);
   }
 
-  /* ---------- sổ tay cá nhân (Pha 7a) — docs/spec/pha-7-so-tay.md, mẫu docs/spec/mau-so-tay.html ---------- */
+  /* ---------- sổ tay cá nhân (Pha 7a, 7b) — docs/spec/pha-7-so-tay.md, mẫu docs/spec/mau-so-tay.html ---------- */
   const NB_LOAI = {
     CONG_THUC: { ten: 'Nhớ nhầm công thức', mau: 'var(--nb-ct)' },
     DOC_DE: { ten: 'Đọc sai đề / bỏ sót dữ kiện', mau: 'var(--nb-dd)' },
@@ -616,22 +622,69 @@
     CHUA_RO: { ten: 'Chưa phân loại', mau: 'var(--nb-cr)' }
   };
   const NB_NGOO = ['CONG_THUC', 'DOC_DE', 'TINH_TOAN', 'SOT'];
+  const NB_PICK = ['CONG_THUC', 'DOC_DE', 'TINH_TOAN', 'SOT', 'HONG_KT', 'DOAN_MO'];
   const NB_Y = { DON_VI: 'đơn vị', BAM_MAY: 'bấm máy' };
   const NB_MAU = { do: 'Đỏ: chưa làm đúng lại', vang: 'Vàng: đang tiến bộ', xanh: 'Xanh: đã khắc phục' };
   const NB_SEV = { do: 0, vang: 1, xanh: 2 };
   const NB_PHAN = { 1: 'I', 2: 'II', 3: 'III' };
-  const nb = { data: null, filter: { loai: '', src: '', mau: '', q: '', from: '', chuong: '' }, open: new Set(), detail: {}, loading: {}, tab: 'sotay', hkt: false };
+  const NB_EMPTY = () => ({ loai: '', src: '', mau: '', q: '', from: '', chuong: '' });
+  const nb = { data: null, filter: NB_EMPTY(), open: new Set(), detail: {}, loading: {}, tab: 'sotay', hkt: false, fix: new Set(), tools: {}, saving: {} };
+
+  /* Thang đơn vị (công cụ "Tính toán / quên đổi đơn vị", §5.3): [đơn vị, số mũ của 10 so với đơn vị chuẩn] */
+  const NB_DL = {
+    chieuDai: { ten: 'Chiều dài', chuan: 'm', thang: [['km', 3], ['hm', 2], ['dam', 1], ['m', 0], ['dm', -1], ['cm', -2], ['mm', -3], ['µm', -6], ['nm', -9]] },
+    dienTich: { ten: 'Diện tích', chuan: 'm²', thang: [['km²', 6], ['m²', 0], ['dm²', -2], ['cm²', -4], ['mm²', -6]] },
+    theTich: { ten: 'Thể tích', chuan: 'm³', thang: [['m³', 0], ['dm³ (lít)', -3], ['cm³ (mL)', -6], ['mm³', -9]] },
+    khoiLuong: { ten: 'Khối lượng', chuan: 'kg', thang: [['tấn', 3], ['kg', 0], ['g', -3], ['mg', -6]], khac: ['1 u ≈ 1,66·10⁻²⁷ kg'] },
+    thoiGian: { ten: 'Thời gian', chuan: 's', thang: [['s', 0], ['ms', -3], ['µs', -6], ['ns', -9]], khac: ['1 phút = 60 s', '1 h = 3 600 s', '1 ngày = 86 400 s'] },
+    vanToc: { ten: 'Vận tốc', chuan: 'm/s', thang: [['m/s', 0], ['dm/s', -1], ['cm/s', -2], ['mm/s', -3]], khac: ['1 km/h = 1/3,6 m/s'] },
+    apSuat: { ten: 'Áp suất', chuan: 'Pa', thang: [['MPa', 6], ['kPa', 3], ['hPa', 2], ['Pa', 0]], khac: ['1 atm ≈ 1,013·10⁵ Pa', '1 bar = 10⁵ Pa', '1 mmHg ≈ 133,3 Pa'] },
+    nangLuong: { ten: 'Năng lượng', chuan: 'J', thang: [['MJ', 6], ['kJ', 3], ['J', 0], ['mJ', -3]], khac: ['1 eV = 1,6·10⁻¹⁹ J', '1 MeV = 1,6·10⁻¹³ J', '1 kWh = 3,6·10⁶ J', '1 cal ≈ 4,186 J'] },
+    congSuat: { ten: 'Công suất', chuan: 'W', thang: [['MW', 6], ['kW', 3], ['W', 0], ['mW', -3]] },
+    dienTichQ: { ten: 'Điện tích', chuan: 'C', thang: [['C', 0], ['mC', -3], ['µC', -6], ['nC', -9], ['pC', -12]], khac: ['e = 1,6·10⁻¹⁹ C'] },
+    dienDung: { ten: 'Điện dung', chuan: 'F', thang: [['F', 0], ['mF', -3], ['µF', -6], ['nF', -9], ['pF', -12]] },
+    dongDien: { ten: 'Cường độ dòng điện', chuan: 'A', thang: [['kA', 3], ['A', 0], ['mA', -3], ['µA', -6]] },
+    hieuDienThe: { ten: 'Hiệu điện thế', chuan: 'V', thang: [['kV', 3], ['V', 0], ['mV', -3], ['µV', -6]] },
+    tanSo: { ten: 'Tần số', chuan: 'Hz', thang: [['GHz', 9], ['MHz', 6], ['kHz', 3], ['Hz', 0]] },
+    camUngTu: { ten: 'Cảm ứng từ', chuan: 'T', thang: [['T', 0], ['mT', -3], ['µT', -6]], khac: ['1 G (gauss) = 10⁻⁴ T'] },
+    doPhongXa: { ten: 'Độ phóng xạ', chuan: 'Bq', thang: [['GBq', 9], ['MBq', 6], ['kBq', 3], ['Bq', 0]], khac: ['1 Ci = 3,7·10¹⁰ Bq'] },
+    goc: { ten: 'Góc', chuan: 'rad', dacBiet: '180° = π rad, nên số đo độ × π/180 = số đo radian.' },
+    nhietDo: { ten: 'Nhiệt độ', chuan: 'K', dacBiet: 'Nhiệt độ đổi bằng phép cộng, không nhân 10ⁿ: T (K) = t (°C) + 273. Hiệu nhiệt độ thì như nhau: Δt = 10 °C ứng với ΔT = 10 K.' }
+  };
+  const NB_KW_GIAI = [
+    ['SAI / KHÔNG đúng', 'Đề hỏi phát biểu sai: tìm câu sai, không phải câu đúng.'],
+    ['ít nhất / tối đa / tối thiểu', 'Đề hỏi giá trị biên, thường phải xét điều kiện rồi mới tính.'],
+    ['làm tròn đến …', 'Đáp án Phần III phải làm tròn đúng chữ số đề yêu cầu.'],
+    ['đơn vị của kết quả', 'Đơn vị đề hỏi (kPa, cm/s, MeV…) có thể khác đơn vị của dữ kiện.'],
+    ['bỏ qua / lấy g = …', 'Điều kiện được phép bỏ qua và giá trị bắt buộc phải dùng.'],
+    ['ban đầu / từ trạng thái nghỉ', 'Cho biết vận tốc đầu bằng 0 hoặc trạng thái xuất phát.'],
+    ['ngay sau / ngay trước / độ lớn', 'Thời điểm phải xét và việc chỉ lấy giá trị dương.']
+  ];
+  const SUP = { '-': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
+  const pow10 = (n) => '10' + String(n).split('').map((c) => SUP[c] || c).join('');
+  const nbNum = (s) => { const x = parseFloat(String(s == null ? '' : s).trim().replace(/\s/g, '').replace(',', '.')); return isNaN(x) ? null : x; };
 
   function notebookOffHtml() {
     return `<h1>Sổ tay của em</h1><div class="card empty" id="notebookOff">Mục Sổ tay hiện chưa mở. Khi giáo viên bật, các câu em làm sai sẽ được tập hợp ở đây.
       <div style="margin-top:10px"><a class="btn" href="#/">← Trang chủ</a></div></div>`;
   }
 
+  /** Sổ tay: bản lưu trên máy nếu có, rồi hỏi máy chủ (dùng ở trang chủ, trước khi làm đề, trang kết quả). */
+  async function nbFetch(fresh) {
+    if (!notebookAllowed()) return null;
+    const hit = !fresh && App.cacheGet('notebook');
+    if (hit && hit.d) return hit.d;
+    const tok = App.cacheToken();
+    const d = await api('notebook');
+    App.cacheSet('notebook', d, tok);
+    return d;
+  }
+
   function viewNotebook() {
     // Vòng 2 (R-6): giáo viên đã tắt sổ tay thì không vẽ bản lưu cũ trên máy
     if (!notebookAllowed()) { App.cacheDel('notebook'); $app.innerHTML = notebookOffHtml(); refreshPub(); return; }
-    nb.open = new Set(); nb.detail = {}; nb.loading = {};
-    nb.filter = { loai: '', src: '', mau: '', q: '', from: '', chuong: '' };
+    nb.open = new Set(); nb.detail = {}; nb.loading = {}; nb.tools = {}; nb.fix = new Set();
+    nb.filter = NB_EMPTY();
     nb.tab = 'sotay'; // Vòng 2 (R-7): điện thoại luôn mở tab Sổ tay trước
     return cached('notebook', () => api('notebook'), renderNotebook, { skeleton: () => { $app.innerHTML = App.skeletonHtml('table'); } })
       .catch((e) => {
@@ -648,6 +701,7 @@
   const nbGroupOf = (it) => (NB_NGOO.indexOf(it.loi.ma) >= 0 ? 'ngoo' : 'hong');
   const nbSrcId = (it) => (it.nguon.luyenTap ? 'LT' : 'E:' + it.nguon.examId);
   const nbDay = (s) => { const m = /^(\d{1,2})\/(\d{1,2})/.exec(String(s || '')); return m ? m[1].padStart(2, '0') + '/' + m[2].padStart(2, '0') : ''; };
+  const nbFind = (key) => nb.data.items.find((x) => x.key === key);
 
   function renderNotebook(d) {
     nb.data = d;
@@ -688,7 +742,7 @@
     nbRenderBook();
     nbRenderList();
     const onFilter = () => {
-      // Vòng 2 (R-2): luôn sửa nb.filter hiện tại (bấm trong sổ có thể đã thay object), bỏ lọc chương ẩn
+      // Vòng 2 (R-2): luôn tạo lại nb.filter (bấm trong sổ có thể đã thay object), bỏ lọc chương ẩn
       nb.filter = { loai: document.getElementById('nbfLoai').value, src: document.getElementById('nbfSrc').value,
         mau: document.getElementById('nbfMau').value, q: document.getElementById('nbfQ').value.trim(), from: '', chuong: '' };
       nbRenderList();
@@ -696,9 +750,15 @@
     ['nbfLoai', 'nbfSrc', 'nbfMau'].forEach((id) => { document.getElementById(id).onchange = onFilter; });
     document.getElementById('nbfQ').oninput = onFilter;
     $app.querySelector('.nb-tabs').onclick = (e) => { const b = e.target.closest('[data-nbtab]'); if (b) nbSetTab(b.dataset.nbtab); };
-    document.getElementById('nbList').onclick = nbListClick;
-    document.getElementById('nbActive').onclick = (e) => { if (e.target.closest('[data-nbclear]')) { nb.filter = { loai: '', src: '', mau: '', q: '', from: '', chuong: '' }; renderNotebook(nb.data); } };
-    document.getElementById('nbBook').onclick = nbBookClick;
+    const list = document.getElementById('nbList'), book = document.getElementById('nbBook');
+    list.onclick = nbListClick;
+    book.onclick = nbBookClick;
+    [list, book].forEach((el) => {
+      el.addEventListener('input', nbInput);
+      el.addEventListener('change', nbChange);
+    });
+    document.getElementById('nbActive').onclick = (e) => { if (e.target.closest('[data-nbclear]')) { nb.filter = NB_EMPTY(); renderNotebook(nb.data); } };
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(nbSnapBook);
   }
 
   function nbSetTab(tab) {
@@ -707,6 +767,7 @@
     if (sp) sp.dataset.tab = tab;
     document.getElementById('nbTabBook').setAttribute('aria-selected', String(tab === 'sotay'));
     document.getElementById('nbTabList').setAttribute('aria-selected', String(tab === 'cau'));
+    if (tab === 'sotay') nbSnapBook();
   }
 
   function nbPasses(it) {
@@ -732,17 +793,17 @@
 
   function nbRenderList() {
     const d = nb.data;
+    const el = document.getElementById('nbList');
+    if (!el) return;
     const ng = d.tongHop.saiNgoo.map((s) => s.ma);
     const order = (it) => (nbGroupOf(it) === 'ngoo' ? ng.indexOf(it.loi.ma) * 10 + NB_SEV[it.mau] : 100 + NB_SEV[it.mau]);
     const all = d.items.filter(nbPasses).sort((a, b) => (order(a) - order(b)) || String(b.nguon.nopLuc).localeCompare(String(a.nguon.nopLuc)));
     document.getElementById('nbCount').textContent = `${all.length}/${d.items.length} câu`;
     document.getElementById('nbActive').innerHTML = nb.filter.from ? `<div class="nb-active"><span class="muted">Đang xem:</span><button class="nb-pill" data-nbclear="1">${esc(nb.filter.from)} ✕</button></div>` : '';
-    const el = document.getElementById('nbList');
     if (!all.length) { el.innerHTML = '<div class="card empty">Không có câu nào khớp bộ lọc.</div>'; return; }
     const groups = [['Sai ngoo', all.filter((i) => nbGroupOf(i) === 'ngoo')], ['Hổng kiến thức và chưa phân loại', all.filter((i) => nbGroupOf(i) !== 'ngoo')]];
     el.innerHTML = groups.filter((g) => g[1].length).map(([ten, its]) => `<div class="nb-group">${ten}</div><div class="nb-items">${its.map(nbItemHtml).join('')}</div>`).join('');
     math(el);
-    // câu đang mở mà chưa có chi tiết: tải
     const need = [...nb.open].filter((k) => !nb.detail[k] && !nb.loading[k] && all.some((x) => x.key === k));
     if (need.length) nbLoadDetail(need);
   }
@@ -754,7 +815,7 @@
     return `<div class="nb-item${open ? ' open' : ''}${it.mau === 'xanh' ? ' done' : ''}" data-key="${esc(it.key)}">
       <button class="nb-row" data-nbopen="${esc(it.key)}" aria-expanded="${open}">
         <i class="nb-dot ${it.mau}" title="${NB_MAU[it.mau]}"></i>
-        <span class="nb-row-main"><span class="nb-row-title">Câu ${esc(n.stt)} · Phần ${NB_PHAN[it.phan] || esc(it.phan)}</span> ${nbTag(it)}
+        <span class="nb-row-main"><span class="nb-row-title">Câu ${esc(n.stt)} · Phần ${NB_PHAN[it.phan] || esc(it.phan)}</span> ${nbTag(it)}${it.coGhiChu ? ' <span class="nb-note-ic" title="Có ghi chú">✎</span>' : ''}
           <span class="nb-row-sub">${sub}</span></span>
         <span class="nb-row-side">${it.lanSai > 1 ? `<span class="nb-count">sai ${it.lanSai} lần</span>` : ''}${it.mau === 'xanh' ? '<span class="nb-fixed">Đã khắc phục</span>' : ''}<span class="nb-chev" aria-hidden="true">▸</span></span>
       </button>${open ? `<div class="nb-detail">${nbDetailHtml(it)}</div>` : ''}</div>`;
@@ -794,15 +855,162 @@
       if (x.an) h += `<div class="nb-lock">${esc(x.anNote)}</div>`;
       else if (x.loiGiai) h += `<details class="nb-sol"><summary>Xem lời giải</summary><div class="solution">${rich(x.loiGiai)}</div></details>`;
     }
+    // Em sai vì sao? — chọn / đổi loại lỗi (Pha 7b, TC-7.10)
     const src = it.loi.nguon === 'HS' ? 'Em đã chọn loại lỗi này.'
-      : it.loi.nguon === 'MAY' ? (it.loi.canHoi ? 'Máy đoán loại lỗi này nhưng chưa chắc chắn.' : 'Máy nhận ra loại lỗi này từ câu trả lời của em.')
-      : 'Máy chưa đoán được loại lỗi của câu này.';
-    h += `<div><div class="nb-blk">Loại lỗi</div>${nbTag(it)}<div class="nb-src">${src}</div></div>`;
+      : it.loi.nguon === 'MAY' ? (it.loi.canHoi ? 'Máy đoán loại lỗi này nhưng chưa chắc chắn. Em xác nhận hoặc chọn lại nhé.' : 'Máy nhận ra loại lỗi này từ câu trả lời của em. Em vẫn đổi được nếu thấy chưa đúng.')
+      : 'Máy chưa đoán được. Em chọn giúp loại lỗi của câu này.';
+    const busy = nb.saving[it.key] ? ' disabled' : '';
+    h += `<div><div class="nb-blk">Em sai vì sao?</div><div class="nb-chips">${NB_PICK.map((ma) => {
+      const on = it.loi.ma === ma;
+      return `<button class="nb-chip${on ? ' on' : ''}${on && it.loi.canHoi ? ' ask' : ''}" data-nbma="${ma}" aria-pressed="${on}"${busy}><i class="nb-sw" style="background:${NB_LOAI[ma].mau}"></i>${esc(NB_LOAI[ma].ten)}</button>`;
+    }).join('')}</div>`;
+    if (it.loi.ma === 'TINH_TOAN') {
+      h += `<div class="nb-chips nb-sub"><span class="muted small">Cụ thể:</span>${Object.keys(NB_Y).map((y) =>
+        `<button class="nb-chip sm${it.loi.y === y ? ' on' : ''}" data-nby="${y}" aria-pressed="${it.loi.y === y}"${busy}>${y === 'DON_VI' ? 'Quên / đổi sai đơn vị' : 'Bấm máy / tính nhầm'}</button>`).join('')}</div>`;
+    }
+    h += `<div class="nb-src">${src}${it.loi.nguon === 'HS' ? ' <button class="nb-link" data-nbreset="1">Bỏ chọn của em</button>' : ''}</div></div>`;
+    h += nbToolHtml(it, x);
+    h += `<div><div class="nb-blk">Ghi chú cho câu này <span class="nb-saved" data-nbsaved="${esc(it.key)}"></span></div>
+      <textarea class="nb-note-in" data-nbnote="${esc(it.key)}" rows="2" maxlength="500" placeholder="Em rút ra điều gì từ câu này?">${esc(x.ghiChu || '')}</textarea></div>`;
     if (it.nguon.resultId) h += `<div class="row"><a class="btn btn-sm" href="#/ket-qua/${encodeURIComponent(it.nguon.resultId)}">Xem lại bài làm</a></div>`;
     return h;
   }
 
+  /* ---------- công cụ sửa từng loại lỗi (§5) ---------- */
+  function nbToolHtml(it, x) {
+    const m = it.loi.ma;
+    if (m === 'CONG_THUC') return `<div class="nb-tool"><h4>Thẻ công thức</h4>${nbFormulaCards(x.congThuc, x.bai || it.bai)}</div>`;
+    if (m === 'DOC_DE') return x.go ? '' : `<div class="nb-tool"><h4>Tập gạch từ khóa</h4>${nbKwTool('kw:' + it.key, x.noiDung)}</div>`;
+    if (m === 'TINH_TOAN' && it.loi.y === 'BAM_MAY') {
+      const a = nbNum(x.answer), d = x.dapAn != null ? nbNum(String(x.dapAn).split('|')[0]) : null;
+      const nguoc = a != null && d != null && d !== 0 && Math.abs(a + d) <= Math.abs(d) * 0.01;
+      return `<div class="nb-tool"><h4>Kiểm tra phép tính</h4>${nguoc ? '<div class="nb-fb bad">Đáp án của em ngược dấu với đáp án đúng.</div>' : ''}
+        <ul class="nb-tips"><li>Viết quy ước dấu trước khi thay số (ví dụ khí thực hiện công thì A &lt; 0).</li><li>Ước lượng bậc độ lớn của kết quả trước khi bấm máy.</li><li>Bấm máy lại lần hai theo thứ tự khác.</li></ul></div>`;
+    }
+    if (m === 'TINH_TOAN') return `<div class="nb-tool"><h4>Chọn lại đơn vị đúng</h4>${nbUnitTool('u:' + it.key, it, x)}</div>`;
+    if (m === 'SOT') return `<div class="nb-tool"><h4>Chia thời gian từng phần</h4>${nbTimePlan(x.thoiGian, it.loai === 'DS')}</div>`;
+    if (m === 'HONG_KT' || m === 'DOAN_MO') {
+      return `<div class="nb-tool"><h4>${m === 'DOAN_MO' ? 'Đoán mò được tính là chưa biết làm' : 'Học lại phần này'}</h4>
+        <div class="small">Đọc kĩ lời giải${x.an ? ' (sẽ hiện khi đề công bố)' : ''}, rồi luyện thêm câu cùng bài "${esc(x.bai || it.bai)}". Câu này được ưu tiên đưa vào đề khắc phục.</div>
+        ${practiceAllowed() ? '<div class="row"><a class="btn btn-sm" href="#/luyen-tap">Mở Luyện tập</a></div>' : ''}</div>`;
+    }
+    return '<div class="nb-tool"><div class="small">Chọn loại lỗi ở trên để nhận cách sửa phù hợp.</div></div>';
+  }
+
+  function nbFormulaCards(list, bai) {
+    if (!list || !list.length) return `<div class="nb-fb">Thầy chưa nhập công thức cho bài "${esc(bai || '')}". Em ghi công thức đúng vào ô ghi chú bên dưới để nhớ.</div>`;
+    const tex = (s) => (/\$/.test(s) ? s : '$' + s + '$');
+    return list.map((f) => `<div class="nb-fcard">${f.ten ? `<div class="muted small">${esc(f.ten)}</div>` : ''}
+      ${f.tenGoiNho ? `<div class="nb-nick">${esc(f.tenGoiNho)}</div>` : ''}<div class="nb-ct">${rich(tex(f.congThuc))}</div>
+      <dl>${f.phamVi ? `<dt>Phạm vi</dt><dd>${esc(f.phamVi)}</dd>` : ''}${f.dauHieu ? `<dt>Dấu hiệu</dt><dd>${esc(f.dauHieu)}</dd>` : ''}</dl></div>`).join('');
+  }
+
+  /** Chữ thường của câu hỏi để gạch từ khóa: bỏ công thức $…$, thẻ HTML, khối bảng. */
+  function nbPlain(s) {
+    return String(s || '').replace(/\$\$[\s\S]*?\$\$|\$[^$]*\$/g, ' [công thức] ').replace(/<[^>]+>/g, ' ').replace(/\[\/?BẢNG\][\s\S]*?(\[\/BẢNG\]|$)/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  function nbTokens(text) {
+    const kws = (nb.data && nb.data.tuKhoa) || [];
+    const toks = nbPlain(text).split(' ').filter(Boolean).map((raw) => ({ raw, w: raw.toLowerCase().replace(/[.,;:?!()"“”]/g, '') }));
+    const kw = new Array(toks.length).fill(false);
+    kws.forEach((k) => {
+      const parts = k.split(/\s+/).map((p) => p.replace(/[.,;:?!()"“”]/g, '')).filter(Boolean);
+      if (!parts.length) return;
+      for (let i = 0; i + parts.length <= toks.length; i++) {
+        if (parts.every((p, j) => toks[i + j].w === p)) for (let j = 0; j < parts.length; j++) kw[i + j] = true;
+      }
+    });
+    toks.forEach((t, i) => { t.kw = kw[i]; t.so = /\d/.test(t.w); });
+    return toks;
+  }
+  function nbKwTool(tkey, text) {
+    const st = nb.tools[tkey] || (nb.tools[tkey] = { sel: [], checked: false });
+    const toks = nbTokens(text);
+    const html = toks.map((t, i) => {
+      const sel = st.sel.indexOf(i) >= 0;
+      let c = 'nb-tok' + (sel ? ' sel' : '');
+      if (st.checked && t.kw) c += sel ? ' kw' : ' kw miss';
+      if (st.checked && t.so && !sel) c += ' so';
+      return `<button class="${c}" data-kwtok="${i}" data-tool="${esc(tkey)}" aria-pressed="${sel}">${esc(t.raw)}</button>`;
+    }).join(' ');
+    let res = '';
+    if (st.checked) {
+      const idx = toks.map((t, i) => (t.kw ? i : -1)).filter((i) => i >= 0);
+      const got = idx.filter((i) => st.sel.indexOf(i) >= 0).length;
+      const miss = idx.filter((i) => st.sel.indexOf(i) < 0).map((i) => toks[i].raw.replace(/[.,;:?!()"“”]/g, ''));
+      res = idx.length ? `<div class="nb-fb ${miss.length ? 'bad' : 'good'}">Em gạch được ${got}/${idx.length} từ khóa.${miss.length ? ' Bỏ sót: ' + miss.map((m) => '“' + esc(m) + '”').join(', ') + '.' : ' Tốt lắm!'} Dữ kiện số được tô xanh.</div>`
+        : '<div class="nb-fb">Câu này không có từ khóa trong danh sách. Hãy chú ý các dữ kiện số (tô xanh) và đơn vị của chúng.</div>';
+    }
+    return `<div class="muted small">Chạm vào những từ em thấy quan trọng, rồi bấm So sánh.</div>
+      <div class="nb-kw-text">${html}</div>
+      <div class="row"><button class="btn btn-sm btn-primary" data-kwcheck="1" data-tool="${esc(tkey)}">So sánh</button><button class="btn btn-sm" data-kwreset="1" data-tool="${esc(tkey)}">Làm lại</button></div>
+      ${res}<div class="nb-kw-legend"><span class="a">Em gạch</span><span class="b">Từ khóa em bỏ sót</span><span class="c">Dữ kiện số</span></div>`;
+  }
+  function nbKwExplain() {
+    return `<ul class="nb-kwlist">${NB_KW_GIAI.map(([k, g]) => `<li><b>${esc(k)}</b>: ${esc(g)}</li>`).join('')}</ul>`;
+  }
+
+  /**
+   * Thang đơn vị. Với câu (it, x): em chọn đại lượng, đơn vị em đã dùng, rồi đơn vị đúng → lưu vào chi tiết lỗi (notebookTag).
+   * Không có câu: chế độ tra cứu (bấm hai đơn vị để xem cách đổi).
+   */
+  function nbUnitTool(tkey, it, x) {
+    const ct = (x && x.chiTietLoi) || {};
+    const st = nb.tools[tkey] || (nb.tools[tkey] = { dl: NB_DL[ct.dl] ? ct.dl : 'chieuDai', em: ct.dvEm || '', dung: ct.dvDung || '', wrong: '' });
+    const d = NB_DL[st.dl];
+    let h = `<label class="small nb-dl">Đại lượng${it ? ' em đổi sai' : ''}: <select data-unitdl="1" data-tool="${esc(tkey)}">${Object.keys(NB_DL).map((k) => `<option value="${k}"${k === st.dl ? ' selected' : ''}>${esc(NB_DL[k].ten)}</option>`).join('')}</select></label>`;
+    if (it && x && x.dapAn != null && it.loai === 'TL') {
+      const a = nbNum(x.answer), dd = nbNum(String(x.dapAn).split('|')[0]);
+      if (a && dd && a / dd > 0) {
+        const n = Math.round(Math.log10(a / dd));
+        if (n && Math.abs(a / dd / Math.pow(10, n) - 1) <= 0.01) h += `<div class="nb-fb bad">Đáp án của em lệch đúng ${pow10(n)} lần so với đáp án đúng.</div>`;
+      }
+    }
+    if (d.dacBiet) return h + `<div class="nb-fb">${esc(d.dacBiet)}</div>`;
+    const exp = {};
+    d.thang.forEach(([u, e]) => { exp[u] = e; });
+    const rungs = d.thang.map(([u, e], i) => {
+      let c = 'nb-rung';
+      if (u === d.chuan) c += ' chuan';
+      if (st.em === u) c += ' em';
+      if (st.dung === u) c += ' ok';
+      if (st.wrong === u) c += ' wrong';
+      const step = i < d.thang.length - 1 ? `<span class="nb-step">×${pow10(e - d.thang[i + 1][1])}</span>` : '';
+      return `<button class="${c}" data-unit="${esc(u)}" data-tool="${esc(tkey)}">${esc(u)}</button>${step}`;
+    }).join('');
+    h += `<div class="nb-ladder-wrap"><div class="nb-ladder" role="group" aria-label="Thang đơn vị ${esc(d.ten)}">${rungs}</div></div>
+      <div class="muted small">Sang phải một bậc thì nhân với số ghi giữa hai bậc. Đơn vị chuẩn SI: <b>${esc(d.chuan)}</b> (khung đậm).</div>`;
+    if (d.khac) h += `<div class="nb-other small muted">Đơn vị khác: ${d.khac.map(esc).join(' · ')}</div>`;
+    const em = st.em && exp[st.em] != null ? st.em : '', dung = st.dung && exp[st.dung] != null ? st.dung : '';
+    if (em && dung) h += `<div class="nb-fb good">1 ${esc(em)} = ${pow10(exp[em] - exp[dung])} ${esc(dung)}${it ? `: số đo theo ${esc(em)} phải nhân với ${pow10(exp[em] - exp[dung])} để ra ${esc(dung)}.` : '.'}</div>`;
+    else if (em) h += `<div class="nb-fb">${it ? `Em đã dùng <b>${esc(em)}</b>. Bấm vào đơn vị đúng mà dữ kiện này phải đổi sang.` : `Đã chọn ${esc(em)}. Bấm đơn vị muốn đổi sang.`}</div>`;
+    else h += `<div class="nb-fb">${it ? 'Bấm vào đơn vị <b>em đã dùng</b> khi làm câu này.' : 'Bấm hai đơn vị để xem cách đổi.'}</div>`;
+    return h;
+  }
+
+  /** Thời gian đề xuất (tỉ lệ đề 50 phút: 15 / 15 / 12 / 8) và lúc em làm xong từng phần (nếu bài có t). */
+  function nbTimePlan(tg, ds) {
+    const phut = (tg && tg.phut) || 50, k = phut / 50;
+    const f = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
+    const xong = tg && tg.xong;
+    const plan = [['Phần I', 15, '1'], ['Phần II', 15, '2'], ['Phần III', 12, '3'], ['Kiểm tra lại', 8, null]];
+    let moc = 0;
+    const rows = plan.map(([ten, p, key]) => {
+      moc += p * k;
+      const thuc = key && xong && xong[key] != null ? xong[key] / 60 : null;
+      const tre = thuc != null && thuc > moc + 0.5;
+      return `<tr><td>${ten}</td><td class="num">${f(p * k)}′</td><td class="num">${key ? 'trước phút ' + f(moc) : 'cuối giờ'}</td>
+        <td class="num">${thuc != null ? `<b class="${tre ? 'nb-bad' : 'nb-good'}">phút ${f(thuc)}</b>` : '—'}</td></tr>`;
+    }).join('');
+    return `<div class="muted small">Đề ${f(phut)} phút${xong ? ' · cột cuối là lúc em sửa đáp án cuối cùng của phần đó' : ''}</div>
+      <div class="table-wrap"><table class="nb-plan"><thead><tr><th>Phần</th><th class="num">Đề xuất</th><th class="num">Mốc</th><th class="num">Em xong</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <ul class="nb-tips"><li>Câu nào quá 1–2 phút thì đánh dấu, làm sau.</li><li>Chừa ${f(8 * k)} phút cuối để dò lại cả bài${ds ? ', nhất là từng ý a, b, c, d của Phần II' : ''}.</li><li>Trước khi nộp, mở danh sách câu, kiểm tra không còn câu nào trống.</li></ul>`;
+  }
+
+  /* ---------- tải chi tiết, lưu phân loại, ghi chú ---------- */
   async function nbLoadDetail(keys) {
+    keys = keys.filter((k) => !nb.detail[k]).slice(0, 20);
+    if (!keys.length) return;
     keys.forEach((k) => { nb.loading[k] = 1; });
     const my = App.currentView();
     try {
@@ -812,7 +1020,74 @@
       keys.forEach((k) => { nb.loading[k] = 'err'; });
       toast(e.message, 'err');
     }
-    if (App.currentView() === my && document.getElementById('nbList')) nbRenderList();
+    if (App.currentView() === my && document.getElementById('nbList')) { nbRenderList(); nbRenderBook(); }
+  }
+
+  /** Lưu loại lỗi em chọn (ma = '' → bỏ chọn), rồi tải lại sổ tay (màu, tỉ lệ thay đổi). */
+  async function nbSaveTag(key, ma, y, chiTiet) {
+    const it = nbFind(key);
+    if (!it || nb.saving[key]) return;
+    nb.saving[key] = 1;
+    const my = App.currentView();
+    try {
+      await api('notebookTag', { items: [{ key, ma, y, chiTiet }] });
+      if (nb.detail[key] && chiTiet) nb.detail[key].chiTietLoi = Object.assign({ y }, chiTiet);
+      const tok = App.cacheToken();
+      const d = await api('notebook');
+      App.cacheSet('notebook', d, tok);
+      if (App.currentView() === my && document.getElementById('nbList')) { nb.data = d; delete nb.saving[key]; nbRenderBook(); nbRenderList(); nbMeta(); }
+    } catch (e) { toast(e.message, 'err'); }
+    delete nb.saving[key];
+  }
+  function nbMeta() {
+    const t = nb.data.tongHop, el = document.getElementById('nbMeta');
+    if (el) el.textContent = `${t.tong} câu đã sai · ${t.chuaKhacPhuc} câu chưa làm đúng lại · ${t.lapLai} lỗi đang lặp lại`;
+  }
+
+  const nbNoteTimers = {};
+  function nbQueueNote(key, text, statusEl) {
+    clearTimeout(nbNoteTimers[key]);
+    if (statusEl) statusEl.textContent = 'Đang lưu…';
+    nbNoteTimers[key] = setTimeout(async () => {
+      try {
+        await api('notebookNote', { key, text });
+        App.cacheDel('notebook');
+        if (key === '_CHUNG') { if (nb.data) nb.data.ghiChuChung = text; } else {
+          if (nb.detail[key]) nb.detail[key].ghiChu = text;
+          const it = nb.data && nbFind(key);
+          if (it) it.coGhiChu = !!text.trim();
+        }
+        if (statusEl && statusEl.isConnected) statusEl.textContent = 'Đã lưu';
+      } catch (e) {
+        if (statusEl && statusEl.isConnected) statusEl.textContent = 'Chưa lưu được';
+        toast(e.message, 'err');
+      }
+    }, 1200);
+  }
+
+  /* ---------- sự kiện ---------- */
+  function nbToolEvent(e) {
+    const t = e.target.closest('[data-tool]');
+    if (!t) return false;
+    const tkey = t.dataset.tool;
+    if (t.dataset.kwtok != null) {
+      const st = nb.tools[tkey], i = +t.dataset.kwtok;
+      st.sel = st.sel.indexOf(i) >= 0 ? st.sel.filter((v) => v !== i) : st.sel.concat(i);
+      return true;
+    }
+    if (t.dataset.kwcheck) { nb.tools[tkey].checked = true; return true; }
+    if (t.dataset.kwreset) { nb.tools[tkey] = { sel: [], checked: false }; return true; }
+    if (t.dataset.unit != null) {
+      const st = nb.tools[tkey], u = t.dataset.unit;
+      const item = tkey.indexOf('u:') === 0 ? nbFind(tkey.slice(2)) : null;
+      if (!st.em || (st.em && st.dung) || (!item && st.em === u)) { st.em = u; st.dung = ''; st.wrong = ''; }
+      else if (u !== st.em) {
+        st.dung = u;
+        if (item) nbSaveTag(item.key, 'TINH_TOAN', 'DON_VI', { dl: st.dl, dvEm: st.em, dvDung: u });
+      }
+      return true;
+    }
+    return false;
   }
 
   function nbListClick(e) {
@@ -824,6 +1099,18 @@
       nbRenderList();
       return;
     }
+    const item = e.target.closest('.nb-item');
+    const key = item && item.dataset.key;
+    const chip = e.target.closest('[data-nbma]');
+    if (chip && key) {
+      const it = nbFind(key);
+      if (it && !(it.loi.nguon === 'HS' && it.loi.ma === chip.dataset.nbma)) nbSaveTag(key, chip.dataset.nbma, chip.dataset.nbma === 'TINH_TOAN' ? (it.loi.y || '') : '');
+      return;
+    }
+    const ych = e.target.closest('[data-nby]');
+    if (ych && key) { nbSaveTag(key, 'TINH_TOAN', ych.dataset.nby, ych.dataset.nby === 'DON_VI' && nb.tools['u:' + key] ? { dl: nb.tools['u:' + key].dl } : undefined); return; }
+    if (e.target.closest('[data-nbreset]') && key) { nbSaveTag(key, ''); return; }
+    if (nbToolEvent(e)) { nbRenderList(); return; }
     const b = e.target.closest('[data-nbopen]');
     if (!b) return;
     const k = b.dataset.nbopen;
@@ -831,7 +1118,29 @@
     nbRenderList();
   }
 
+  function nbInput(e) {
+    const ta = e.target.closest('[data-nbnote]');
+    if (!ta) return;
+    const key = ta.dataset.nbnote;
+    if (key === '_CHUNG') { nbGrowNote(ta); nbQueueNote(key, ta.value, document.getElementById('nbGsaved')); return; }
+    nbQueueNote(key, ta.value, document.querySelector(`[data-nbsaved="${CSS.escape(key)}"]`));
+  }
+  function nbChange(e) {
+    const s = e.target.closest('[data-unitdl]');
+    if (!s) return;
+    nb.tools[s.dataset.tool] = { dl: s.value, em: '', dung: '', wrong: '' };
+    if (s.closest('#nbBook')) nbRenderBook(); else nbRenderList();
+  }
+
   function nbBookClick(e) {
+    const fx = e.target.closest('[data-nbfix]');
+    if (fx) {
+      const ma = fx.dataset.nbfix;
+      if (nb.fix.has(ma)) nb.fix.delete(ma); else { nb.fix.add(ma); nbBookNeed(ma); }
+      nbRenderBook();
+      return;
+    }
+    if (nbToolEvent(e)) { nbRenderBook(); return; }
     const t = e.target.closest('[data-nbtype]');
     const c = e.target.closest('[data-nbch]');
     if (!t && !c) return;
@@ -847,18 +1156,54 @@
     if (window.matchMedia('(min-width: 901px)').matches) document.getElementById('nbListTitle').scrollIntoView({ block: 'start' });
   }
 
+  /** Mở "Cách sửa" trong sổ: tải chi tiết các câu cần (thẻ công thức, câu để gạch từ khóa, thời gian). */
+  function nbBookNeed(ma) {
+    const its = nb.data.items.filter((x) => x.loi.ma === ma);
+    const want = ma === 'CONG_THUC' ? its : ma === 'DOC_DE' || ma === 'SOT' ? its.slice(0, 1) : [];
+    nbLoadDetail(want.map((x) => x.key));
+  }
+  const nbLatest = (ma) => nb.data.items.filter((x) => x.loi.ma === ma).sort((a, b) => NB_SEV[a.mau] - NB_SEV[b.mau])[0];
+  function nbBookFix(ma) {
+    if (ma === 'CONG_THUC') {
+      const its = nb.data.items.filter((x) => x.loi.ma === ma);
+      if (its.some((x) => !nb.detail[x.key])) return loadingHtml('Đang tải thẻ công thức…');
+      const seen = {}, list = [];
+      its.forEach((x) => (nb.detail[x.key].congThuc || []).forEach((f) => { const k = f.ten + '|' + f.congThuc; if (!seen[k]) { seen[k] = 1; list.push(f); } }));
+      return `<div class="nb-tool">${list.length ? nbFormulaCards(list) : '<div class="nb-fb">Thầy chưa nhập thẻ công thức cho các bài em hay nhầm. Em ghi công thức đúng vào ô Ghi chú của em bên dưới.</div>'}</div>`;
+    }
+    if (ma === 'DOC_DE') {
+      const it = nbLatest(ma), x = it && nb.detail[it.key];
+      return `<div class="nb-tool"><h4>Từ khóa dễ đọc sai</h4>${nbKwExplain()}${it ? (x ? (x.go ? '' : `<h4>Luyện gạch từ khóa (câu ${esc(it.nguon.stt)}, ${esc(it.nguon.tieuDe)})</h4>${nbKwTool('kwb:' + it.key, x.noiDung)}`) : loadingHtml()) : ''}</div>`;
+    }
+    if (ma === 'TINH_TOAN') {
+      return `<div class="nb-tool"><h4>Thang đổi đơn vị</h4>${nbUnitTool('ub', null, null)}<h4>Khi bấm máy</h4>
+        <ul class="nb-tips"><li>Đổi hết về đơn vị chuẩn trước khi thay số.</li><li>Ước lượng bậc độ lớn trước khi bấm máy.</li><li>Viết quy ước dấu (Q, A…) trước khi tính.</li></ul></div>`;
+    }
+    if (ma === 'SOT') {
+      const it = nbLatest(ma), x = it && nb.detail[it.key];
+      return `<div class="nb-tool">${it && !x && nb.loading[it.key] === 1 ? loadingHtml() : nbTimePlan(x && x.thoiGian, true)}</div>`;
+    }
+    return '';
+  }
+
   function nbRenderBook() {
+    const el = document.getElementById('nbBook');
+    if (!el || !nb.data) return;
     const t = nb.data.tongHop;
     const segColor = (ma) => (NB_LOAI[ma] || NB_LOAI.CHUA_RO).mau;
     let h = `<div class="nb-book-head"><h2 id="nbBookTitle">Sổ tay</h2><div class="nb-legend"><span><i class="nb-dot do"></i>Lặp lại</span><span><i class="nb-dot vang"></i>Đang mắc</span><span><i class="nb-dot xanh"></i>Đã khắc phục</span></div></div>`;
     h += `<div class="nb-ratio-row"><div class="nb-ratio" role="img" aria-label="Tỉ lệ các loại lỗi">${t.tiLe.map((s) => `<i style="width:${(s.so / t.tong) * 100}%;background:${segColor(s.ma)}" title="${esc(s.ten)}: ${s.so} câu"></i>`).join('')}</div></div>`;
     h += `<div class="nb-ratio-legend">${t.tiLe.map((s) => `<span><i class="nb-sw" style="background:${segColor(s.ma)}"></i>${esc(s.ten)} <b class="num">${s.tiLe}%</b></span>`).join('')}</div>`;
     h += `<div class="nb-sec"><div class="nb-sec-h"><h3>Sai ngoo</h3><span class="muted">sửa được ngay bằng thói quen</span></div>`;
-    h += t.saiNgoo.length ? t.saiNgoo.map((s) => `<div class="nb-err"><div class="nb-err-line"><i class="nb-dot ${s.mau}" title="${s.lapLai ? 'Lặp lại' : s.mau === 'vang' ? 'Đang mắc' : 'Đã khắc phục'}"></i>
+    h += t.saiNgoo.length ? t.saiNgoo.map((s) => {
+      const open = nb.fix.has(s.ma);
+      return `<div class="nb-err"><div class="nb-err-line"><i class="nb-dot ${s.mau}" title="${s.lapLai ? 'Lặp lại' : s.mau === 'vang' ? 'Đang mắc' : 'Đã khắc phục'}"></i>
         <button class="nb-err-name" data-nbtype="${s.ma}" title="Xem các câu thuộc lỗi này">${esc(s.ten)}</button>
         <span class="nb-err-meta">${s.lapLai ? '<span class="nb-rep">Lặp lại</span>' : ''}<span class="num"><b>${s.so}</b> câu · ${s.tiLe}%</span></span></div>
-        <div class="nb-err-sub"><div class="nb-err-bar"><i style="width:${s.tiLe}%;background:${segColor(s.ma)}"></i></div></div></div>`).join('')
-      : '<div class="muted nb-line">Chưa có lỗi nào thuộc nhóm này.</div>';
+        <div class="nb-err-sub"><div class="nb-err-bar"><i style="width:${s.tiLe}%;background:${segColor(s.ma)}"></i></div>
+          <button class="nb-fix-toggle" data-nbfix="${s.ma}" aria-expanded="${open}">${open ? 'Thu gọn ▾' : 'Cách sửa ▸'}</button></div>
+        ${open ? `<div class="nb-fix-panel">${nbBookFix(s.ma)}</div>` : ''}</div>`;
+    }).join('') : '<div class="muted nb-line">Chưa có lỗi nào thuộc nhóm này.</div>';
     h += '</div>';
     const hk = t.hongKT;
     if (hk.so) {
@@ -866,12 +1211,134 @@
         <div class="nb-hkt-sum">Gồm câu chưa biết làm${hk.doanMo ? `, ${hk.doanMo} câu đoán mò` : ''}${hk.chuaRo ? ` và ${hk.chuaRo} câu chưa phân loại` : ''}.</div>
         ${hk.chuong.map((c) => `<div class="nb-map-ch"><i class="nb-dot ${c.mau}"></i><button class="nb-err-name" data-nbch="${esc(c.chuong)}">${esc(c.chuong)}</button><span class="num">${c.so} câu</span></div>
           ${c.bai.map((b) => `<div class="nb-map-bai"><span>${esc(b.bai)}</span><span class="num">${b.so}</span></div>`).join('')}`).join('')}
-        ${hk.chuaRo ? `<button class="nb-link" data-nbtype="CHUA_RO">Xem ${hk.chuaRo} câu chưa phân loại ▸</button>` : ''}</details>`;
+        ${hk.chuaRo ? `<button class="nb-link" data-nbtype="CHUA_RO">Phân loại ${hk.chuaRo} câu còn lại ▸</button>` : ''}</details>`;
     }
-    const el = document.getElementById('nbBook');
+    h += `<div class="nb-sec"><div class="nb-sec-h"><h3>Ghi chú của em</h3><span class="nb-saved" id="nbGsaved"></span></div>
+      <textarea class="nb-notes" id="nbGnote" data-nbnote="_CHUNG" maxlength="500" aria-label="Ghi chú của em" placeholder="Viết điều em muốn nhớ trước mỗi bài kiểm tra…">${esc(nb.data.ghiChuChung || '')}</textarea></div>`;
     el.innerHTML = h;
+    math(el);
     const det = document.getElementById('nbHkt');
     if (det) det.addEventListener('toggle', () => { nb.hkt = det.open; });
+    nbSnapBook();
+  }
+
+  /* Giữ chữ khớp dòng kẻ 32px: khối "Cách sửa" bù cho tròn bội 32px; ô ghi chú cao theo số dòng (không thanh cuộn). */
+  const NB_LN = 32;
+  function nbGrowNote(t) {
+    t = t || document.getElementById('nbGnote');
+    if (!t) return;
+    t.style.height = '0px';
+    t.style.height = Math.max(4, Math.ceil(t.scrollHeight / NB_LN)) * NB_LN + 'px';
+  }
+  function nbSnapBook() {
+    document.querySelectorAll('#nbBook .nb-fix-panel').forEach((p) => {
+      p.style.paddingBottom = '0px';
+      const r = p.getBoundingClientRect().height % NB_LN;
+      p.style.paddingBottom = (r > 0.5 ? NB_LN - r : 0) + 'px';
+    });
+    nbGrowNote();
+  }
+  window.addEventListener('resize', () => { if (document.getElementById('nbBook')) nbSnapBook(); });
+
+  /* ---------- lời nhắc ở trang chủ, trước khi làm đề, trang kết quả (Pha 7b) ---------- */
+  async function nbHomeBanner() {
+    const el = document.getElementById('nbBanner');
+    if (!el) return;
+    try {
+      const d = await nbFetch();
+      if (!d || !document.getElementById('nbBanner')) return;
+      const lap = d.tongHop.saiNgoo.filter((s) => s.lapLai);
+      el.innerHTML = lap.length ? `<a class="notice nb-banner" href="#/so-tay"><b>Em có ${lap.length} lỗi đang lặp lại:</b> ${lap.map((s) => esc(s.ten)).join(', ')}. <span class="nb-banner-go">Xem sổ tay →</span></a>` : '';
+    } catch (e) { /* không chặn trang chủ */ }
+  }
+
+  /** Hộp "Điều cần nhớ" trước khi làm đề thi: bắt buộc tick "Em đã đọc" (TC-7.16). Lỗi tải sổ tay thì không chặn. */
+  async function nbExamReminder(btn) {
+    const box = document.getElementById('nbRemind');
+    if (!box || !btn) return;
+    btn.disabled = true;
+    let d = null;
+    try { d = await nbFetch(); } catch (e) { d = null; }
+    if (!document.getElementById('nbRemind')) return;
+    const list = (d && d.nhacNho) || [];
+    if (!list.length) { box.remove(); btn.disabled = false; return; }
+    const note = String((d && d.ghiChuChung) || '').trim();
+    box.innerHTML = `<div class="nb-remind"><div class="nb-blk">Điều cần nhớ, lấy từ sổ tay của em</div><ul>
+      ${list.map((r) => `<li><i class="nb-dot ${r.mau}"></i><span><b>${esc(r.ten)}${r.lapLai ? ' (lặp lại)' : ''}.</b> ${esc(r.nhac)}</span></li>`).join('')}
+      ${note ? `<li><i class="nb-dot" style="background:var(--primary)"></i><span><b>Ghi chú của em.</b> ${esc(note).replace(/\n/g, ' · ')}</span></li>` : ''}</ul>
+      <label class="nb-check"><input type="checkbox" id="nbReadOk"> Em đã đọc và sẽ chú ý những điều trên</label></div>`;
+    document.getElementById('nbReadOk').onchange = (e) => { btn.disabled = !e.target.checked; };
+  }
+
+  /**
+   * Trang kết quả: thẻ "Sổ tay" có khung "Em sai vì sao?" (TC-7.9). Khung mở sẵn ở lần xem đầu của mỗi bài
+   * (nằm trong trang, không che điểm và lời giải), bỏ qua được; nút "Phân loại lỗi" mở lại.
+   */
+  async function nbAfterResult(v) {
+    if (!notebookAllowed() || !v || !v.id) return;
+    const wrongs = (v.items || []).filter((it) => !(it.score >= it.max - 1e-9 && it.max > 0));
+    if (!wrongs.length) return;
+    const my = App.currentView();
+    let r;
+    try { r = await api('notebookResult', { resultId: v.id }); } catch (e) { return; }
+    if (App.currentView() !== my || !r.items.length) return;
+    const seenKey = 'ld_nbwhy_' + v.id;
+    const st = { open: !r.daPhanLoai && !store.get(seenKey, false), pick: {} };
+    if (st.open) store.set(seenKey, true);
+    r.items.forEach((x) => { st.pick[x.key] = x.loi.nguon === 'HS' || (x.loi.nguon === 'MAY' && !x.loi.canHoi) ? x.loi.ma : ''; });
+    const snippet = (stt) => {
+      const it = (v.items || []).find((q) => q.stt === stt);
+      const t = nbPlain(it && it.noiDung);
+      return t.length > 120 ? t.slice(0, 120) + '…' : t;
+    };
+    const card = document.createElement('div');
+    card.className = 'card nb-result no-print';
+    card.id = 'nbResult';
+    const draw = () => {
+      const lap = r.items.filter((x) => x.lapLai);
+      let h = `<div class="card-title"><h2>Sổ tay</h2><div class="row">${st.open ? '' : '<button class="btn btn-sm btn-primary" data-why="open">Phân loại lỗi</button>'}<a class="btn btn-sm" href="#/so-tay">Mở sổ tay</a></div></div>
+        <div>Bài này có <b>${r.items.length}</b> câu sai${r.daPhanLoai ? ', em đã phân loại đủ' : ''}.</div>
+        ${lap.length ? `<div class="nb-lap">${lap.map((x) => `Câu ${x.stt}: <b>${esc(NB_LOAI[x.loi.ma].ten)}</b>: lỗi này đang lặp lại trong sổ tay của em.`).join('<br>')}</div>` : ''}`;
+      if (st.open) {
+        h += `<h3 style="margin-top:14px">Em sai vì sao?</h3><p class="muted small" style="margin-top:-4px">Chọn lý do cho từng câu để sổ tay nhắc đúng lỗi của em. Có thể bỏ qua và chọn sau trong Sổ tay. Chip có dấu ? là máy đoán, chưa chắc chắn.</p>
+          <div class="nb-why">${r.items.map((x) => `<div class="nb-why-item" data-key="${esc(x.key)}"><div class="small"><b>Câu ${x.stt}.</b> ${esc(snippet(x.stt))}${x.lapLai ? '<span class="nb-rep">Lỗi lặp lại</span>' : ''}</div>
+            <div class="nb-chips">${NB_PICK.map((ma) => {
+              const on = st.pick[x.key] === ma, ask = !st.pick[x.key] && x.loi.nguon === 'MAY' && x.loi.canHoi && x.loi.ma === ma;
+              return `<button class="nb-chip${on ? ' on' : ''}${ask ? ' ask' : ''}" data-whyma="${ma}" aria-pressed="${on}"><i class="nb-sw" style="background:${NB_LOAI[ma].mau}"></i>${esc(NB_LOAI[ma].ten)}</button>`;
+            }).join('')}</div></div>`).join('')}</div>
+          <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-why="skip">Bỏ qua</button><button class="btn btn-primary" data-why="save" id="nbWhySave">Lưu</button></div>`;
+      }
+      card.innerHTML = h;
+    };
+    draw();
+    const first = $app.querySelector('.card');
+    if (first && first.parentNode) first.parentNode.insertBefore(card, first.nextSibling); else $app.prepend(card);
+    card.onclick = async (e) => {
+      const chip = e.target.closest('[data-whyma]');
+      if (chip) {
+        const key = chip.closest('[data-key]').dataset.key;
+        st.pick[key] = st.pick[key] === chip.dataset.whyma ? '' : chip.dataset.whyma;
+        draw();
+        return;
+      }
+      const b = e.target.closest('[data-why]');
+      if (!b) return;
+      if (b.dataset.why === 'open') { st.open = true; draw(); return; }
+      if (b.dataset.why === 'skip') { st.open = false; draw(); return; }
+      await withBusy(b, async () => {
+        const items = r.items.filter((x) => st.pick[x.key] && !(x.loi.nguon === 'HS' && x.loi.ma === st.pick[x.key]))
+          .map((x) => ({ key: x.key, ma: st.pick[x.key], y: st.pick[x.key] === x.loi.ma ? x.loi.y || '' : '' }));
+        try {
+          if (items.length) await api('notebookTag', { items });
+          App.cacheDel('notebook');
+          items.forEach((it) => { const x = r.items.find((y) => y.key === it.key); if (x) x.loi = { ma: it.ma, nguon: 'HS', canHoi: false }; });
+          r.daPhanLoai = r.items.every((x) => x.loi.nguon === 'HS');
+          st.open = false;
+          draw();
+          toast(items.length ? 'Đã lưu vào sổ tay' : 'Không có thay đổi', 'ok');
+        } catch (err) { toast(err.message, 'err'); }
+      });
+    };
   }
 
   /* ---------- lịch sử ---------- */

@@ -197,7 +197,9 @@ Sửa kho (thêm đáp án, thêm câu) xong thì bấm **↻ Đọc lại kho**
 1. Học sinh vào **Sổ tay**: một nửa là danh sách **mọi câu đã làm sai** (đề thi và luyện tập), một nửa là **cuốn sổ** tổng hợp lỗi. Câu sai gộp theo câu: làm lại đúng thì đèn chuyển **đỏ → vàng → xanh** (xanh = đúng 2 lần ở 2 ngày khác nhau).
 2. Lỗi chia hai nhóm: **Sai ngoo** (nhớ nhầm công thức, đọc sai đề, tính toán / quên đổi đơn vị, sót ý / sót câu) hiện trước; **Hổng kiến thức** (theo chương, bài; gồm câu đoán mò và câu chưa phân loại) để dưới cùng. Loại lỗi nào sai ≥ 3 câu ở ≥ 2 đề thì gắn nhãn **Lặp lại**.
 3. Máy tự nhận ra câu bỏ trống, và (khi đề đã công bố lời giải) đáp án Phần III lệch đúng 10ⁿ lần, lệch nhỏ hoặc ngược dấu. Câu thuộc đề chưa công bố lời giải vẫn hiện nội dung và câu trả lời của em, **không** hiện đáp án và lời giải.
-4. **Cài đặt → Mục Sổ tay cho học sinh** (`BAT_SO_TAY`): mặc định Bật. Trang tính `CongThuc` (thẻ công thức theo bài) do giáo viên nhập dần; học sinh tự phân loại lỗi, ghi chú, đề khắc phục sẽ có ở các bản sau (Pha 7b, 7c).
+4. Học sinh **tự chọn / đổi loại lỗi** cho từng câu (chọn của em thắng máy đoán), viết **ghi chú** cho từng câu và **ghi chú chung** trong sổ. Mỗi loại sai ngoo có công cụ sửa: **thẻ công thức** (từ trang tính `CongThuc`), **tập gạch từ khóa** (từ khóa trong `TU_KHOA_DOC_SAI`), **thang đổi đơn vị**, **bảng chia thời gian** từng phần (có giờ làm xong thật của em).
+5. Nộp bài xong, trang kết quả có thẻ **Sổ tay** mở sẵn khung "Em sai vì sao?" một lần cho mỗi bài (bỏ qua được). Trang chủ nhắc khi có lỗi lặp lại. Trước khi làm **đề thi**, em phải đọc và tick "Em đã đọc" hộp **Điều cần nhớ** lấy từ sổ tay (bài luyện tập không hỏi).
+6. **Cài đặt → Mục Sổ tay cho học sinh** (`BAT_SO_TAY`): mặc định Bật. Trang tính `CongThuc` do giáo viên nhập dần. Đề khắc phục sẽ có ở Pha 7c.
 
 ### Mục tiêu điểm
 

@@ -71,5 +71,6 @@ Gộp vào `main` ngày 19/11/2026. Soát code vòng 2 ĐẠT; kiểm thử vòn
 | 6b — Làm cùng giáo viên | **Xong 21/11.** Máy chủ thật 1.5.0; TC-6.7, 6.8 ĐẠT; sửa thêm bảng kẻ gạch và hình đặt nổi trong file Word. Báo cáo `docs/bao-cao/pha-6b.md` |
 
 | 7a — Sổ tay tự động | Xong 26/11 (soát + kiểm thử vòng 2 ĐẠT), pull request chờ giáo viên gộp; Code.gs 1.6.0 **không dán** — dán một lần sau 7c. Báo cáo `docs/bao-cao/pha-7a*.md` |
+| 7b — Phân loại, ghi chú, công cụ, lời nhắc | Người làm xong 27/11 (Code.gs 1.7.0, chưa dán); chờ soát + kiểm thử. Báo cáo `docs/bao-cao/pha-7b.md` |
 
 Máy chủ thật đã là **1.5.0** (21/11/2026; phiên bản triển khai trước: 2). Việc còn lại: nhóm C, D trong `docs/VIEC-GIAO-VIEN.md`. Bài kiểm thử "Tạo đề" chập chờn của Pha 2 đã xác định là lỗi của test và đã sửa.
