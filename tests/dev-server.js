@@ -53,6 +53,11 @@ if (!COMPAT) {
     if (!r.ok) console.error('Không đưa được câu vào pool:', r.error);
   }
 }
+// CONG_THUC='[{"Mã bài":"…","Tên gợi nhớ":"…",…}]' (Pha 7b, kiểm thử): gieo hàng vào trang CongThuc (giáo viên nhập tay trên Sheet thật).
+if (process.env.CONG_THUC && g._sheets.CongThuc) {
+  const d = g._sheets.CongThuc._data();
+  JSON.parse(process.env.CONG_THUC).forEach((o) => d.push(d[0].map((h) => (o[h] != null ? o[h] : ''))));
+}
 const adminPw = g._sheets.CaiDat._data().find((r) => r[0] === 'MAT_KHAU_QUAN_TRI')[1];
 let actions = {};
 

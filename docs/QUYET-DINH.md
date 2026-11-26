@@ -1,4 +1,4 @@
-> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 24/11/2026 (thêm người cộng tác).
+> Bản sao của Google Doc "Quyết định đã chốt — Web luyện đề VLSN" (id `160yRH-KzpC_4YMsKrkrZiuZjpyrHsJduDwt5QScImHc`). Bản trên Drive là bản đúng. Chép lại lần cuối: 26/11/2026 (Sổ tay cá nhân — Pha 7; quy tắc nhập Lớp 10 của Cowork).
 
 # WEB LUYỆN ĐỀ VLSN — QUYẾT ĐỊNH ĐÃ CHỐT
 
@@ -49,6 +49,17 @@
 - Câu tự luận vẫn nhập kho, nhãn "Phần IV – Tự luận" (mã P4). Trắc nghiệm 4 lựa chọn kiểu cũ xếp Phần I. (11/2026)
 - Nhập xong mỗi đề: báo thống kê các câu vừa thêm.
 - Kho lưu trên Drive, thư mục TÀI LIỆU ONLINE / KHO TÀI LIỆU; bản sao trên máy tại D:\VLSN\KHO ĐỀ\KHO ĐỀ MẪU.
+- Nhập Lớp 10 (Cowork, 26/11/2026): danh mục Lớp 10 theo SGK Kết nối tri thức (7 chương, 34 bài, mã L10C{chương}B{bài}); số thứ tự mã câu đánh riêng theo từng lớp. Câu đo g có tính sai số xếp Bài 11. Câu Phần III dùng chung đoạn dẫn thì chép đoạn dẫn vào từng câu. Chỉ nhập bản có lời giải; bỏ câu thiếu đáp án hoặc đáp án nhập nhằng. Bài, mức độ, năng lực đợt này gán tự động, ghi chú ở cột "Ghi chú phân loại" để soát dần. Hình lưu ở 02. HÌNH VẼ/Lớp 10, tên file theo mã câu.
+- **Sổ tay cá nhân (chốt 26/11/2026, Pha 7):** tab mới cho học sinh, lưu mọi câu làm sai, phân loại lỗi, nhắc lỗi lặp lại, gợi ý cách sửa và tạo đề ngắn để khắc phục.
+  - Giao diện hai nửa: trái là danh sách câu sai để tra cứu (chi tiết mở rộng/thu gọn); phải là sổ tay, chỉ hiện tên lỗi, mức độ theo màu, tỉ lệ từng loại lỗi và ghi chú của học sinh; giải pháp và bản đồ lỗi chỉ hiện khi bấm vào.
+  - Hai nhóm lỗi: **"Sai ngoo"** (ưu tiên, hiện trước): nhớ nhầm công thức, đọc sai đề/bỏ sót dữ kiện, tính toán/quên đổi đơn vị, sót ý/sót câu/quên không làm. **"Hổng kiến thức"** (theo chương/bài, gồm cả câu đoán mò): để xuống cuối.
+  - Máy tự đoán loại lỗi khi chắc chắn, không chắc thì hỏi học sinh; học sinh tự sửa được loại lỗi của từng câu.
+  - Câu thuộc đề chưa công bố lời giải vẫn hiện nội dung, chỉ ẩn đáp án và lời giải.
+  - Sau khi nộp bài, web hiện một lần toàn bộ câu sai để học sinh chọn lý do từng câu, được bỏ qua.
+  - Một lỗi tính là đã khắc phục khi làm đúng 2 lần ở 2 ngày khác nhau.
+  - Trước khi làm đề, học sinh bắt buộc đánh dấu đã đọc phần "điều cần nhớ" lấy từ sổ tay.
+  - Chốt thêm 26/11/2026: thẻ công thức (tên gợi nhớ, phạm vi, dấu hiệu theo từng bài) do Cowork "Kho đề" soạn nháp, giáo viên duyệt; thời gian đề xuất cho đề 50 phút: Phần I 15, Phần II 15, Phần III 12, kiểm tra lại 8 phút (co giãn theo thời gian đề); dùng danh sách từ khóa dễ đọc sai mặc định, giáo viên bổ sung trong CaiDat, chưa gắn từ khóa riêng từng câu; đánh dấu câu đúng nhưng đoán mò làm sau Pha 7c.
+  - Giao diện sổ tay (chốt 26/11/2026): nền giấy kẻ, mỗi dòng chữ cao đúng một dòng kẻ, chữ nằm giữa hai dòng kẻ (không dùng kiểu viết sát dòng kẻ).
 
 ## 6. Thiết kế
 - ~~Phương án B: nền sáng cho phần làm bài, đầu trang/kết quả phong cách bảng đen, chế độ tối.~~
@@ -56,6 +67,7 @@
 - **Đổi màu và logo (chốt 18/11/2026, Cowork):** giữ nguyên giao diện web hiện tại và bố cục hiện tại; đổi màu chủ đạo sang xanh **#1D6B3E** (màu chủ đạo bảng màu VLSN); đổi logo thành logo VLSN lấy từ vatly.ai (ảnh "Logo Vật Lý Siêu Nhẩm" ở góc trên khung bài học). Không làm bố cục phương án B.
 - Giữ: phông Montserrat, tiêu đề in hoa đậm 800; slogan "VẬT LÝ SIÊU NHẨM - ĐỊNH HƯỚNG TRUYỀN CẢM HỨNG"; chân trang "HỆ THỐNG GIÁO DỤC VẬT LÝ SIÊU NHẨM" + hotline 0978 650726 - 0326 425 111.
 - Chỉ hiện thương hiệu trung tâm, không đưa tên giáo viên lên phần nhận diện.
+- **Bảng màu Sổ tay (chốt 26/11/2026, Pha 7):** được dùng thêm ngoài bảng màu Pha 5 — nền giấy kẻ, chấm mức độ đỏ/vàng/xanh, màu chữ nhãn đỏ #b42323 và xanh #1D6B3E, màu 6 loại lỗi. Màu loại lỗi đậm hơn khoảng 1,5 lần so với trang mẫu (độ tương phản với nền giấy ×1,5) để học sinh phân biệt rõ hơn: công thức #5347a0, đọc đề #215f92, tính toán #0c7069, sót #94396c, hổng kiến thức #4e5a6b, chưa phân loại #9fa5ae (giao diện tối chỉ đậm thêm màu chưa phân loại). Mã đầy đủ: biến `--nb-*` trong `assets/css/style.css`.
 - Pha 5 làm theo đúng mục này, ưu tiên dòng "Đổi màu và logo". (18/11/2026)
 - **Form VLSN cho file Word đề** (Cowork, 10/11/2026): file Word đề tạo mới dựng từ mẫu MAU_CHUAN_WORD_VLSN.docx; khổ Letter dọc; lề 2 / 1,5 cm; font Cambria Math 12, giãn dòng 1,15; công thức gõ bằng Equation; header/footer, khung đầu đề, tiêu đề "PHẦN 1. TRẮC NGHIỆM NHIỀU LỰA CHỌN" / "PHẦN 2. TRẮC NGHIỆM ĐÚNG SAI" / "PHẦN 3. TRẮC NGHIỆM TRẢ LỜI NGẮN", phương án A–D đặt tab, Phần III có dòng "Đáp án của em", cuối đề "---------- HẾT ----------". (Liên quan Pha 3: bộ đọc file Word phải nhận dạng đúng mẫu này.)
 
@@ -79,6 +91,7 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
   3. Kho "KHO CÂU HỎI VẬT LÝ", thư mục "02. HÌNH VẼ" và thư mục "WEB LUYỆN ĐỀ – TÀI LIỆU CHUNG": chia sẻ theo việc được giao (quyền sửa hoặc chỉ xem).
   4. Chỉ giáo viên (chủ máy chủ) bấm Triển khai → Phiên bản mới cho Apps Script. Người cộng tác sửa `Code.gs` trong repo, tăng `APP_VERSION`, ghi việc vào `docs/VIEC-GIAO-VIEN.md`.
   5. Người mới (và Claude của họ) đọc theo thứ tự: `CLAUDE.md` → `docs/TONG-QUAN.md` → file Quyết định đã chốt. Quyết định chung vẫn ghi vào file trên Drive. Không ghi tên, email người cộng tác vào repo.
+- **Pha 7 — Sổ tay cá nhân (chốt 26/11/2026):** 7a sổ tay tự động (danh sách câu sai, phân loại lỗi máy tự đoán, mức độ theo màu); 7b học sinh tự phân loại lỗi, ghi chú, lời nhắc trước khi làm đề và công cụ khắc phục từng loại lỗi; 7c đề khắc phục và trạng thái đã khắc phục. Đặc tả: `docs/spec/pha-7-so-tay.md`. Chốt 26/11/2026: làm xong cả 7a, 7b, 7c rồi giáo viên dán Code.gs **một lần** (như Pha 6); từng pha con vẫn gộp vào `main` qua pull request, trang web tự ẩn mục Sổ tay khi máy chủ chưa cập nhật.
 
 ## 9. Câu hỏi mở / việc đang chờ
 - ~~Code.gs 1.1.0 chưa dán vào Apps Script — dán một lần ở Pha 6.~~ Đã dán Code.gs 1.5.0 ngày 21/11/2026.
@@ -102,3 +115,8 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - 21/11/2026 — Claude Code: giáo viên chốt dùng logo hiện tại (mê cung chữ Q) cho web (mục 6, mục 9).
 - 21/11/2026 — Claude Code: giáo viên chốt giao diện (mục 6): tiêu đề không in hoa (Montserrat đậm 700); chữ chế độ tối dịu hơn để không chói; slogan ở chân trang; tên trang web không có tên giáo viên (giáo viên tự sửa ở Cài đặt).
 - 24/11/2026 — Claude Code: giáo viên chốt cho thêm người cộng tác (sửa code và dữ liệu web), ghi ở mục 8; thêm `docs/TONG-QUAN.md` (tóm tắt chức năng và tài liệu cho người mới).
+- 26/11/2026 — Cowork: nhập Lớp 10 (13 đề chính thức + 41 đề cương, bản có lời giải) vào kho; ghi quy tắc nhập Lớp 10 vào mục 5. Kho trên máy đã chốt (2.674 câu L10); chưa đồng bộ lên Google Sheet kho.
+- 26/11/2026 — Claude Code: giáo viên chốt tính năng Sổ tay cá nhân cho học sinh (Pha 7a–7c), ghi ở mục 5 và mục 8. Đặc tả `docs/spec/pha-7-so-tay.md` chờ giáo viên duyệt.
+- 26/11/2026 — Claude Code: giáo viên duyệt đặc tả Pha 7 và chốt 4 câu hỏi mở theo đề xuất; dựng trang mẫu giao diện Sổ tay.
+- 26/11/2026 — Claude Code: giáo viên chốt giao diện sổ tay kiểu chữ nằm giữa hai dòng kẻ (mục 5); bắt đầu làm Pha 7a.
+- 26/11/2026 — Claude Code: Pha 7a qua soát code và kiểm thử vòng 2 (ĐẠT). Giáo viên chốt bảng màu Sổ tay, màu loại lỗi đậm hơn ×1,5 (mục 6); dán Code.gs một lần sau Pha 7c (mục 8); cho phép tạo pull request Pha 7a.

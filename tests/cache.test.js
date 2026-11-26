@@ -26,14 +26,14 @@ console.log('Pha 1 — đệm máy chủ và ghi an toàn:');
 t('publicConfig có features; bootstrap/adminBootstrap trả đủ, không lộ đáp án', () => {
   const { g, tTok, sTok } = fresh();
   const p = ok(g.call('publicConfig'));
-  assert.deepStrictEqual(p.features, ['changePin', 'goal', 'bootstrap', 'cache', 'bank', 'practice']);
-  assert.strictEqual(p.version, '1.5.0');
+  assert.deepStrictEqual(p.features, ['changePin', 'goal', 'bootstrap', 'cache', 'bank', 'practice', 'notebook']);
+  assert.strictEqual(p.version, '1.7.0');
   const b = ok(g.call('bootstrap', { token: sTok }));
   assert.strictEqual(b.me.id, 'HS0001');
   assert.strictEqual(b.pub.appName, p.appName);
   assert.strictEqual(b.exams.length, 1);
   assert.deepStrictEqual(b.results, []);
-  assert.strictEqual(b.v, '1.5.0');
+  assert.strictEqual(b.v, '1.7.0');
   assert(!/dapAn|loiGiai|"pin"|MAT_KHAU/.test(JSON.stringify(b)), 'bootstrap lộ dữ liệu');
   const a = ok(g.call('adminBootstrap', { token: tTok }));
   assert(a.overview.counts && a.exams.length === 1 && a.me.role === 'teacher');

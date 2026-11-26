@@ -18,7 +18,8 @@
   const FEATURE_OF = {
     changePin: 'changePin', bootstrap: 'bootstrap', adminBootstrap: 'bootstrap',
     adminBankMeta: 'bank', adminBankList: 'bank', adminBankSource: 'bank', adminBankMatrix: 'bank', adminBankToQuestions: 'bank',
-    practiceMeta: 'practice', practiceStart: 'practice', adminPracticeSync: 'practice', adminPracticeList: 'practice', adminPracticeToggle: 'practice'
+    practiceMeta: 'practice', practiceStart: 'practice', adminPracticeSync: 'practice', adminPracticeList: 'practice', adminPracticeToggle: 'practice',
+    notebook: 'notebook', notebookItem: 'notebook'
   };
   function savePub(p) { store.set(PUB_KEY, p); store.set(PUB_TIME_KEY, Date.now()); }
   function pubFresh() { return !!store.get(PUB_KEY, null) && Date.now() - (+store.get(PUB_TIME_KEY, 0) || 0) < PUB_MAX_AGE; }
@@ -52,7 +53,8 @@
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload),
-          redirect: 'follow'
+          redirect: 'follow',
+          keepalive: !!opts.keepalive // Pha 7b: gửi nốt ghi chú khi rời trang
         });
         data = await res.json();
         break;

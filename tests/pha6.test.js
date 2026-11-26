@@ -61,16 +61,16 @@ const after1 = snap(g);
 
 console.log('Pha 6 — phát hành:');
 
-t('TC-6.1 APP_VERSION 1.5.0; doGet, publicConfig, bootstrap trả đúng phiên bản và đủ features', () => {
-  assert.strictEqual(g.APP_VERSION, '1.5.0');
+t('TC-6.1 APP_VERSION 1.7.0; doGet, publicConfig, bootstrap trả đúng phiên bản và đủ features', () => {
+  assert.strictEqual(g.APP_VERSION, '1.7.0');
   const d = JSON.parse(g.doGet().getContent()).data;
-  assert.strictEqual(d.version, '1.5.0');
+  assert.strictEqual(d.version, '1.7.0');
   const p = ok(g.call('publicConfig'));
-  assert.strictEqual(p.version, '1.5.0');
-  assert.deepStrictEqual(p.features.slice().sort(), ['bank', 'bootstrap', 'cache', 'changePin', 'goal', 'practice']);
+  assert.strictEqual(p.version, '1.7.0');
+  assert.deepStrictEqual(p.features.slice().sort(), ['bank', 'bootstrap', 'cache', 'changePin', 'goal', 'notebook', 'practice']);
   assert.ok(!('teacherName' in p), 'Vòng 2 (R-8): publicConfig không trả tên giáo viên');
   const tok = ok(g.call('loginPin', { studentId: 'HS0001', pin: '0101' })).token;
-  assert.strictEqual(ok(g.call('bootstrap', { token: tok })).v, '1.5.0');
+  assert.strictEqual(ok(g.call('bootstrap', { token: tok })).v, '1.7.0');
   // appsscript.json: không khai oauthScopes; setup() không tạo trigger
   const manifest = require('../apps-script/appsscript.json');
   assert.ok(!('oauthScopes' in manifest), 'appsscript.json không được có oauthScopes');
@@ -148,10 +148,10 @@ t('kiemTraSauTrienKhai: Sheet đã setup, chưa có kho → 0 lỗi, có lưu ý
   g.__MEMO();
   const r = g.kiemTraSauTrienKhai();
   assert.strictEqual(r.loi, 0, r.dong.join('\n'));
-  assert.ok(r.dong[0].indexOf('1.5.0') >= 0 && r.dong[0].indexOf('practice') >= 0, r.dong[0]);
+  assert.ok(r.dong[0].indexOf('1.7.0') >= 0 && r.dong[0].indexOf('practice') >= 0, r.dong[0]);
   assert.ok(r.dong.some((d) => /Chưa có KHO_CAU_HOI_ID/.test(d)));
   assert.ok(r.dong.some((d) => /CacheService\): ghi\/đọc thử được/.test(d)));
-  assert.ok(/Phiên bản máy chủ 1\.5\.0/.test(r.dong[r.dong.length - 1]));
+  assert.ok(/Phiên bản máy chủ 1\.7\.0/.test(r.dong[r.dong.length - 1]));
   assert.deepStrictEqual(snap(g), s0, 'không được sửa trang tính');
   assert.deepStrictEqual(g._stats.writes, {}, 'không ghi: ' + JSON.stringify(g._stats.writes));
   const cache1 = Object.keys(g._cache).filter((k) => g._cache[k].exp > Date.now()).sort();

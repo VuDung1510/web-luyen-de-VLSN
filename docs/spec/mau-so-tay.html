@@ -1,0 +1,900 @@
+<title>Sổ tay cá nhân</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Montserrat:wght@700;800&display=swap">
+<style>
+/* Bố cục: hai nửa — trái "Câu đã sai" (tra cứu, thu gọn), phải "Sổ tay" trên nền giấy kẻ; điện thoại thành 2 tab, Sổ tay trước. Màu theo web luyện đề VLSN. */
+:root {
+  --bg: #f4f6fb; --surface: #ffffff; --surface-2: #eef2fa; --text: #182033; --muted: #5b6478; --border: #dfe4ee;
+  --primary: #1D6B3E; --primary-hover: #15573A; --primary-ink: #ffffff; --primary-soft: #e3f1e8;
+  --paper: #fffef9; --rule: #e6ecf3; --margin: #b9d9c4;
+  --do: #d23b3b; --do-soft: #fde8e8; --vang: #b97d00; --vang-soft: #fff3d1; --xanh: #2f8a4f; --xanh-soft: #e1f4e7;
+  --c-ct: #5347a0; --c-dd: #215f92; --c-tt: #0c7069; --c-sot: #94396c; --c-hkt: #4e5a6b; --c-cr: #9fa5ae;
+  --hl-em: #fff1a8; --hl-kw: #ffd2d2; --hl-so: #d6ecff;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 4px 16px rgba(16,24,40,.06);
+  --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-head: "Montserrat", "Be Vietnam Pro", system-ui, sans-serif;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1420; --surface: #171e2e; --surface-2: #1f2840; --text: #dde3ec; --muted: #9aa4b8; --border: #2a3450;
+    --primary: #5fbf87; --primary-hover: #7fd3a2; --primary-ink: #0b1020; --primary-soft: #183826;
+    --paper: #161d2b; --rule: #222c40; --margin: #2b5a3e;
+    --do: #f87171; --do-soft: #3a1d22; --vang: #fbbf24; --vang-soft: #3a2f12; --xanh: #6ee7a0; --xanh-soft: #15301f;
+    --c-ct: #a397ff; --c-dd: #6fb4ee; --c-tt: #3fd1c4; --c-sot: #f08cc4; --c-hkt: #9aa7bd; --c-cr: #676f80;
+    --hl-em: #5c5214; --hl-kw: #5e2626; --hl-so: #1d3b58;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1420; --surface: #171e2e; --surface-2: #1f2840; --text: #dde3ec; --muted: #9aa4b8; --border: #2a3450;
+  --primary: #5fbf87; --primary-hover: #7fd3a2; --primary-ink: #0b1020; --primary-soft: #183826;
+  --paper: #161d2b; --rule: #222c40; --margin: #2b5a3e;
+  --do: #f87171; --do-soft: #3a1d22; --vang: #fbbf24; --vang-soft: #3a2f12; --xanh: #6ee7a0; --xanh-soft: #15301f;
+  --c-ct: #a397ff; --c-dd: #6fb4ee; --c-tt: #3fd1c4; --c-sot: #f08cc4; --c-hkt: #9aa7bd; --c-cr: #676f80;
+  --hl-em: #5c5214; --hl-kw: #5e2626; --hl-so: #1d3b58;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.55; margin: 0; }
+h1, h2, h3 { font-family: var(--font-head); font-weight: 700; text-wrap: balance; margin: 0; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1240px; margin: 0 auto; }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* dải ghi chú trang mẫu */
+.mock { background: var(--surface-2); border-bottom: 1px dashed var(--border); font-size: 13px; padding-block: 8px; }
+.mock .wrap { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.mock b { font-weight: 600; }
+.mock .sp { flex: 1; }
+.linkbtn { background: none; border: 1px solid var(--border); border-radius: 999px; padding: 3px 12px; font-size: 13px; }
+.linkbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+/* đầu trang giống web */
+.top { background: var(--surface); border-bottom: 1px solid var(--border); padding-block: 10px; }
+.top .wrap { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-head); font-weight: 700; color: var(--primary); }
+.brand img { width: 34px; height: 34px; border-radius: 8px; background: #fff; padding: 2px; }
+.nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav a { text-decoration: none; color: var(--muted); padding: 6px 12px; border-radius: 999px; font-weight: 500; font-size: 14px; }
+.nav a.on { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+
+/* tiêu đề trang + đề khắc phục */
+.head { padding-block: 22px 14px; }
+.head .wrap { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end; justify-content: space-between; }
+.head h1 { font-size: 26px; }
+.head p { margin: 4px 0 0; }
+.fixbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 8px 14px; font-weight: 600; font-size: 14px; display: inline-flex; gap: 8px; align-items: center; }
+.btn:hover { border-color: var(--primary); }
+.btn-primary { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn small { font-weight: 500; opacity: .85; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* tab điện thoại */
+.tabs { display: none; gap: 6px; margin-bottom: 12px; }
+.tabs button { flex: 1; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 9px; font-weight: 600; }
+.tabs button[aria-selected="true"] { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+
+.split { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; padding-bottom: 40px; }
+.pane { min-width: 0; }
+.pane-title { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.pane-title h2 { font-size: 18px; }
+
+/* ---------- nửa trái ---------- */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.filters select, .filters input { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 7px 10px; font-size: 14px; min-width: 0; }
+.filters input { flex: 1 1 160px; }
+.active-filter { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 10px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 600; background: var(--primary-soft); color: var(--primary); border: 0; }
+.group-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 16px 0 6px; display: flex; gap: 8px; align-items: center; }
+.group-label::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.list { display: flex; flex-direction: column; gap: 8px; }
+.item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.item.xanh-done .row-main { opacity: .62; }
+.row { width: 100%; display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; background: none; border: 0; text-align: left; }
+.row:hover { background: var(--surface-2); }
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.dot.do { background: var(--do); } .dot.vang { background: var(--vang); } .dot.xanh { background: var(--xanh); }
+.row-main { min-width: 0; }
+.row-title { font-weight: 600; font-size: 14px; }
+.row-sub { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-side { display: flex; align-items: center; gap: 8px; }
+.chev { transition: transform .15s; color: var(--muted); }
+.item.open .chev { transform: rotate(90deg); }
+.tag { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.tag .sw { width: 8px; height: 8px; border-radius: 2px; }
+.tag.guess { border-style: dashed; border-color: currentColor; }
+.tag.solid { background: var(--surface-2); }
+.count { font-size: 12px; color: var(--do); font-weight: 600; white-space: nowrap; }
+.detail { border-top: 1px solid var(--border); padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.q { line-height: 1.65; }
+.q b { font-weight: 600; }
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.opt { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 14px; }
+.opt.em { border-color: var(--do); background: var(--do-soft); }
+.opt.dung { border-color: var(--xanh); background: var(--xanh-soft); }
+.opt .lab { font-size: 11px; font-weight: 700; margin-left: 6px; }
+.ans { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; }
+.ans .bad { color: var(--do); font-weight: 600; } .ans .good { color: var(--xanh); font-weight: 600; }
+.lock { font-size: 13px; background: var(--surface-2); border-radius: 8px; padding: 8px 10px; color: var(--muted); }
+details.sol summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--primary); }
+details.sol div { margin-top: 6px; font-size: 14px; }
+.blk-title { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 4px 11px; font-size: 13px; display: inline-flex; gap: 6px; align-items: center; }
+.chip .sw { width: 8px; height: 8px; border-radius: 2px; }
+.chip.on { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.chip.ask::after { content: "?"; font-weight: 700; color: var(--vang); }
+.src { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.note-in { width: 100%; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 8px 10px; resize: vertical; min-height: 40px; font-size: 14px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tool { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--surface-2); display: flex; flex-direction: column; gap: 10px; }
+.tool h4 { margin: 0; font-size: 14px; font-family: var(--font-head); }
+.empty { text-align: center; color: var(--muted); padding: 24px; border: 1px dashed var(--border); border-radius: 12px; }
+
+/* ---------- nửa phải: sổ tay ---------- */
+.book {
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(90deg, transparent 38px, var(--margin) 38px, var(--margin) 40px, transparent 40px),
+    repeating-linear-gradient(180deg, transparent 0 31px, var(--rule) 31px 32px);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 32px 18px 32px 54px; position: sticky; top: 12px;
+  line-height: 32px; /* mỗi dòng chữ = 1 dòng kẻ */
+}
+/* Trong sổ: mọi dòng chữ cao 32px, khoảng cách giữa các khối là bội 32px; khối công cụ (chiều cao tự do) được JS bù cho tròn bội 32px. */
+.book .tool { line-height: 1.55; }
+.book-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; column-gap: 10px; }
+.book-head h2 { font-size: 20px; color: var(--primary); white-space: nowrap; }
+/* chữ nhỏ 12px: hạ xuống cho chân chữ chạm dòng kẻ */
+.legend-sev { display: flex; flex-wrap: wrap; column-gap: 10px; font-size: 12px; color: var(--muted); }
+.legend-sev span { display: inline-flex; align-items: center; gap: 4px; }
+.ratio-row { height: 32px; display: flex; align-items: center; }
+.ratio { flex: 1; display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.ratio i { display: block; height: 100%; }
+.ratio-legend { display: flex; flex-wrap: wrap; column-gap: 12px; font-size: 12px; color: var(--muted); }
+.ratio-legend span { display: inline-flex; gap: 5px; align-items: center; }
+.ratio-legend .sw { width: 8px; height: 8px; border-radius: 2px; }
+.sec { margin-top: 32px; }
+.sec-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 8px; }
+.sec-h h3 { font-size: 16px; }
+.err-line { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; column-gap: 10px; align-items: start; }
+.err-line > .dot { margin-top: 10px; }
+.err-meta { min-height: 32px; }
+.err-name { background: none; border: 0; padding: 0; text-align: left; font-weight: 600; font-size: 15px; min-width: 0; }
+.err-name:hover { color: var(--primary); text-decoration: underline; }
+.err-meta { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.rep { background: var(--do-soft); color: var(--do); border-radius: 999px; padding: 1px 8px; font-size: 11px; line-height: 18px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.err-sub { height: 32px; display: flex; align-items: center; gap: 12px; padding-left: 24px; }
+.err-bar { flex: 1; height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.err-bar i { display: block; height: 100%; }
+.fix-toggle { background: none; border: 0; padding: 0; color: var(--primary); font-weight: 600; font-size: 13px; white-space: nowrap; }
+.fix-panel { padding-left: 24px; }
+details.hkt > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; column-gap: 8px; }
+details.hkt > summary::-webkit-details-marker { display: none; }
+details.hkt > summary h3 { font-size: 16px; }
+details.hkt > summary .more { color: var(--primary); font-size: 13px; font-weight: 600; }
+details.hkt[open] > summary .more .closed, details.hkt:not([open]) > summary .more .opened { display: none; }
+.map-ch-h { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; column-gap: 8px; align-items: center; font-weight: 600; font-size: 14px; }
+.map-bai { padding-left: 20px; font-size: 13px; color: var(--muted); }
+.map-bai div { display: flex; justify-content: space-between; gap: 8px; }
+.hkt-sum { font-size: 13px; color: var(--muted); }
+.notes { --note-pad: 0px; display: block; width: 100%; height: calc(128px + var(--note-pad)); margin: 0; padding: var(--note-pad) 0 0; border: 0; border-radius: 0; background: transparent; resize: none; overflow: hidden; font-size: 15px; font-family: var(--font); line-height: 32px; }
+.notes:focus-visible { outline: 2px dashed var(--primary); }
+.saved { font-size: 12px; color: var(--muted); }
+
+/* công cụ */
+.fcard { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; }
+.fcard .nick { font-family: var(--font-head); font-weight: 800; font-size: 18px; color: var(--primary); }
+.fcard .ct { font-size: 20px; font-weight: 600; letter-spacing: .02em; font-family: "Cambria Math", "STIX Two Math", Georgia, serif; }
+.fcard dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; font-size: 13px; }
+.fcard dt { color: var(--muted); font-weight: 600; }
+.fcard dd { margin: 0; }
+.ladder-wrap { overflow-x: auto; padding-bottom: 4px; }
+.ladder { display: flex; align-items: center; gap: 0; width: max-content; }
+.rung { border: 1.5px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 10px; font-weight: 600; font-size: 14px; min-width: 52px; text-align: center; }
+.rung.chuan { border-color: var(--text); box-shadow: inset 0 -3px 0 var(--text); }
+.rung.em { border-color: var(--do); background: var(--do-soft); color: var(--do); }
+.rung.ok { border-color: var(--xanh); background: var(--xanh-soft); color: var(--xanh); }
+.rung.wrong { animation: shake .3s; }
+.rung.from { border-color: var(--c-dd); background: var(--surface-2); }
+.step { font-size: 11px; color: var(--muted); padding: 0 6px; white-space: nowrap; }
+@keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.feedback { font-size: 14px; border-radius: 8px; padding: 8px 10px; }
+.feedback.good { background: var(--xanh-soft); color: var(--xanh); }
+.feedback.bad { background: var(--do-soft); color: var(--do); }
+.feedback.info { background: var(--surface); border: 1px solid var(--border); }
+.other-units { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.kw-text { line-height: 2.1; font-size: 15px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.tok { background: none; border: 0; padding: 1px 2px; border-radius: 4px; cursor: pointer; }
+.tok:hover { background: var(--surface-2); }
+.tok.sel { background: var(--hl-em); }
+.tok.kw { box-shadow: inset 0 -2px 0 var(--do); }
+.tok.kw.sel { background: var(--hl-em); }
+.tok.kw.miss { background: var(--hl-kw); }
+.tok.so { background: var(--hl-so); }
+.kw-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.kw-legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.kw-legend .a::before { background: var(--hl-em); } .kw-legend .b::before { background: var(--hl-kw); } .kw-legend .c::before { background: var(--hl-so); }
+.kwlist { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 13px; }
+.kwlist b { color: var(--do); }
+.tplan { display: grid; gap: 8px; font-size: 13px; }
+.tplan .r { display: grid; grid-template-columns: 92px minmax(0, 1fr) 72px; gap: 8px; align-items: center; }
+.bars { display: grid; gap: 3px; }
+.bars i { display: block; height: 7px; border-radius: 4px; }
+.bars .de { background: var(--primary); opacity: .55; }
+.bars .tt { background: var(--do); }
+.bars .tt.okk { background: var(--xanh); }
+.tplan-leg { display: flex; gap: 14px; font-size: 12px; color: var(--muted); }
+.tplan-leg span::before { content: ""; display: inline-block; width: 14px; height: 7px; border-radius: 4px; margin-right: 5px; vertical-align: 1px; }
+.tplan-leg .a::before { background: var(--primary); opacity: .55; } .tplan-leg .b::before { background: var(--do); }
+ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4px; }
+
+/* hộp thoại */
+.overlay { position: fixed; inset: 0; background: rgba(10, 15, 25, .5); display: flex; align-items: flex-start; justify-content: center; padding: max(24px, env(safe-area-inset-top, 0px)) 16px 24px; overflow-y: auto; z-index: 30; }
+.dialog { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); width: min(640px, 100%); padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.dialog h2 { font-size: 20px; }
+.dialog .why-item { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; }
+.dialog .why-q { font-size: 14px; }
+.dialog .foot { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.remind { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.remind li { display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 10px; align-items: start; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.remind li .dot { margin-top: 5px; }
+.check { display: flex; gap: 10px; align-items: center; font-weight: 600; padding: 10px 12px; border: 1.5px solid var(--primary); border-radius: 10px; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--primary); }
+.goal { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.goal input { width: 80px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; background: var(--surface); }
+.compo { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+#toast { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 10px; font-size: 14px; z-index: 40; max-width: calc(100% - 32px); }
+
+@media (max-width: 900px) {
+  .tabs { display: flex; }
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .split[data-tab="sotay"] .pane-list, .split[data-tab="cau"] .pane-book { display: none; }
+  .book { position: static; padding-left: 46px; background-image: linear-gradient(90deg, transparent 30px, var(--margin) 30px, var(--margin) 32px, transparent 32px), repeating-linear-gradient(180deg, transparent 0 31px, var(--rule) 31px 32px); }
+  .opts { grid-template-columns: minmax(0, 1fr); }
+  .head h1 { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="mock gutter"><div class="wrap">
+  <b>Trang mẫu, dữ liệu giả</b><span class="muted">Bấm thử mọi chỗ. Xem thêm màn hình khác:</span>
+  <button class="linkbtn" data-act="open-why">Sau khi nộp bài: "Em sai vì sao?"</button>
+  <button class="linkbtn" data-act="open-remind">Trước khi làm đề: "Điều cần nhớ"</button>
+  <span class="sp"></span>
+  <button class="linkbtn" data-act="reset">Đặt lại dữ liệu mẫu</button>
+</div></div>
+
+<header class="top gutter"><div class="wrap">
+  <div class="brand"><img alt="" src="logo-vlsn.png" onerror="this.onerror=null;this.src='../../assets/img/logo-vlsn.png'">Luyện đề Vật lý</div>
+  <nav class="nav" aria-label="Mục chính">
+    <a href="#trang-chu" data-act="nav">Trang chủ</a><a href="#luyen-tap" data-act="nav">Luyện tập</a>
+    <a href="#so-tay" class="on" aria-current="page">Sổ tay</a><a href="#lich-su" data-act="nav">Lịch sử</a><a href="#xep-hang" data-act="nav">Xếp hạng</a>
+  </nav>
+</div></header>
+
+<section class="head gutter"><div class="wrap">
+  <div>
+    <h1>Sổ tay của em</h1>
+    <p class="muted" id="headMeta"></p>
+  </div>
+  <div class="fixbar">
+    <button class="btn btn-primary" data-act="open-fix" data-mau="ON_NHANH">Ôn trước giờ kiểm tra <small>5 câu · 7 phút</small></button>
+    <button class="btn" data-act="open-fix" data-mau="MUOI_CAU">Đề khắc phục <small>10 câu · 15 phút</small></button>
+  </div>
+</div></section>
+
+<main class="gutter"><div class="wrap">
+  <div class="tabs" role="tablist" aria-label="Chọn nửa màn hình">
+    <button role="tab" id="tabBook" aria-selected="true" data-act="tab" data-tab="sotay">Sổ tay</button>
+    <button role="tab" id="tabList" aria-selected="false" data-act="tab" data-tab="cau">Câu đã sai <span id="tabCount"></span></button>
+  </div>
+  <div class="split" id="split" data-tab="sotay">
+    <section class="pane pane-list" aria-labelledby="listTitle">
+      <div class="pane-title"><h2 id="listTitle">Câu đã sai</h2><span class="muted num" id="listCount"></span></div>
+      <div class="filters">
+        <select id="fLoai" aria-label="Lọc theo loại lỗi"></select>
+        <select id="fDe" aria-label="Lọc theo đề"></select>
+        <select id="fMau" aria-label="Lọc theo mức độ">
+          <option value="">Mọi mức độ</option><option value="do">Đỏ: chưa làm đúng lại</option><option value="vang">Vàng: đang tiến bộ</option><option value="xanh">Xanh: đã khắc phục</option>
+        </select>
+        <input id="fQ" type="search" placeholder="Tìm trong câu hỏi…" aria-label="Tìm trong câu hỏi">
+      </div>
+      <div id="activeFilter"></div>
+      <div id="list"></div>
+    </section>
+    <aside class="pane pane-book" aria-labelledby="bookTitle">
+      <div class="book" id="book"></div>
+    </aside>
+  </div>
+</div></main>
+
+<div class="overlay" id="modal" hidden><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle" id="dialog"></div></div>
+<div id="toast" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const SUP = { '-': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
+  const pow10 = (n) => '10' + String(n).split('').map((c) => SUP[c]).join('');
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem('mauSoTay.' + k)); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem('mauSoTay.' + k, JSON.stringify(v)); } catch (e) { /* bỏ qua */ } }
+  };
+
+  /* ---------- loại lỗi ---------- */
+  const LOAI = {
+    CONG_THUC: { ten: 'Nhớ nhầm công thức', nhom: 'ngoo', mau: 'var(--c-ct)', nhac: 'Trước khi thay số, đọc lại tên gợi nhớ của công thức: con lắc đơn T = 2π√(l/g), "Lờ trên, Gờ dưới".' },
+    DOC_DE: { ten: 'Đọc sai đề / bỏ sót dữ kiện', nhom: 'ngoo', mau: 'var(--c-dd)', nhac: 'Gạch chân từ khóa trước khi làm: SAI, không, ít nhất, nửa, làm tròn, đơn vị kết quả.' },
+    TINH_TOAN: { ten: 'Tính toán / quên đổi đơn vị', nhom: 'ngoo', mau: 'var(--c-tt)', nhac: 'Đổi mọi dữ kiện về đơn vị chuẩn (m, kg, s, Pa, J) trước khi thay số; đọc đơn vị đáp án đề yêu cầu.' },
+    SOT: { ten: 'Sót ý / sót câu / quên không làm', nhom: 'ngoo', mau: 'var(--c-sot)', nhac: 'Chia giờ: Phần I 15′, Phần II 15′, Phần III 12′, chừa 8′ kiểm tra lại. Không để trống câu nào.' },
+    HONG_KT: { ten: 'Chưa biết làm', nhom: 'hong', mau: 'var(--c-hkt)' },
+    DOAN_MO: { ten: 'Đoán mò', nhom: 'hong', mau: 'var(--c-hkt)' },
+    CHUA_RO: { ten: 'Chưa phân loại', nhom: 'chuaro', mau: 'var(--c-cr)' }
+  };
+  const NGOO = ['CONG_THUC', 'DOC_DE', 'TINH_TOAN', 'SOT'];
+  const PICKABLE = ['CONG_THUC', 'DOC_DE', 'TINH_TOAN', 'SOT', 'HONG_KT', 'DOAN_MO'];
+  const MAU_TEN = { do: 'Đỏ', vang: 'Vàng', xanh: 'Xanh' };
+
+  /* ---------- dữ liệu giả ---------- */
+  const DE = {
+    E1: { ten: 'Đề ôn tập tổng hợp số 1', ngay: '12/11', phut: 50, congBo: true, t: { I: 27, II: 18, III: 5, kt: 0 } },
+    E2: { ten: 'Đề luyện số 3', ngay: '22/11', phut: 50, congBo: false },
+    E3: { ten: 'Luyện tập · Dao động', ngay: '24/11', phut: 15, congBo: true, luyen: true }
+  };
+  const SEED = [
+    { id: 1, de: 'E1', cau: 25, phan: 'III', chuong: 'Sóng', bai: 'Sóng và sự truyền sóng', md: 'VD', mau: 'do', lan: 2,
+      q: 'Một sóng cơ có tần số 50 Hz lan truyền trên mặt nước với bước sóng 4 cm. Tốc độ truyền sóng bằng bao nhiêu m/s?',
+      em: '200', dung: '2', lg: 'v = λf = 0,04 m × 50 Hz = 2 m/s.',
+      loi: { ma: 'TINH_TOAN', y: 'DON_VI', nguon: 'MAY', hoi: false }, unit: { dl: 'chieuDai', em: 'cm', dung: 'm', lech: 2 } },
+    { id: 2, de: 'E1', cau: 27, phan: 'III', chuong: 'Khí lí tưởng', bai: 'Định luật Boyle', md: 'TH', mau: 'do', lan: 1,
+      q: 'Nén đẳng nhiệt một lượng khí từ 6 lít xuống 4 lít. Áp suất ban đầu là 100 kPa. Áp suất sau khi nén bằng bao nhiêu kPa?',
+      em: '150000', dung: '150', lg: 'p₁V₁ = p₂V₂ ⇒ p₂ = 100 × 6 / 4 = 150 kPa.',
+      loi: { ma: 'TINH_TOAN', y: 'DON_VI', nguon: 'MAY', hoi: false }, unit: { dl: 'apSuat', em: 'Pa', dung: 'kPa', lech: 3 } },
+    { id: 3, de: 'E2', cau: 26, phan: 'III', chuong: 'Từ trường', bai: 'Lực từ tác dụng lên dây dẫn', md: 'VD', mau: 'do', lan: 1,
+      q: 'Một đoạn dây dài 20 cm mang dòng điện 5 A đặt vuông góc với các đường sức của một từ trường đều có B = 0,04 T. Độ lớn lực từ tác dụng lên đoạn dây bằng bao nhiêu N?',
+      em: '4', dung: '0,04', lg: 'F = BIl = 0,04 × 5 × 0,2 = 0,04 N.',
+      loi: { ma: 'TINH_TOAN', y: 'DON_VI', nguon: 'HS', hoi: false }, unit: { dl: 'chieuDai', em: 'cm', dung: 'm', lech: null } },
+    { id: 4, de: 'E1', cau: 20, phan: 'II', chuong: 'Sóng', bai: 'Sóng dừng', md: 'VD', mau: 'do', lan: 1,
+      q: 'Trên một sợi dây dài 1,2 m hai đầu cố định đang có sóng dừng với 4 bụng sóng.',
+      ds: [['a', 'Bước sóng bằng 0,6 m.', 'Đ', 'Đ'], ['b', 'Hai đầu dây là hai nút sóng.', 'Đ', 'Đ'], ['c', 'Trên dây có 4 nút sóng (kể cả hai đầu).', 'Đ', 'S'], ['d', 'Hai điểm bụng liền kề dao động ngược pha.', 'Đ', 'Đ']],
+      lg: 'λ/2 = 1,2/4 = 0,3 m ⇒ λ = 0,6 m. Có 4 bụng thì có 5 nút kể cả hai đầu, nên ý c sai.',
+      loi: { ma: 'SOT', nguon: 'MAY', hoi: true } },
+    { id: 5, de: 'E1', cau: 9, phan: 'I', chuong: 'Điện trường', bai: 'Cường độ điện trường', md: 'TH', mau: 'vang', lan: 1,
+      q: 'Đơn vị của cường độ điện trường là', pa: { A: 'V/m', B: 'V.m', C: 'C/m', D: 'N.m' }, em: '', dung: 'A',
+      lg: 'E = U/d nên đơn vị là V/m (cũng bằng N/C).', loi: { ma: 'SOT', nguon: 'MAY', hoi: false } },
+    { id: 6, de: 'E1', cau: 4, phan: 'I', chuong: 'Dao động', bai: 'Con lắc đơn', md: 'TH', mau: 'vang', lan: 1,
+      q: 'Một con lắc đơn có chiều dài dây 1 m dao động nhỏ tại nơi có g = 9,8 m/s². Chu kì dao động của con lắc xấp xỉ bằng',
+      pa: { A: '0,5 s', B: '1,0 s', C: '2,0 s', D: '3,1 s' }, em: 'A', dung: 'C',
+      lg: 'T = 2π√(l/g) = 2π√(1/9,8) ≈ 2,0 s. Đáp án A là kết quả khi đảo ngược l và g.', loi: { ma: 'CONG_THUC', nguon: 'HS', hoi: false } },
+    { id: 7, de: 'E2', cau: 3, phan: 'I', chuong: 'Dao động', bai: 'Dao động tắt dần', md: 'NB', mau: 'do', lan: 1,
+      q: 'Phát biểu nào sau đây là SAI khi nói về dao động tắt dần?',
+      pa: { A: 'Biên độ giảm dần theo thời gian.', B: 'Cơ năng giảm dần theo thời gian.', C: 'Lực cản càng lớn thì dao động tắt càng nhanh.', D: 'Biên độ không đổi theo thời gian.' }, em: 'A', dung: 'D',
+      lg: 'Dao động tắt dần có biên độ giảm dần, nên D sai.', loi: { ma: 'DOC_DE', nguon: 'HS', hoi: false } },
+    { id: 8, de: 'E3', cau: 2, phan: 'I', chuong: 'Dao động', bai: 'Dao động điều hòa', md: 'NB', mau: 'xanh', lan: 1,
+      q: 'Một vật dao động điều hòa với biên độ 5 cm. Quãng đường vật đi được trong nửa chu kì là',
+      pa: { A: '5 cm', B: '10 cm', C: '20 cm', D: '2,5 cm' }, em: 'C', dung: 'B',
+      lg: 'Trong nửa chu kì vật đi được 2A = 10 cm (20 cm là quãng đường trong cả chu kì).', loi: { ma: 'DOC_DE', nguon: 'HS', hoi: false } },
+    { id: 9, de: 'E1', cau: 15, phan: 'I', chuong: 'Vật lí hạt nhân', bai: 'Năng lượng liên kết', md: 'TH', mau: 'do', lan: 1,
+      q: 'Đại lượng đặc trưng cho mức độ bền vững của hạt nhân là',
+      pa: { A: 'năng lượng liên kết.', B: 'năng lượng liên kết riêng.', C: 'số khối.', D: 'độ hụt khối.' }, em: 'A', dung: 'B',
+      lg: 'Năng lượng liên kết riêng càng lớn thì hạt nhân càng bền.', loi: { ma: 'HONG_KT', nguon: 'HS', hoi: false } },
+    { id: 10, de: 'E2', cau: 7, phan: 'I', chuong: 'Từ trường', bai: 'Cảm ứng từ', md: 'NB', mau: 'do', lan: 1,
+      q: 'Trong hệ SI, đơn vị của cảm ứng từ là', pa: { A: 'Wb', B: 'T', C: 'H', D: 'V' }, em: 'C', dung: 'B',
+      lg: 'Cảm ứng từ đo bằng tesla (T).', loi: { ma: 'DOAN_MO', nguon: 'HS', hoi: false } },
+    { id: 11, de: 'E2', cau: 11, phan: 'I', chuong: 'Khí lí tưởng', bai: 'Định luật Charles', md: 'TH', mau: 'do', lan: 1,
+      q: 'Trong quá trình đẳng tích của một lượng khí xác định, áp suất tỉ lệ thuận với',
+      pa: { A: 'thể tích.', B: 'nhiệt độ tuyệt đối.', C: 'nhiệt độ Celsius.', D: 'khối lượng riêng.' }, em: 'C', dung: 'B',
+      lg: 'Quá trình đẳng tích: p/T = hằng số, với T là nhiệt độ tuyệt đối.', loi: { ma: 'CHUA_RO', nguon: 'MAY', hoi: false } },
+    { id: 12, de: 'E1', cau: 23, phan: 'III', chuong: 'Vật lí nhiệt', bai: 'Định luật I nhiệt động lực học', md: 'TH', mau: 'do', lan: 1,
+      q: 'Một khối khí nhận nhiệt lượng 300 J và thực hiện công 120 J lên môi trường. Độ biến thiên nội năng của khối khí bằng bao nhiêu J?',
+      em: '-180', dung: '180', lg: 'ΔU = Q + A = 300 + (−120) = 180 J.',
+      loi: { ma: 'TINH_TOAN', y: 'BAM_MAY', nguon: 'MAY', hoi: true }, nguocDau: true }
+  ];
+  const CONG_THUC = {
+    'Con lắc đơn': { ten: 'Chu kì con lắc đơn', ct: 'T = 2π √( l / g )', nho: '"Lờ trên, Gờ dưới"', giai: 'Dây càng dài thì chu kì càng lớn, nên l nằm trên tử số.',
+      phamVi: 'Dao động nhỏ (góc lệch không quá 10°), dây nhẹ không dãn, bỏ qua sức cản.', dauHieu: 'Đề nói "con lắc đơn", "dao động nhỏ", cho chiều dài dây l và g, hỏi chu kì hoặc tần số.' },
+    'Sóng và sự truyền sóng': { ten: 'Tốc độ truyền sóng', ct: 'v = λ f = λ / T', nho: '"Vờ bằng Lam-đa nhân Phờ"', giai: 'Một chu kì sóng đi được đúng một bước sóng.',
+      phamVi: 'Mọi sóng cơ và sóng điện từ trong môi trường đồng nhất.', dauHieu: 'Đề cho hai trong ba đại lượng v, λ, f (hoặc T).' }
+  };
+  const DL = {
+    chieuDai: { ten: 'Chiều dài', chuan: 'm', thang: [['km', 3], ['hm', 2], ['dam', 1], ['m', 0], ['dm', -1], ['cm', -2], ['mm', -3], ['µm', -6], ['nm', -9]] },
+    dienTich: { ten: 'Diện tích', chuan: 'm²', thang: [['km²', 6], ['m²', 0], ['dm²', -2], ['cm²', -4], ['mm²', -6]] },
+    theTich: { ten: 'Thể tích', chuan: 'm³', thang: [['m³', 0], ['dm³ (lít)', -3], ['cm³ (mL)', -6], ['mm³', -9]] },
+    khoiLuong: { ten: 'Khối lượng', chuan: 'kg', thang: [['tấn', 3], ['kg', 0], ['g', -3], ['mg', -6]], khac: ['1 u ≈ 1,66·10⁻²⁷ kg'] },
+    thoiGian: { ten: 'Thời gian', chuan: 's', thang: [['s', 0], ['ms', -3], ['µs', -6], ['ns', -9]], khac: ['1 phút = 60 s', '1 h = 3 600 s', '1 ngày = 86 400 s'] },
+    apSuat: { ten: 'Áp suất', chuan: 'Pa', thang: [['MPa', 6], ['kPa', 3], ['hPa', 2], ['Pa', 0]], khac: ['1 atm ≈ 1,013·10⁵ Pa', '1 bar = 10⁵ Pa', '1 mmHg ≈ 133,3 Pa'] },
+    nangLuong: { ten: 'Năng lượng', chuan: 'J', thang: [['MJ', 6], ['kJ', 3], ['J', 0], ['mJ', -3]], khac: ['1 eV = 1,6·10⁻¹⁹ J', '1 MeV = 1,6·10⁻¹³ J', '1 kWh = 3,6·10⁶ J', '1 cal ≈ 4,186 J'] },
+    dienTichQ: { ten: 'Điện tích', chuan: 'C', thang: [['C', 0], ['mC', -3], ['µC', -6], ['nC', -9], ['pC', -12]], khac: ['e = 1,6·10⁻¹⁹ C'] },
+    tanSo: { ten: 'Tần số', chuan: 'Hz', thang: [['GHz', 9], ['MHz', 6], ['kHz', 3], ['Hz', 0]] },
+    camUngTu: { ten: 'Cảm ứng từ', chuan: 'T', thang: [['T', 0], ['mT', -3], ['µT', -6]], khac: ['1 G (gauss) = 10⁻⁴ T'] },
+    nhietDo: { ten: 'Nhiệt độ', chuan: 'K', nhiet: true }
+  };
+  const TU_KHOA = ['không', 'sai', 'chỉ', 'luôn', 'ít nhất', 'nhiều nhất', 'tối đa', 'tối thiểu', 'bỏ qua', 'ban đầu', 'từ trạng thái nghỉ', 'ngay sau', 'ngay trước', 'độ lớn', 'gần nhất', 'làm tròn', 'nửa', 'vuông góc', 'đẳng nhiệt', 'đẳng tích', 'nhỏ'];
+  const KW_GIAI = [
+    ['SAI / KHÔNG đúng', 'Đề hỏi phát biểu sai: tìm câu sai, không phải câu đúng.'],
+    ['nửa / một phần tư', 'Nửa chu kì, nửa bước sóng dễ bị đọc thành cả chu kì, cả bước sóng.'],
+    ['ít nhất / tối đa / tối thiểu', 'Đề hỏi giá trị biên, thường phải xét điều kiện rồi mới tính.'],
+    ['làm tròn đến …', 'Đáp án Phần III phải làm tròn đúng chữ số đề yêu cầu.'],
+    ['bao nhiêu kPa / cm/s / MeV', 'Đơn vị của đáp án có thể khác đơn vị của dữ kiện.'],
+    ['bỏ qua / lấy g = …', 'Điều kiện được phép bỏ qua và giá trị bắt buộc phải dùng.'],
+    ['đẳng nhiệt / đẳng tích / vuông góc', 'Một từ quyết định chọn công thức nào.']
+  ];
+
+  /* ---------- trạng thái ---------- */
+  let items, notes, gnote;
+  const ui = { filter: { loai: '', de: '', mau: '', q: '', from: '' }, open: new Set([1]), fix: new Set(), tools: {}, whyDraft: {} };
+  function load() {
+    items = JSON.parse(JSON.stringify(SEED));
+    const saved = store.get('loi') || {};
+    items.forEach((it) => { if (saved[it.id]) it.loi = saved[it.id]; });
+    notes = store.get('notes') || { 6: 'Nhớ: l ở trên, g ở dưới dấu căn.' };
+    gnote = store.get('gnote');
+    if (gnote == null) gnote = 'Đọc câu hỏi 2 lần, gạch đơn vị đáp án.\nPhần III: đổi cm → m trước khi thay số.';
+  }
+  const saveLoi = () => { const o = {}; items.forEach((it) => { o[it.id] = it.loi; }); store.set('loi', o); };
+
+  /* ---------- tính sổ tay (đúng quy tắc §4 của đặc tả) ---------- */
+  const nhomOf = (it) => LOAI[it.loi.ma].nhom;
+  function typeSummary(ma) {
+    const its = items.filter((it) => it.loi.ma === ma);
+    const red = its.filter((it) => it.mau === 'do');
+    const redExams = new Set(red.map((it) => it.de));
+    let mau = 'xanh';
+    if (red.length >= 3 && redExams.size >= 2) mau = 'do';
+    else if (its.some((it) => it.mau !== 'xanh')) mau = 'vang';
+    return { ma, its, n: its.length, mau, lapLai: mau === 'do', con: its.filter((it) => it.mau !== 'xanh').length };
+  }
+  const sevRank = { do: 0, vang: 1, xanh: 2 };
+  function ngooSorted() {
+    return NGOO.map(typeSummary).filter((s) => s.n).sort((a, b) => (sevRank[a.mau] - sevRank[b.mau]) || (b.n - a.n));
+  }
+
+  /* ---------- công cụ ---------- */
+  function formulaCard(bai) {
+    const f = CONG_THUC[bai];
+    if (!f) return '<div class="feedback info">Thầy chưa nhập công thức cho bài này. Em ghi công thức đúng vào ô ghi chú bên dưới để nhớ.</div>';
+    return `<div class="fcard"><div class="muted" style="font-size:12px">${esc(bai)} · ${esc(f.ten)}</div>
+      <div class="nick">${esc(f.nho)}</div><div class="ct">${esc(f.ct)}</div><div style="font-size:13px">${esc(f.giai)}</div>
+      <dl><dt>Phạm vi</dt><dd>${esc(f.phamVi)}</dd><dt>Dấu hiệu</dt><dd>${esc(f.dauHieu)}</dd></dl></div>`;
+  }
+
+  function unitTool(key, preset) {
+    const st = ui.tools[key] || (ui.tools[key] = { dl: preset ? preset.dl : 'chieuDai', pick: null, wrong: null, from: null, to: null });
+    const d = DL[st.dl];
+    const opts = Object.keys(DL).map((k) => `<option value="${k}"${k === st.dl ? ' selected' : ''}>${esc(DL[k].ten)}</option>`).join('');
+    let h = `<label style="font-size:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">Đại lượng em đổi sai:
+      <select data-act="unit-dl" data-tool="${key}" style="border:1px solid var(--border);border-radius:8px;padding:4px 8px;background:var(--surface)">${opts}</select></label>`;
+    if (d.nhiet) {
+      return h + `<div class="feedback info">Nhiệt độ không đổi bằng cách nhân 10ⁿ mà bằng phép cộng: <b>T (K) = t (°C) + 273</b>. Ví dụ 27 °C = 300 K. Hiệu nhiệt độ thì như nhau: Δt = 10 °C ứng với ΔT = 10 K.</div>`;
+    }
+    const exp = Object.fromEntries(d.thang);
+    const usePreset = preset && preset.dl === st.dl;
+    const rungs = d.thang.map(([u, e], i) => {
+      let cls = 'rung';
+      if (u === d.chuan) cls += ' chuan';
+      if (usePreset && u === preset.em) cls += ' em';
+      if (usePreset && st.pick === u) cls += ' ok';
+      if (usePreset && st.wrong === u) cls += ' wrong';
+      if (!usePreset && (st.from === u || st.to === u)) cls += ' from';
+      const step = i < d.thang.length - 1 ? `<span class="step">×${pow10(e - d.thang[i + 1][1])}</span>` : '';
+      return `<button class="${cls}" data-act="unit-pick" data-tool="${key}" data-u="${esc(u)}">${esc(u)}</button>${step}`;
+    }).join('');
+    h += `<div class="ladder-wrap"><div class="ladder" role="group" aria-label="Thang đơn vị ${esc(d.ten)}">${rungs}</div></div>`;
+    h += `<div class="muted" style="font-size:12px">Đi sang phải một bậc thì nhân với số ghi giữa hai bậc. Đơn vị chuẩn SI: <b>${esc(d.chuan)}</b> (khung đậm).</div>`;
+    if (d.khac) h += `<div class="other-units"><span>Đơn vị khác:</span>${d.khac.map((x) => `<span>${esc(x)}</span>`).join('')}</div>`;
+    if (usePreset) {
+      if (preset.lech) h += `<div class="feedback bad">Đáp án của em lệch đúng ${pow10(preset.lech)} lần so với đáp án đúng.</div>`;
+      if (st.pick) {
+        const n = exp[preset.em] - exp[preset.dung];
+        h += `<div class="feedback good">Đúng rồi. 1 ${esc(preset.em)} = ${pow10(n)} ${esc(preset.dung)}, nên số đo theo ${esc(preset.em)} phải nhân với ${pow10(n)} để ra ${esc(preset.dung)}.</div>`;
+      } else {
+        h += `<div class="feedback info">Em đã dùng <b>${esc(preset.em)}</b>. Bấm vào đơn vị đúng mà dữ kiện này phải đổi sang.</div>`;
+      }
+    } else if (st.from && st.to) {
+      const n = exp[st.from] - exp[st.to];
+      h += `<div class="feedback good">1 ${esc(st.from)} = ${pow10(n)} ${esc(st.to)}</div>`;
+    } else {
+      h += `<div class="feedback info">${st.from ? `Đã chọn ${esc(st.from)}. Bấm đơn vị muốn đổi sang.` : 'Bấm hai đơn vị để xem cách đổi.'}</div>`;
+    }
+    return h;
+  }
+
+  function tokenize(text) {
+    const toks = text.split(/\s+/).filter(Boolean).map((raw) => ({ raw, w: raw.toLowerCase().replace(/[.,;:?!()"“”]/g, '') }));
+    const kw = new Array(toks.length).fill(false);
+    TU_KHOA.forEach((k) => {
+      const parts = k.split(' ');
+      for (let i = 0; i + parts.length <= toks.length; i++) {
+        if (parts.every((p, j) => toks[i + j].w === p)) for (let j = 0; j < parts.length; j++) kw[i + j] = true;
+      }
+    });
+    toks.forEach((t, i) => { t.kw = kw[i]; t.so = /\d/.test(t.w); });
+    return toks;
+  }
+  function kwTool(key, text) {
+    const st = ui.tools[key] || (ui.tools[key] = { sel: [], checked: false });
+    const toks = tokenize(text);
+    const html = toks.map((t, i) => {
+      let c = 'tok';
+      const sel = st.sel.includes(i);
+      if (sel) c += ' sel';
+      if (st.checked && t.kw) c += sel ? ' kw' : ' kw miss';
+      if (st.checked && t.so && !sel) c += ' so';
+      return `<button class="${c}" data-act="kw-tok" data-tool="${key}" data-i="${i}" aria-pressed="${sel}">${esc(t.raw)}</button>`;
+    }).join(' ');
+    let res = '';
+    if (st.checked) {
+      const kwIdx = toks.map((t, i) => (t.kw ? i : -1)).filter((i) => i >= 0);
+      const got = kwIdx.filter((i) => st.sel.includes(i)).length;
+      const miss = kwIdx.filter((i) => !st.sel.includes(i)).map((i) => toks[i].raw.replace(/[.,;:?!]/g, ''));
+      res = `<div class="feedback ${miss.length ? 'bad' : 'good'}">Em gạch được ${got}/${kwIdx.length} từ khóa.${miss.length ? ' Bỏ sót: ' + miss.map((m) => '“' + esc(m) + '”').join(', ') + '.' : ' Tốt lắm!'} Dữ kiện số được tô xanh.</div>`;
+    }
+    return `<div class="muted" style="font-size:13px">Chạm vào những từ em thấy quan trọng, rồi bấm So sánh.</div>
+      <div class="kw-text">${html}</div>
+      <div class="actions"><button class="btn btn-primary" data-act="kw-check" data-tool="${key}">So sánh</button><button class="btn" data-act="kw-reset" data-tool="${key}">Làm lại</button></div>
+      ${res}<div class="kw-legend"><span class="a">Em gạch</span><span class="b">Từ khóa em bỏ sót</span><span class="c">Dữ kiện số</span></div>`;
+  }
+  function kwExplain() {
+    return `<ul class="kwlist">${KW_GIAI.map(([k, g]) => `<li><b>${esc(k)}</b>: ${esc(g)}</li>`).join('')}</ul>`;
+  }
+
+  function timePlan(deId) {
+    const de = DE[deId] || DE.E1;
+    const k = de.phut / 50;
+    const rows = [['Phần I', 15 * k, de.t && de.t.I], ['Phần II', 15 * k, de.t && de.t.II], ['Phần III', 12 * k, de.t && de.t.III], ['Kiểm tra lại', 8 * k, de.t && de.t.kt]];
+    const max = Math.max(...rows.map((r) => Math.max(r[1], r[2] || 0)));
+    const f = (x) => (Math.round(x * 10) / 10).toString().replace('.', ',');
+    const body = rows.map(([ten, de_, tt]) => {
+      const over = tt != null && tt > de_ + 0.5;
+      return `<div class="r"><span>${ten}</span><div class="bars"><i class="de" style="width:${(de_ / max) * 100}%"></i>${tt != null ? `<i class="tt ${over ? '' : 'okk'}" style="width:${Math.max(tt, 0.4) / max * 100}%"></i>` : ''}</div>
+        <span class="num" style="text-align:right">${f(de_)}′${tt != null ? ` / <b style="color:${over ? 'var(--do)' : 'var(--xanh)'}">${f(tt)}′</b>` : ''}</span></div>`;
+    }).join('');
+    return `<div class="muted" style="font-size:13px">Đề ${de.phut} phút${de.t ? ' · Bài "' + esc(de.ten) + '" của em' : ''}</div>
+      <div class="tplan">${body}</div>
+      <div class="tplan-leg"><span class="a">Đề xuất</span>${de.t ? '<span class="b">Em đã dùng</span>' : ''}</div>
+      ${de.t ? '<div class="feedback bad">Em dành 27 phút cho Phần I nên Phần III chỉ còn 5 phút và không còn thời gian kiểm tra lại.</div>' : ''}
+      <ul class="tips"><li>Câu Phần I nào quá 1 phút thì đánh dấu, làm sau.</li><li>Chừa ${f(8 * k)} phút cuối để dò lại cả bài, nhất là từng ý Phần II.</li><li>Trước khi nộp, mở danh sách câu và kiểm tra không còn câu nào trống.</li></ul>`;
+  }
+
+  function itemTool(it) {
+    const m = it.loi.ma;
+    if (m === 'CONG_THUC') return `<div class="tool"><h4>Thẻ công thức</h4>${formulaCard(it.bai)}</div>`;
+    if (m === 'DOC_DE') return `<div class="tool"><h4>Tập gạch từ khóa</h4>${kwTool('kw-' + it.id, it.q)}</div>`;
+    if (m === 'TINH_TOAN' && it.loi.y === 'BAM_MAY') {
+      return `<div class="tool"><h4>Kiểm tra phép tính</h4>${DE[it.de].congBo && it.nguocDau ? '<div class="feedback bad">Đáp án của em ngược dấu với đáp án đúng.</div>' : ''}
+        <ul class="tips"><li>Viết quy ước dấu trước khi thay số (khí thực hiện công thì A &lt; 0).</li><li>Ước lượng bậc độ lớn trước khi bấm máy.</li><li>Bấm máy lại lần hai theo thứ tự khác.</li></ul>
+        <div class="actions"><button class="chip" data-act="set-y" data-id="${it.id}" data-y="DON_VI">Thật ra em quên đổi đơn vị</button></div></div>`;
+    }
+    if (m === 'TINH_TOAN') {
+      const preset = it.unit || { dl: 'chieuDai', em: 'cm', dung: 'm', lech: null };
+      const p = Object.assign({}, preset, { lech: DE[it.de].congBo ? preset.lech : null });
+      return `<div class="tool"><h4>Chọn lại đơn vị đúng</h4>${unitTool('u-' + it.id, p)}
+        ${DE[it.de].congBo ? '' : '<div class="muted" style="font-size:12px">Đề chưa công bố lời giải nên máy chưa so với đáp án đúng.</div>'}
+        <div class="actions"><button class="chip" data-act="set-y" data-id="${it.id}" data-y="BAM_MAY">Thật ra em bấm máy nhầm</button></div></div>`;
+    }
+    if (m === 'SOT') return `<div class="tool"><h4>Chia thời gian từng phần</h4>${timePlan(it.de)}</div>`;
+    if (m === 'HONG_KT' || m === 'DOAN_MO') {
+      return `<div class="tool"><h4>${m === 'DOAN_MO' ? 'Đoán mò được tính là chưa biết làm' : 'Học lại phần này'}</h4>
+        <div style="font-size:14px">Câu này được ưu tiên đưa vào đề khắc phục. Đọc lời giải rồi luyện thêm câu cùng bài "${esc(it.bai)}".</div>
+        <div class="actions"><button class="btn" data-act="toast" data-msg="Trang mẫu: mở Đề nhanh 10 phút theo bài ${esc(it.bai)}">Luyện bài này</button></div></div>`;
+    }
+    return '<div class="tool"><div style="font-size:14px">Chọn loại lỗi ở trên để nhận cách sửa phù hợp.</div></div>';
+  }
+
+  /* ---------- nửa phải ---------- */
+  function renderBook() {
+    const total = items.length;
+    const segs = [...NGOO.map((ma) => [ma, LOAI[ma].ten, LOAI[ma].mau, items.filter((i) => i.loi.ma === ma).length]),
+      ['HONG', 'Hổng kiến thức', 'var(--c-hkt)', items.filter((i) => nhomOf(i) === 'hong').length],
+      ['CHUA_RO', 'Chưa phân loại', 'var(--c-cr)', items.filter((i) => i.loi.ma === 'CHUA_RO').length]].filter((s) => s[3]);
+    const pct = (n) => Math.round((n / total) * 100);
+    let h = `<div class="book-head"><h2 id="bookTitle">Sổ tay</h2><div class="legend-sev"><span><i class="dot do"></i>Lặp lại</span><span><i class="dot vang"></i>Đang mắc</span><span><i class="dot xanh"></i>Đã khắc phục</span></div></div>`;
+    h += `<div class="ratio-row"><div class="ratio" role="img" aria-label="Tỉ lệ loại lỗi">${segs.map((s) => `<i style="width:${(s[3] / total) * 100}%;background:${s[2]}" title="${esc(s[1])}: ${s[3]} câu"></i>`).join('')}</div></div>`;
+    h += `<div class="ratio-legend">${segs.map((s) => `<span><i class="sw" style="background:${s[2]}"></i>${esc(s[1])} <b class="num">${pct(s[3])}%</b></span>`).join('')}</div>`;
+
+    const ng = ngooSorted();
+    h += `<div class="sec"><div class="sec-h"><h3>Sai ngoo</h3><span class="muted" style="font-size:13px">sửa được ngay bằng thói quen</span></div>`;
+    h += ng.length ? ng.map((s) => {
+      const L = LOAI[s.ma];
+      const open = ui.fix.has(s.ma);
+      return `<div class="err"><div class="err-line"><i class="dot ${s.mau}" title="${MAU_TEN[s.mau]}"></i>
+        <button class="err-name" data-act="filter-type" data-ma="${s.ma}" title="Xem các câu thuộc lỗi này">${esc(L.ten)}</button>
+        <span class="err-meta">${s.lapLai ? '<span class="rep">Lặp lại</span>' : ''}<span class="num"><b>${s.n}</b> câu · ${pct(s.n)}%</span></span></div>
+        <div class="err-sub"><div class="err-bar"><i style="width:${pct(s.n)}%;background:${L.mau}"></i></div>
+        <button class="fix-toggle" data-act="toggle-fix" data-ma="${s.ma}" aria-expanded="${open}">${open ? 'Thu gọn ▾' : 'Cách sửa ▸'}</button></div>
+        ${open ? `<div class="fix-panel">${bookFix(s.ma)}</div>` : ''}</div>`;
+    }).join('') : '<div class="muted">Chưa có lỗi nào thuộc nhóm này.</div>';
+    h += '</div>';
+
+    const hk = items.filter((i) => nhomOf(i) !== 'ngoo');
+    const byCh = {};
+    hk.forEach((it) => { (byCh[it.chuong] = byCh[it.chuong] || []).push(it); });
+    const doanMo = hk.filter((i) => i.loi.ma === 'DOAN_MO').length;
+    const chuaRo = hk.filter((i) => i.loi.ma === 'CHUA_RO').length;
+    h += `<details class="hkt sec"${ui.hktOpen ? ' open' : ''} id="hkt"><summary><h3>Hổng kiến thức</h3><span class="more"><span class="closed">${hk.length} câu · Xem bản đồ ▸</span><span class="opened">Thu gọn ▾</span></span></summary>
+      <div class="hkt-sum">Gồm câu chưa biết làm, ${doanMo} câu đoán mò${chuaRo ? ` và ${chuaRo} câu chưa phân loại` : ''}.</div>
+      <div class="map">${Object.keys(byCh).sort((a, b) => byCh[b].length - byCh[a].length).map((ch) => {
+        const its = byCh[ch];
+        const red = its.filter((i) => i.mau === 'do').length;
+        const mau = red >= 2 ? 'do' : its.some((i) => i.mau !== 'xanh') ? 'vang' : 'xanh';
+        const byBai = {};
+        its.forEach((i) => { byBai[i.bai] = (byBai[i.bai] || 0) + 1; });
+        return `<div class="map-ch"><div class="map-ch-h"><i class="dot ${mau}"></i><span>${esc(ch)}</span><span class="num">${its.length} câu</span></div>
+          <div class="map-bai">${Object.keys(byBai).map((b) => `<div><span>${esc(b)}</span><span class="num">${byBai[b]}</span></div>`).join('')}</div></div>`;
+      }).join('')}</div>${chuaRo ? `<button class="fix-toggle" data-act="filter-type" data-ma="CHUA_RO">Phân loại ${chuaRo} câu còn lại ▸</button>` : ''}</details>`;
+
+    h += `<div class="sec"><div class="sec-h"><h3>Ghi chú của em</h3><span class="saved" id="gsaved"></span></div>
+      <textarea class="notes" id="gnote" aria-label="Ghi chú của em" placeholder="Viết điều em muốn nhớ trước mỗi bài kiểm tra…">${esc(gnote)}</textarea></div>`;
+    $('#book').innerHTML = h;
+    $('#hkt').addEventListener('toggle', (e) => { ui.hktOpen = e.target.open; });
+    snapBook();
+  }
+  /* Giữ chữ khớp dòng kẻ: khối công cụ được bù cho tròn bội 32px, ô ghi chú cao theo số dòng. */
+  const LN = 32;
+  function growNote() {
+    const t = $('#gnote'); if (!t) return;
+    t.style.height = '0px';
+    const pad = parseFloat(getComputedStyle(t).paddingTop) || 0;
+    t.style.height = pad + Math.max(4, Math.ceil((t.scrollHeight - pad) / LN)) * LN + 'px';
+  }
+  function snapBook() {
+    document.querySelectorAll('#book .fix-panel').forEach((p) => {
+      p.style.paddingBottom = '0px';
+      const r = p.getBoundingClientRect().height % LN;
+      p.style.paddingBottom = (r > 0.5 ? LN - r : 0) + 'px';
+    });
+    growNote();
+  }
+  function bookFix(ma) {
+    if (ma === 'CONG_THUC') {
+      const bais = [...new Set(items.filter((i) => i.loi.ma === ma).map((i) => i.bai))];
+      return `<div class="tool">${bais.map(formulaCard).join('')}</div>`;
+    }
+    if (ma === 'DOC_DE') {
+      const last = items.filter((i) => i.loi.ma === ma && i.mau !== 'xanh')[0] || items.find((i) => i.loi.ma === ma);
+      return `<div class="tool"><h4>Từ khóa dễ đọc sai</h4>${kwExplain()}<h4>Luyện gạch từ khóa (câu ${last.cau}, ${esc(DE[last.de].ten)})</h4>${kwTool('kw-book', last.q)}</div>`;
+    }
+    if (ma === 'TINH_TOAN') {
+      return `<div class="tool"><h4>Thang đổi đơn vị</h4>${unitTool('u-book', null)}<h4>Khi bấm máy</h4>
+        <ul class="tips"><li>Đổi hết về đơn vị chuẩn trước khi thay số.</li><li>Ước lượng bậc độ lớn: tốc độ sóng nước cỡ vài m/s, không phải vài trăm.</li><li>Viết quy ước dấu (Q, A) trước khi tính.</li></ul></div>`;
+    }
+    if (ma === 'SOT') return `<div class="tool">${timePlan('E1')}</div>`;
+    return '';
+  }
+
+  /* ---------- nửa trái ---------- */
+  function passes(it) {
+    const f = ui.filter;
+    if (f.loai === 'HONG' && nhomOf(it) !== 'hong') return false;
+    if (f.loai && f.loai !== 'HONG' && it.loi.ma !== f.loai) return false;
+    if (f.de && it.de !== f.de) return false;
+    if (f.mau && it.mau !== f.mau) return false;
+    if (f.q && !(it.q + ' ' + it.bai + ' ' + it.chuong).toLowerCase().includes(f.q.toLowerCase())) return false;
+    return true;
+  }
+  function tagHtml(it) {
+    const L = LOAI[it.loi.ma];
+    const guess = it.loi.nguon === 'MAY' && it.loi.hoi;
+    const y = it.loi.ma === 'TINH_TOAN' ? (it.loi.y === 'BAM_MAY' ? ' · bấm máy' : ' · đơn vị') : '';
+    return `<span class="tag solid${guess ? ' guess' : ''}" title="${guess ? 'Máy đoán, cần em xác nhận' : it.loi.nguon === 'MAY' ? 'Máy nhận ra' : 'Em chọn'}"><i class="sw" style="background:${L.mau}"></i>${esc(L.ten)}${y}${guess ? ' ?' : ''}</span>`;
+  }
+  function renderList() {
+    const f = ui.filter;
+    const all = items.filter(passes);
+    const ng = ngooSorted().map((s) => s.ma);
+    const order = (it) => (nhomOf(it) === 'ngoo' ? ng.indexOf(it.loi.ma) * 10 + sevRank[it.mau] : 100 + sevRank[it.mau]);
+    all.sort((a, b) => order(a) - order(b) || b.id - a.id);
+    $('#listCount').textContent = `${all.length}/${items.length} câu`;
+    $('#tabCount').textContent = `(${items.length})`;
+    $('#activeFilter').innerHTML = f.from ? `<div class="active-filter"><span class="muted">Đang xem:</span><button class="pill" data-act="clear-filter">${esc(f.from)} ✕</button></div>` : '';
+    if (!all.length) { $('#list').innerHTML = '<div class="empty">Không có câu nào khớp bộ lọc.</div>'; return; }
+    const groups = [['Sai ngoo', all.filter((i) => nhomOf(i) === 'ngoo')], ['Hổng kiến thức và chưa phân loại', all.filter((i) => nhomOf(i) !== 'ngoo')]];
+    $('#list').innerHTML = groups.filter((g) => g[1].length).map(([ten, its]) => `<div class="group-label">${ten}</div><div class="list">${its.map(itemHtml).join('')}</div>`).join('');
+  }
+  function itemHtml(it) {
+    const de = DE[it.de];
+    const open = ui.open.has(it.id);
+    return `<div class="item${open ? ' open' : ''}${it.mau === 'xanh' ? ' xanh-done' : ''}">
+      <button class="row" data-act="toggle-item" data-id="${it.id}" aria-expanded="${open}">
+        <i class="dot ${it.mau}" title="${MAU_TEN[it.mau]}"></i>
+        <span class="row-main"><span class="row-title">Câu ${it.cau} · Phần ${it.phan}</span> ${tagHtml(it)}
+          <span class="row-sub" style="display:block">${esc(de.ten)} · ${de.ngay} · ${esc(it.bai)}</span></span>
+        <span class="row-side">${it.lan > 1 ? `<span class="count">sai ${it.lan} lần</span>` : ''}${it.mau === 'xanh' ? '<span class="tag" style="color:var(--xanh)">Đã khắc phục</span>' : ''}<span class="chev" aria-hidden="true">▸</span></span>
+      </button>${open ? detailHtml(it) : ''}</div>`;
+  }
+  function detailHtml(it) {
+    const de = DE[it.de];
+    const pub = de.congBo;
+    let body = `<div class="q"><span class="muted" style="font-size:13px">${esc(it.chuong)} · ${esc(it.bai)} · Mức độ ${it.md}</span><br>${esc(it.q)}`;
+    if (it.pa) {
+      body += `<div class="opts">${Object.keys(it.pa).map((k) => {
+        const isEm = it.em === k, isDung = pub && it.dung === k;
+        return `<div class="opt${isEm ? ' em' : ''}${isDung ? ' dung' : ''}"><b>${k}.</b> ${esc(it.pa[k])}${isEm ? '<span class="lab" style="color:var(--do)">EM CHỌN</span>' : ''}${isDung ? '<span class="lab" style="color:var(--xanh)">ĐÁP ÁN</span>' : ''}</div>`;
+      }).join('')}</div>${it.em === '' ? '<div class="ans" style="margin-top:6px"><span class="bad">Em bỏ trống câu này.</span></div>' : ''}`;
+    } else if (it.ds) {
+      body += `<div class="opts" style="grid-template-columns:minmax(0,1fr)">${it.ds.map(([k, t, em, dung]) => {
+        const wrong = pub && em !== dung;
+        return `<div class="opt${wrong ? ' em' : ''}"><b>${k})</b> ${esc(t)} <span class="lab">Em: ${em}${pub ? ` · Đáp án: ${dung}` : ''}</span></div>`;
+      }).join('')}</div>`;
+    } else {
+      body += `<div class="ans" style="margin-top:6px"><span>Em trả lời: <span class="bad num">${esc(it.em)}</span></span>${pub ? `<span>Đáp án: <span class="good num">${esc(it.dung)}</span></span>` : ''}</div>`;
+    }
+    body += '</div>';
+    body += pub ? `<details class="sol"><summary>Xem lời giải</summary><div>${esc(it.lg)}</div></details>`
+      : '<div class="lock">Đáp án và lời giải sẽ hiện khi đề đóng và thầy công bố lời giải.</div>';
+    const src = it.loi.nguon === 'HS' ? 'Em đã chọn loại lỗi này.' : it.loi.hoi ? 'Máy đoán loại lỗi này nhưng chưa chắc. Em xác nhận hoặc chọn lại nhé.' : it.loi.ma === 'CHUA_RO' ? 'Máy chưa đoán được. Em chọn giúp loại lỗi.' : 'Máy nhận ra loại lỗi này. Em vẫn đổi được nếu thấy chưa đúng.';
+    body += `<div><div class="blk-title">Em sai vì sao?</div><div class="chips">${PICKABLE.map((ma) =>
+      `<button class="chip${it.loi.ma === ma ? ' on' : ''}${it.loi.ma === ma && it.loi.hoi ? ' ask' : ''}" data-act="set-loai" data-id="${it.id}" data-ma="${ma}" aria-pressed="${it.loi.ma === ma}"><i class="sw" style="background:${LOAI[ma].mau}"></i>${esc(LOAI[ma].ten)}</button>`).join('')}</div>
+      <div class="src">${src}</div></div>`;
+    body += itemTool(it);
+    body += `<div><div class="blk-title">Ghi chú cho câu này</div><textarea class="note-in" data-note="${it.id}" rows="2" placeholder="Em rút ra điều gì?">${esc(notes[it.id] || '')}</textarea></div>`;
+    const canRedo = pub;
+    body += `<div class="actions"><button class="btn" data-act="toast" data-msg="Trang mẫu: mở bài 1 câu để làm lại" ${canRedo ? '' : 'disabled title="Làm lại được khi đề công bố lời giải"'}>Làm lại câu này</button></div>`;
+    return `<div class="detail">${body}</div>`;
+  }
+
+  function renderFilters() {
+    const f = ui.filter;
+    $('#fLoai').innerHTML = `<option value="">Mọi loại lỗi</option>${NGOO.map((m) => `<option value="${m}">${esc(LOAI[m].ten)}</option>`).join('')}<option value="HONG">Hổng kiến thức</option><option value="CHUA_RO">Chưa phân loại</option>`;
+    $('#fLoai').value = f.loai;
+    $('#fDe').innerHTML = `<option value="">Mọi đề</option>${Object.keys(DE).map((k) => `<option value="${k}">${esc(DE[k].ten)}</option>`).join('')}`;
+    $('#fDe').value = f.de;
+  }
+  function renderHead() {
+    const red = items.filter((i) => i.mau === 'do').length;
+    const rep = ngooSorted().filter((s) => s.lapLai).length;
+    $('#headMeta').textContent = `${items.length} câu đã sai · ${red} câu chưa làm đúng lại · ${rep} lỗi đang lặp lại · cập nhật 26/11`;
+  }
+  function render() { renderHead(); renderBook(); renderList(); }
+
+  /* ---------- hộp thoại ---------- */
+  function openModal(html) { $('#dialog').innerHTML = html; $('#modal').hidden = false; const b = $('#dialog button, #dialog input'); if (b) b.focus(); }
+  function closeModal() { $('#modal').hidden = true; }
+  function whyModal() {
+    const its = items.filter((i) => i.de === 'E2');
+    ui.whyDraft = {};
+    its.forEach((i) => { ui.whyDraft[i.id] = i.loi.nguon === 'HS' ? i.loi.ma : (i.loi.hoi || i.loi.ma === 'CHUA_RO' ? '' : i.loi.ma); });
+    openModal(`<h2 id="modalTitle">Em sai vì sao?</h2>
+      <div class="muted" style="font-size:14px">${esc(DE.E2.ten)} · ${its.length} câu sai. Chọn lý do cho từng câu để sổ tay nhắc đúng lỗi của em. Có thể bỏ qua và chọn sau trong Sổ tay.</div>
+      <div id="whyList">${whyList(its)}</div>
+      <div class="foot"><button class="btn" data-act="close-modal">Bỏ qua</button><button class="btn btn-primary" data-act="why-save">Lưu</button></div>`);
+  }
+  function whyList(its) {
+    return its.map((it) => `<div class="why-item"><div class="why-q"><b>Câu ${it.cau}.</b> ${esc(it.q.length > 110 ? it.q.slice(0, 110) + '…' : it.q)}</div>
+      <div class="chips">${PICKABLE.map((ma) => `<button class="chip${ui.whyDraft[it.id] === ma ? ' on' : ''}" data-act="why-pick" data-id="${it.id}" data-ma="${ma}" aria-pressed="${ui.whyDraft[it.id] === ma}"><i class="sw" style="background:${LOAI[ma].mau}"></i>${esc(LOAI[ma].ten)}</button>`).join('')}</div></div>`).join('');
+  }
+  function remindModal() {
+    const top = ngooSorted().filter((s) => s.mau !== 'xanh').slice(0, 3);
+    openModal(`<h2 id="modalTitle">${esc('Đề luyện số 4')} · 50 phút</h2>
+      <div class="goal"><label for="goal">Mục tiêu điểm của em</label><input id="goal" type="number" min="0" max="10" step="0.25" value="8"></div>
+      <div><div class="blk-title">Điều cần nhớ, lấy từ sổ tay của em</div><ul class="remind">
+        ${top.map((s) => `<li><i class="dot ${s.mau}"></i><span><b>${esc(LOAI[s.ma].ten)}${s.lapLai ? ' (lặp lại)' : ''}.</b> ${esc(LOAI[s.ma].nhac)}</span></li>`).join('')}
+        ${gnote.trim() ? `<li><i class="dot" style="background:var(--primary)"></i><span><b>Ghi chú của em.</b> ${esc(gnote.trim()).replace(/\n/g, ' · ')}</span></li>` : ''}
+      </ul></div>
+      <label class="check"><input type="checkbox" id="readOk"> Em đã đọc và sẽ chú ý những điều trên</label>
+      <div class="foot"><button class="btn" data-act="close-modal">Quay lại</button><button class="btn btn-primary" id="startBtn" disabled data-act="toast" data-msg="Trang mẫu: bắt đầu làm bài">Bắt đầu làm bài</button></div>`);
+    $('#readOk').addEventListener('change', (e) => { $('#startBtn').disabled = !e.target.checked; });
+  }
+  function fixModal(mau) {
+    const top = ngooSorted()[0];
+    const goc = items.filter((i) => i.mau !== 'xanh' && DE[i.de].congBo);
+    if (mau === 'ON_NHANH') {
+      const g = goc.filter((i) => i.loi.ma === top.ma).slice(0, 2);
+      openModal(`<h2 id="modalTitle">Ôn trước giờ kiểm tra</h2><div class="muted" style="font-size:14px">5 câu · 7 phút · nhắm vào lỗi <b>${esc(LOAI[top.ma].ten)}</b></div>
+        <ul class="compo">${g.map((i) => `<li>Làm lại câu ${i.cau} (${esc(DE[i.de].ten)})</li>`).join('')}<li>${5 - g.length} câu tương tự Phần III cùng bài, lấy từ ngân hàng luyện tập</li></ul>
+        <div class="lock">Câu của đề chưa công bố lời giải không được đưa vào. Kết quả không tính bảng xếp hạng.</div>
+        <div class="foot"><button class="btn" data-act="close-modal">Đóng</button><button class="btn btn-primary" data-act="toast" data-msg="Trang mẫu: bắt đầu đề ôn">Bắt đầu</button></div>`);
+    } else {
+      const g = goc.sort((a, b) => (['HONG_KT', 'DOAN_MO'].includes(b.loi.ma) - ['HONG_KT', 'DOAN_MO'].includes(a.loi.ma))).slice(0, 4);
+      openModal(`<h2 id="modalTitle">Đề khắc phục</h2><div class="muted" style="font-size:14px">10 câu · 15 phút</div>
+        <ul class="compo">${g.map((i) => `<li>Làm lại câu ${i.cau} · ${esc(LOAI[i.loi.ma].ten)} · ${esc(i.bai)}</li>`).join('')}<li>${10 - g.length} câu tương tự: cùng bài, cùng mức độ với các câu trên</li></ul>
+        <div class="lock">Làm đúng câu tương tự thì câu gốc chuyển màu: đỏ → vàng → xanh (đúng 2 lần ở 2 ngày khác nhau).</div>
+        <div class="foot"><button class="btn" data-act="close-modal">Đóng</button><button class="btn btn-primary" data-act="toast" data-msg="Trang mẫu: bắt đầu đề khắc phục">Bắt đầu</button></div>`);
+    }
+  }
+  let tt;
+  function toast(m) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 2200); }
+
+  /* ---------- sự kiện ---------- */
+  function setTab(tab) {
+    $('#split').dataset.tab = tab;
+    $('#tabBook').setAttribute('aria-selected', tab === 'sotay');
+    $('#tabList').setAttribute('aria-selected', tab === 'cau');
+  }
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-act]');
+    if (!el) { if (e.target.id === 'modal') closeModal(); return; }
+    const a = el.dataset.act, id = Number(el.dataset.id);
+    const it = items.find((x) => x.id === id);
+    switch (a) {
+      case 'nav': e.preventDefault(); toast('Trang mẫu chỉ có mục Sổ tay'); break;
+      case 'tab': setTab(el.dataset.tab); break;
+      case 'toggle-item': ui.open.has(id) ? ui.open.delete(id) : ui.open.add(id); renderList(); break;
+      case 'set-loai':
+        it.loi = { ma: el.dataset.ma, y: el.dataset.ma === 'TINH_TOAN' ? (it.loi.y || 'DON_VI') : undefined, nguon: 'HS', hoi: false };
+        saveLoi(); render(); break;
+      case 'set-y': it.loi = Object.assign({}, it.loi, { y: el.dataset.y, nguon: 'HS', hoi: false }); saveLoi(); render(); break;
+      case 'filter-type': {
+        const ma = el.dataset.ma;
+        ui.filter = { loai: ma, de: '', mau: '', q: '', from: LOAI[ma].ten };
+        renderFilters(); renderList(); setTab('cau');
+        if (window.matchMedia('(min-width: 901px)').matches) $('#listTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      }
+      case 'clear-filter': ui.filter = { loai: '', de: '', mau: '', q: '', from: '' }; $('#fQ').value = ''; $('#fMau').value = ''; renderFilters(); renderList(); break;
+      case 'toggle-fix': { const ma = el.dataset.ma; ui.fix.has(ma) ? ui.fix.delete(ma) : ui.fix.add(ma); renderBook(); break; }
+      case 'unit-pick': {
+        const key = el.dataset.tool, u = el.dataset.u, st = ui.tools[key];
+        const preset = key === 'u-book' ? null : (items.find((x) => 'u-' + x.id === key) || {}).unit;
+        if (preset && preset.dl === st.dl) {
+          if (u === preset.dung) { st.pick = u; st.wrong = null; } else if (u !== preset.em) { st.wrong = u; st.pick = null; }
+        } else if (!st.from || st.to) { st.from = u; st.to = null; } else { st.to = u; }
+        key === 'u-book' ? renderBook() : renderList();
+        break;
+      }
+      case 'kw-tok': {
+        const st = ui.tools[el.dataset.tool], i = Number(el.dataset.i);
+        st.sel = st.sel.includes(i) ? st.sel.filter((x) => x !== i) : st.sel.concat(i);
+        el.dataset.tool === 'kw-book' ? renderBook() : renderList(); break;
+      }
+      case 'kw-check': ui.tools[el.dataset.tool].checked = true; el.dataset.tool === 'kw-book' ? renderBook() : renderList(); break;
+      case 'kw-reset': ui.tools[el.dataset.tool] = { sel: [], checked: false }; el.dataset.tool === 'kw-book' ? renderBook() : renderList(); break;
+      case 'open-why': whyModal(); break;
+      case 'open-remind': remindModal(); break;
+      case 'open-fix': fixModal(el.dataset.mau); break;
+      case 'close-modal': closeModal(); break;
+      case 'why-pick': ui.whyDraft[id] = el.dataset.ma; $('#whyList').innerHTML = whyList(items.filter((i) => i.de === 'E2')); break;
+      case 'why-save':
+        Object.keys(ui.whyDraft).forEach((k) => {
+          const x = items.find((i) => i.id === Number(k));
+          const ma = ui.whyDraft[k];
+          if (ma && (x.loi.ma !== ma || x.loi.nguon !== 'HS')) x.loi = { ma, y: ma === 'TINH_TOAN' ? (x.loi.y || 'DON_VI') : undefined, nguon: 'HS', hoi: false };
+        });
+        saveLoi(); closeModal(); render(); toast('Đã lưu vào sổ tay'); break;
+      case 'reset':
+        try { ['loi', 'notes', 'gnote'].forEach((k) => localStorage.removeItem('mauSoTay.' + k)); } catch (err) { /* bỏ qua */ }
+        ui.tools = {}; ui.fix.clear(); ui.open = new Set([1]); ui.filter = { loai: '', de: '', mau: '', q: '', from: '' };
+        load(); renderFilters(); render(); toast('Đã đặt lại dữ liệu mẫu'); break;
+      case 'toast': if (!el.disabled) toast(el.dataset.msg); break;
+    }
+  });
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.dataset.act === 'unit-dl') { ui.tools[t.dataset.tool] = { dl: t.value, pick: null, wrong: null, from: null, to: null }; t.dataset.tool === 'u-book' ? renderBook() : renderList(); return; }
+    if (t.id === 'fLoai' || t.id === 'fDe' || t.id === 'fMau') {
+      ui.filter.loai = $('#fLoai').value; ui.filter.de = $('#fDe').value; ui.filter.mau = $('#fMau').value; ui.filter.from = '';
+      renderList();
+    }
+  });
+  let nt;
+  document.addEventListener('input', (e) => {
+    const t = e.target;
+    if (t.id === 'fQ') { ui.filter.q = t.value; ui.filter.from = ''; renderList(); return; }
+    if (t.id === 'gnote') {
+      gnote = t.value; growNote(); $('#gsaved').textContent = 'Đang lưu…'; clearTimeout(nt);
+      nt = setTimeout(() => { store.set('gnote', gnote); const s = $('#gsaved'); if (s) s.textContent = 'Đã lưu'; }, 800);
+      return;
+    }
+    if (t.dataset.note) { notes[t.dataset.note] = t.value.slice(0, 500); store.set('notes', notes); }
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
+
+  load(); renderFilters(); render();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(snapBook);
+  window.addEventListener('resize', snapBook);
+})();
+</script>

@@ -18,6 +18,7 @@ Web luyện đề Vật lý THPT của hệ thống **Vật Lý Siêu Nhẩm (VL
 - Chưa đạt mục tiêu thì web động viên và gợi ý **đề tương tự**.
 - Xem **lịch sử**, **thống kê theo chủ đề**, **bảng xếp hạng**.
 - **Luyện tập** (khi giáo viên bật): tự tạo đề theo bài, luyện lại câu đã sai, đề nhanh 10 phút. Kết quả luyện tập không tính vào bảng xếp hạng.
+- **Sổ tay** (Pha 7, máy chủ 1.6.0; đang làm): mọi câu đã sai, phân loại lỗi ("Sai ngoo" / "Hổng kiến thức"), màu đỏ–vàng–xanh theo mức đã khắc phục. Đặc tả `docs/spec/pha-7-so-tay.md`, trang mẫu `docs/spec/mau-so-tay.html`.
 
 **Giáo viên** (`admin.html`, `assets/js/admin.js`)
 - Quản lý học sinh: thêm từng em, dán danh sách từ Excel, đặt lại PIN, in phiếu đăng nhập, khóa tài khoản.

@@ -1370,7 +1370,9 @@
     KHO_CAU_HOI_ID: { label: 'Kho câu hỏi (id hoặc link file "KHO CÂU HỎI VẬT LÝ")', hint: 'Dán link Google Sheet của kho. Web chỉ đọc kho, không sửa.', wide: true, bank: true },
     THU_MUC_HINH_KHO_ID: { label: 'Thư mục hình của kho (id hoặc link thư mục "02. HÌNH VẼ")', hint: 'Để trống thì tìm hình theo tên file trên toàn Drive (chậm hơn).', wide: true, bank: true },
     CHO_LUYEN_TAP: { label: 'Mục Luyện tập cho học sinh', yesno: ['Bật', 'Tắt'], feat: 'practice', hint: 'Học sinh chỉ luyện các câu trong "Pool luyện tập" (tab Ngân hàng).' },
-    LUYEN_NHANH: { label: 'Đề nhanh theo bài (P1, P2, P3, phút)', feat: 'practice', hint: 'Mặc định 7,1,2,10: 7 câu Phần I, 1 câu Phần II, 2 câu Phần III, 10 phút.' }
+    LUYEN_NHANH: { label: 'Đề nhanh theo bài (P1, P2, P3, phút)', feat: 'practice', hint: 'Mặc định 7,1,2,10: 7 câu Phần I, 1 câu Phần II, 2 câu Phần III, 10 phút.' },
+    BAT_SO_TAY: { label: 'Mục Sổ tay cho học sinh', yesno: ['Bật', 'Tắt'], feat: 'notebook', hint: 'Học sinh xem lại mọi câu đã làm sai và các loại lỗi hay mắc.' },
+    TU_KHOA_DOC_SAI: { label: 'Sổ tay: từ khóa dễ đọc sai', feat: 'notebook', wide: true, hint: 'Cách nhau dấu ; (ví dụ: không;sai;ít nhất;làm tròn). Dùng cho công cụ "Tập gạch từ khóa".' }
   };
 
   async function viewSettings() {
