@@ -2633,7 +2633,7 @@ function practiceSubmit_(st, p, req) {
     Object.keys(MEMO_).forEach(function (k) { if (k.indexOf('__rw_KetQuaLuyenTap') === 0 || k === '__si_KetQuaLuyenTap' || k === '__nb_' + st.id) delete MEMO_[k]; });
     var gocs = {};
     qs.forEach(function (q) { if (q._goc) gocs[q._goc] = 1; });
-    out.khacPhuc = nbCompute_(st).items.filter(function (x) { return gocs[x.key]; }).map(function (x) {
+    out.khacPhuc = nbCompute_(st).items.filter(function (x) { return gocs[x.key] && truoc[x.key] !== x.mau; }).map(function (x) {
       return { key: x.key, tieuDe: x.nguon.tieuDe, stt: x.nguon.stt, luyenTap: !!x.nguon.luyenTap, truoc: truoc[x.key] || '', sau: x.mau };
     });
   }
@@ -2942,17 +2942,18 @@ function nbEvents_(st) {
   });
   rowsWhere_('KetQuaLuyenTap', 'studentId', st.id).forEach(function (r) {
     var t = timeOf_(r.nopLuc);
-    var phuDung = [], phuSai = [];
+    var dung = [], saiL = [];
     parseJson_(r.chiTiet, []).forEach(function (d) {
       if (!d.q || d.gone) return;
       var sai = num_(d.sc) < num_(d.m) - 1e-9, key = d.k || d.q;
-      ev.push({ t: t, key: key, sai: sai, src: r.id, td: r.tieuDe, nop: r.nopLuc, luyen: 1,
+      (sai ? saiL : dung).push({ t: t, key: key, sai: sai, src: r.id, td: r.tieuDe, nop: r.nopLuc, luyen: 1,
         rid: r.id, q: d.q, s: num_(d.s), k: d.k || '', h: d.h || '', a: d.a == null ? '' : String(d.a), n: d.n, l: d.l, p: d.p, md: d.md, cd: d.cd });
       // Pha 7c: câu khắc phục (goc) — đúng/sai tính cho câu gốc (chỉ đổi màu, không thành "lần sai" mới của câu gốc)
-      if (d.goc && str_(d.goc) !== key) (sai ? phuSai : phuDung).push({ t: t, key: str_(d.goc), sai: sai, phu: 1, src: r.id });
+      if (d.goc && str_(d.goc) !== key) (sai ? saiL : dung).push({ t: t, key: str_(d.goc), sai: sai, phu: 1, src: r.id });
     });
-    // trong cùng một bài: câu khắc phục sai xếp sau câu đúng → chỉ cần một câu sai là câu gốc về đỏ
-    phuDung.concat(phuSai).forEach(function (e) { ev.push(e); });
+    // Vòng 2 (R-1): trong cùng một bài, mọi lần làm đúng (kể cả câu khắc phục) xếp trước, lần sai xếp sau
+    // → câu gốc làm lại sai hoặc câu khắc phục sai thì câu gốc về đỏ
+    dung.concat(saiL).forEach(function (e) { ev.push(e); });
   });
   ev.forEach(function (e, i) { e.i = i; });
   ev.sort(function (a, b) { return (a.t - b.t) || (a.i - b.i); });
@@ -3428,12 +3429,15 @@ function nbRedoQid_(x, ctx) {
 function nbSimilar_(x, cand, taken, done) {
   var pref = x.loi.ma === 'TINH_TOAN' ? 'TL' : x.loi.ma === 'SOT' ? 'DS' : x.loai;
   var best = null, bestScore = -1;
-  cand.forEach(function (c) {
+  // Vòng 2 (R-3): cand là { byBai, byChuong } — chỉ xét câu cùng bài, rồi cùng chương
+  var list = (cand.byBai[x.bai] || []).concat(cand.byChuong[x.chuong] || []);
+  list.forEach(function (c) {
     if (taken[c.maKho]) return;
     var sc = c.bai && c.bai === x.bai ? 100 : c.chuong && c.chuong === x.chuong ? 50 : 0;
     if (!sc) return;
+    // Vòng 2 (K-1): đúng phần (Tính toán → Phần III, Sót → Phần II) ưu tiên hơn cùng mức độ
+    if (c.loai === pref) sc += 20;
     if (c.mucDo && c.mucDo === x.mucDo) sc += 10;
-    if (c.loai === pref) sc += 8;
     if (!done[c.maKho]) sc += 5;
     sc += Math.random();
     if (sc > bestScore) { bestScore = sc; best = c; }
@@ -3452,10 +3456,10 @@ function nbFixStart_(st, req, goal) {
   if (key === 'MOT_LOI') {
     var ma = str_(req.ma).toUpperCase();
     if (ma !== 'HONG' && (!NB_LOAI[ma] || ma === 'CHUA_RO')) throw new Error('Loại lỗi không hợp lệ.');
-    its = its.filter(function (x) { return ma === 'HONG' ? (x.loi.ma === 'HONG_KT' || x.loi.ma === 'DOAN_MO') : x.loi.ma === ma; });
+    its = its.filter(function (x) { return ma === 'HONG' ? (x.loi.ma === 'HONG_KT' || x.loi.ma === 'DOAN_MO' || x.loi.ma === 'CHUA_RO') : x.loi.ma === ma; });
     tieuDe += ' — ' + (ma === 'HONG' ? 'Hổng kiến thức' : NB_LOAI[ma].ten);
   } else if (key === 'ON_NHANH') {
-    var top = nb.tongHop.saiNgoo.filter(function (x) { return x.mau !== 'xanh'; })[0];
+    var top = nb.tongHop.saiNgoo.filter(function (s) { return s.mau !== 'xanh' && its.some(function (x) { return x.loi.ma === s.ma; }); })[0];
     if (top) { its = its.filter(function (x) { return x.loi.ma === top.ma; }); tieuDe += ' — ' + top.ten; }
   }
   if (!its.length) throw new Error('Sổ tay của em chưa có câu sai nào cần khắc phục cho mẫu đề này.');
@@ -3473,7 +3477,11 @@ function nbFixStart_(st, req, goal) {
     if (qid && qids.indexOf(qid) < 0) { qids.push(qid); goc.push(x.key); taken[qid] = 1; }
   });
   var nGoc = qids.length;
-  var cand = practiceCandidates_(st);
+  var cand = { byBai: {}, byChuong: {} };
+  practiceCandidates_(st).forEach(function (c) {
+    if (c.bai) (cand.byBai[c.bai] = cand.byBai[c.bai] || []).push(c);
+    if (c.chuong) (cand.byChuong[c.chuong] = cand.byChuong[c.chuong] || []).push(c);
+  });
   var done = practiceDone_(rowsWhere_('KetQuaLuyenTap', 'studentId', st.id));
   // câu tương tự: chia vòng tròn cho các câu sai (nặng nhất trước), mỗi lượt một câu
   for (var round = 0; qids.length < mau.so && round < mau.so; round++) {

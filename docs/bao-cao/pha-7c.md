@@ -34,3 +34,18 @@
 
 ### Việc giáo viên cần làm
 Sau khi Pha 7c gộp vào `main`: dán **Code.gs 1.8.0** một lần theo mục "Pha 7" đầu `docs/VIEC-GIAO-VIEN.md`. Đề khắc phục cần `CHO_LUYEN_TAP` = `CO` và pool luyện tập có câu các bài học sinh hay sai.
+
+## Người làm — Vòng 2 (soát CHƯA ĐẠT vì R-1; kiểm thử: TC-7.20 KHÔNG ĐẠT một phần vì K-1)
+
+| Phát hiện | Đã sửa |
+|---|---|
+| R-1 (Vừa) làm lại câu gốc sai + câu tương tự đúng cùng bài → vàng | Trong một bài luyện, mọi lần làm đúng (kể cả câu khắc phục) xếp trước, lần sai xếp sau → câu gốc về đỏ. Kiểm thử "Vòng 2 (R-1)" (hai ngày liền vẫn đỏ). |
+| K-1 (Nhẹ) câu tương tự chưa ưu tiên đúng phần | Đúng phần +20 (Tính toán → Phần III, Sót → Phần II) hơn cùng mức độ +10. `pha7c-kiem-thu` 16/16 (trước 14/16). |
+| R-2 (Nhẹ) ON_NHANH chọn loại chỉ còn câu đã gỡ | Chọn loại lỗi nặng nhất **còn câu dùng được**. |
+| R-3 (Nhẹ) tìm câu tương tự duyệt cả pool | Chia pool theo bài và chương một lần, mỗi câu sai chỉ xét câu cùng bài / chương. |
+| G-1 "Ôn phần hổng kiến thức" bỏ câu chưa phân loại | Gồm cả câu chưa phân loại (như bản đồ trong sổ); nút hiện khi nhóm có câu. |
+| G-3 `khacPhuc` có cả câu không đổi màu | Chỉ trả câu đổi màu. |
+| R-4 (Nhẹ) nộp đề khắc phục tính sổ tay 2 lần | Giữ: chỉ ở kiểu khắc phục, ngoài khóa; cần màu trước/sau để báo cho học sinh. |
+| G-2 câu gốc của đề chưa công bố vẫn làm đích câu tương tự | Giữ: không lộ nội dung/đáp án (câu tương tự từ pool đã kiểm chặn); đặc tả không cấm. |
+
+Kiểm thử vòng 2: `pha7c` 11/11, `pha7c-kiem-thu` 16/16, `pha7c-kiem-thu.e2e.js all` ĐẠT, `pha7`, `pha7b`, `pha7a-kiem-thu`, `pha7b-kiem-thu`, `pha4`, `pha4-kiem-thu`, backend, bank, cache, `pha6`, `pha6-kiem-thu` đạt, `scan-secrets` sạch.

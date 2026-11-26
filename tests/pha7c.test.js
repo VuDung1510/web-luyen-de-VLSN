@@ -223,6 +223,31 @@ t('TC-7.22 token đề khắc phục bị sửa goc hoặc qids thì bị từ c
   ok(w.call('submitExam', { attemptToken: s.attemptToken, answers: {} }));
 });
 
+t('Vòng 2 (R-1): trong một bài, làm lại câu gốc vẫn sai nhưng câu tương tự đúng → câu gốc đỏ (không vàng, không xanh)', () => {
+  const w = world();
+  w.practice({ TN: 5 }, (m) => w.wrong(m));
+  backdateAll(w, 'KetQuaLuyenTap', 3);
+  for (let day = 2; day >= 1; day--) {
+    const s = w.fix({ mau: 'MUOI_CAU' });
+    const p = payload(s.attemptToken);
+    const G = p.qids.find((q, i) => q === p.goc[i] && p.qids.some((z, j) => z !== q && p.goc[j] === q));
+    assert.ok(G, 'cần câu gốc vừa làm lại vừa có câu tương tự');
+    w.submitFix(s, (q, g) => (q === G ? w.wrong(q) : w.right(q)));
+    const it = w.nb().items.find((x) => x.key === G);
+    assert.strictEqual(it.mau, 'do', 'ngày ' + day);
+    backdateAll(w, 'KetQuaLuyenTap', day, w.g._sheets.KetQuaLuyenTap._data().length - 1);
+  }
+});
+
+t('Vòng 2 (G-1, R-2): "Ôn phần hổng kiến thức" lấy cả câu chưa phân loại; ON_NHANH bỏ qua loại lỗi chỉ còn câu đã gỡ', () => {
+  const w = world();
+  w.practice({ TN: 5 }, (m) => w.wrong(m));
+  const s = w.fix({ mau: 'MOT_LOI', ma: 'HONG' });
+  assert.ok(payload(s.attemptToken).qids.length >= 1, 'câu chưa phân loại vào được đề Hổng kiến thức');
+  const s2 = w.fix({ mau: 'ON_NHANH' });
+  assert.ok(payload(s2.attemptToken).qids.length >= 1);
+});
+
 t('TC-7.23 (khuyến nghị) học sinh có 300 bài nộp: notebook < 3 giây trên shim chậm (SHEET_READ_MS)', () => {
   const w = world({ ctx: { sheetReadMs: 20 } });
   const e = ok(w.g.call('adminSaveExam', { token: w.tTok, exam: { tieuDe: 'Đề nhiều lần', thoiGian: 15, trangThai: 'DONG', hienLoiGiai: 'NGAY', soLanLam: 0 },

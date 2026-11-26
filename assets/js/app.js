@@ -1291,7 +1291,7 @@
         ${hk.chuong.map((c) => `<div class="nb-map-ch"><i class="nb-dot ${c.mau}"></i><button class="nb-err-name" data-nbch="${esc(c.chuong)}">${esc(c.chuong)}</button><span class="num">${c.so} câu</span></div>
           ${c.bai.map((b) => `<div class="nb-map-bai"><span>${esc(b.bai)}</span><span class="num">${b.so}</span></div>`).join('')}`).join('')}
         ${hk.chuaRo ? `<button class="nb-link" data-nbtype="CHUA_RO">Phân loại ${hk.chuaRo} câu còn lại ▸</button>` : ''}
-        ${practiceAllowed() && hk.so > hk.chuaRo ? `<div><button class="nb-link" data-nbstart="MOT_LOI" data-ma="HONG">Ôn phần hổng kiến thức (5 câu · 7 phút) ▸</button></div>` : ''}</details>`;
+        ${practiceAllowed() && hk.so ? `<div><button class="nb-link" data-nbstart="MOT_LOI" data-ma="HONG">Ôn phần hổng kiến thức (5 câu · 7 phút) ▸</button></div>` : ''}</details>`;
     }
     h += `<div class="nb-sec"><div class="nb-sec-h"><h3>Ghi chú của em</h3><span class="nb-saved" id="nbGsaved"></span></div>
       <textarea class="nb-notes" id="nbGnote" data-nbnote="_CHUNG" maxlength="500" aria-label="Ghi chú của em" placeholder="Viết điều em muốn nhớ trước mỗi bài kiểm tra…">${esc(nb.data.ghiChuChung || '')}</textarea></div>`;
