@@ -72,6 +72,6 @@ Gộp vào `main` ngày 19/11/2026. Soát code vòng 2 ĐẠT; kiểm thử vòn
 
 | 7a — Sổ tay tự động | Xong 26/11 (soát + kiểm thử vòng 2 ĐẠT), pull request chờ giáo viên gộp; Code.gs 1.6.0 **không dán** — dán một lần sau 7c. Báo cáo `docs/bao-cao/pha-7a*.md` |
 | 7b — Phân loại, ghi chú, công cụ, lời nhắc | Xong 27/11: soát + kiểm thử vòng 3 ĐẠT. Đã gộp `main` cùng 7a (PR #2). Báo cáo `docs/bao-cao/pha-7b*.md` |
-| 7c — Đề khắc phục | Người làm xong 27/11 (Code.gs 1.8.0 — bản cuối để dán); chờ soát + kiểm thử. Báo cáo `docs/bao-cao/pha-7c.md` |
+| 7c — Đề khắc phục | Xong 27/11: soát + kiểm thử vòng 2 ĐẠT. Code.gs 1.8.0 là bản cuối để dán (sau khi gộp). Báo cáo `docs/bao-cao/pha-7c*.md` |
 
 Máy chủ thật đã là **1.5.0** (21/11/2026; phiên bản triển khai trước: 2). Việc còn lại: nhóm C, D trong `docs/VIEC-GIAO-VIEN.md`. Bài kiểm thử "Tạo đề" chập chờn của Pha 2 đã xác định là lỗi của test và đã sửa.

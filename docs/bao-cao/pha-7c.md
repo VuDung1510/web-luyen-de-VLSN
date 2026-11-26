@@ -49,3 +49,8 @@ Sau khi Pha 7c gộp vào `main`: dán **Code.gs 1.8.0** một lần theo mục 
 | G-2 câu gốc của đề chưa công bố vẫn làm đích câu tương tự | Giữ: không lộ nội dung/đáp án (câu tương tự từ pool đã kiểm chặn); đặc tả không cấm. |
 
 Kiểm thử vòng 2: `pha7c` 11/11, `pha7c-kiem-thu` 16/16, `pha7c-kiem-thu.e2e.js all` ĐẠT, `pha7`, `pha7b`, `pha7a-kiem-thu`, `pha7b-kiem-thu`, `pha4`, `pha4-kiem-thu`, backend, bank, cache, `pha6`, `pha6-kiem-thu` đạt, `scan-secrets` sạch.
+
+## Kết luận Pha 7c
+- Soát code vòng 2 **ĐẠT**, kiểm thử vòng 2 **ĐẠT** (TC-7.18 → 7.23; `pha7c-kiem-thu` 17/17, e2e đạt).
+- Sửa thêm ghi nhận Nhẹ của soát vòng 2: chỉ mục pool theo bài/chương dùng `Object.create(null)` (tên bài trùng thuộc tính có sẵn không làm hỏng). Chạy lại `pha7c` 11/11, `pha7c-kiem-thu` 17/17.
+- **Pha 7 xong.** Bản để giáo viên dán: **Code.gs 1.8.0**.

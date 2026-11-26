@@ -3477,7 +3477,7 @@ function nbFixStart_(st, req, goal) {
     if (qid && qids.indexOf(qid) < 0) { qids.push(qid); goc.push(x.key); taken[qid] = 1; }
   });
   var nGoc = qids.length;
-  var cand = { byBai: {}, byChuong: {} };
+  var cand = { byBai: Object.create(null), byChuong: Object.create(null) }; // tên bài như "constructor" không đụng thuộc tính có sẵn
   practiceCandidates_(st).forEach(function (c) {
     if (c.bai) (cand.byBai[c.bai] = cand.byBai[c.bai] || []).push(c);
     if (c.chuong) (cand.byChuong[c.chuong] = cand.byChuong[c.chuong] || []).push(c);

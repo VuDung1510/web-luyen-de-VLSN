@@ -120,3 +120,4 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - 26/11/2026 — Claude Code: giáo viên duyệt đặc tả Pha 7 và chốt 4 câu hỏi mở theo đề xuất; dựng trang mẫu giao diện Sổ tay.
 - 26/11/2026 — Claude Code: giáo viên chốt giao diện sổ tay kiểu chữ nằm giữa hai dòng kẻ (mục 5); bắt đầu làm Pha 7a.
 - 26/11/2026 — Claude Code: Pha 7a qua soát code và kiểm thử vòng 2 (ĐẠT). Giáo viên chốt bảng màu Sổ tay, màu loại lỗi đậm hơn ×1,5 (mục 6); dán Code.gs một lần sau Pha 7c (mục 8); cho phép tạo pull request Pha 7a.
+- 27/11/2026 — Claude Code: Pha 7b (gộp `main` qua PR #2) và Pha 7c qua soát code + kiểm thử độc lập (ĐẠT). Code.gs 1.8.0 là bản để giáo viên dán một lần sau khi gộp Pha 7c.
