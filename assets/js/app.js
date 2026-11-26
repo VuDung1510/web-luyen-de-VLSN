@@ -55,12 +55,20 @@
     // Luyện tập: máy chủ có tính năng "practice" VÀ giáo viên bật CHO_LUYEN_TAP (máy chủ 1.0.0: không có mục này)
     const np = document.getElementById('navPractice');
     if (np) np.classList.toggle('hidden', !practiceAllowed(p));
+    // Sổ tay (Pha 7): máy chủ có tính năng "notebook" VÀ giáo viên không tắt BAT_SO_TAY
+    const nn = document.getElementById('navNotebook');
+    if (nn) nn.classList.toggle('hidden', !notebookAllowed(p));
     // Pha 5: chân trang là chữ thương hiệu cố định trong index.html — không ghi tên giáo viên
   }
 
   function practiceAllowed(p) {
     p = p || pub;
     return App.has('practice') && !!(p && p.practice);
+  }
+
+  function notebookAllowed(p) {
+    p = p || pub;
+    return App.has('notebook') && !!(p && p.notebook);
   }
 
   function renderUserBox() {
@@ -134,6 +142,7 @@
       case 'lam-bai': return viewExamIntro(decodeURIComponent(arg || ''));
       case 'ket-qua': setNav(''); return viewResult(decodeURIComponent(arg || ''));
       case 'luyen-tap': setNav('practice'); return viewPractice(arg || '');
+      case 'so-tay': setNav('notebook'); return viewNotebook();
       case 'lich-su': setNav('history'); return viewHistory();
       case 'thong-ke': setNav('stats'); return viewStats();
       case 'bang-xep-hang': setNav('board'); return viewBoard(decodeURIComponent(arg || ''));
@@ -402,6 +411,9 @@
     document.getElementById('footer').classList.add('hidden');
     const qs = att.questions;
     const save = () => store.set(ATTEMPT_KEY, att);
+    // Pha 7: giây từ lúc bắt đầu tới lần sửa đáp án cuối của từng câu (sổ tay dùng để gợi ý chia thời gian)
+    const startMs = att.endAt - att.durationSec * 1000;
+    const mark = (stt) => { att.times = att.times || {}; att.times[stt] = Math.max(0, Math.round((Date.now() - startMs) / 1000)); };
     let html = `<div class="exam-bar"><div class="exam-bar-in">
         <div style="min-width:0;flex:1"><div class="small muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(att.exam.tieuDe)}</div>
           <div class="row" style="flex-wrap:nowrap"><div class="progress"><i id="prog"></i></div><span class="small nowrap" id="progText"></span></div></div>
@@ -436,6 +448,7 @@
       if (opt) {
         const stt = opt.closest('.q').dataset.stt;
         att.answers[stt] = att.answers[stt] === opt.dataset.opt ? '' : opt.dataset.opt;
+        mark(stt);
         opt.parentElement.querySelectorAll('[data-opt]').forEach((b) => b.classList.toggle('sel', b.dataset.opt === att.answers[stt]));
         save(); updateProgress();
         return;
@@ -447,6 +460,7 @@
         const arr = Array.isArray(att.answers[stt]) ? att.answers[stt] : ['', '', '', ''];
         arr[+idx] = arr[+idx] === val ? '' : val;
         att.answers[stt] = arr;
+        mark(stt);
         tf.parentElement.querySelectorAll('button').forEach((b) => b.classList.toggle('sel', b.dataset.tf === idx + ':' + arr[+idx]));
         save(); updateProgress();
         return;
@@ -465,6 +479,7 @@
       if (!inp) return;
       inp.value = inp.value.replace(/[^0-9,.\-+eE ]/g, '');
       att.answers[inp.dataset.short] = inp.value.trim();
+      mark(inp.dataset.short);
       save(); updateProgress();
     });
 
@@ -524,11 +539,11 @@
       btns.forEach((b) => { b.disabled = true; b.textContent = 'Đang nộp…'; });
       for (let i = 0; i < 4; i++) {
         try {
-          const r = await api('submitExam', { attemptToken: att.attemptToken, answers: att.answers }, { retries: 1 });
+          const r = await api('submitExam', { attemptToken: att.attemptToken, answers: att.answers, times: att.times || {} }, { retries: 1 });
           clearInterval(timerId);
           store.del(ATTEMPT_KEY);
           // Dữ liệu cũ của trang chủ / lịch sử / thống kê không còn đúng: xóa rồi làm mới ngầm
-          App.cacheDel('home', 'history', 'stats', 'practice', 'history_luyen');
+          App.cacheDel('home', 'history', 'stats', 'practice', 'history_luyen', 'notebook');
           homeInflight = null;
           // thẻ kho lấy SAU khi xóa: nếu đăng xuất / đổi tài khoản trước khi dữ liệu về thì không cất (R-1)
           const tok = App.cacheToken();
@@ -588,6 +603,272 @@
       <button class="btn" onclick="window.print()">In / Lưu PDF</button></div>`;
     $app.innerHTML = App.resultHtml(v, { actions });
     math($app);
+  }
+
+  /* ---------- sổ tay cá nhân (Pha 7a) — docs/spec/pha-7-so-tay.md, mẫu docs/spec/mau-so-tay.html ---------- */
+  const NB_LOAI = {
+    CONG_THUC: { ten: 'Nhớ nhầm công thức', mau: 'var(--nb-ct)' },
+    DOC_DE: { ten: 'Đọc sai đề / bỏ sót dữ kiện', mau: 'var(--nb-dd)' },
+    TINH_TOAN: { ten: 'Tính toán / quên đổi đơn vị', mau: 'var(--nb-tt)' },
+    SOT: { ten: 'Sót ý / sót câu / quên không làm', mau: 'var(--nb-sot)' },
+    HONG_KT: { ten: 'Chưa biết làm', mau: 'var(--nb-hkt)' },
+    DOAN_MO: { ten: 'Đoán mò', mau: 'var(--nb-hkt)' },
+    CHUA_RO: { ten: 'Chưa phân loại', mau: 'var(--nb-cr)' }
+  };
+  const NB_NGOO = ['CONG_THUC', 'DOC_DE', 'TINH_TOAN', 'SOT'];
+  const NB_Y = { DON_VI: 'đơn vị', BAM_MAY: 'bấm máy' };
+  const NB_MAU = { do: 'Đỏ: chưa làm đúng lại', vang: 'Vàng: đang tiến bộ', xanh: 'Xanh: đã khắc phục' };
+  const NB_SEV = { do: 0, vang: 1, xanh: 2 };
+  const NB_PHAN = { 1: 'I', 2: 'II', 3: 'III' };
+  const nb = { data: null, filter: { loai: '', src: '', mau: '', q: '', from: '' }, open: new Set(), detail: {}, loading: {}, tab: 'sotay', hkt: false };
+
+  function notebookOffHtml() {
+    return `<h1>Sổ tay của em</h1><div class="card empty" id="notebookOff">Mục Sổ tay hiện chưa mở. Khi giáo viên bật, các câu em làm sai sẽ được tập hợp ở đây.
+      <div style="margin-top:10px"><a class="btn" href="#/">← Trang chủ</a></div></div>`;
+  }
+
+  function viewNotebook() {
+    if (!App.has('notebook')) { $app.innerHTML = notebookOffHtml(); return; }
+    nb.open = new Set(); nb.detail = {}; nb.loading = {};
+    nb.filter = { loai: '', src: '', mau: '', q: '', from: '' };
+    return cached('notebook', () => api('notebook'), renderNotebook, { skeleton: () => { $app.innerHTML = App.skeletonHtml('table'); } })
+      .catch((e) => {
+        if (e.unsupported || /tắt sổ tay/.test(e.message)) {
+          App.cacheDel('notebook');
+          $app.innerHTML = notebookOffHtml();
+          refreshPub();
+          return;
+        }
+        $app.innerHTML = errorBox(e);
+      });
+  }
+
+  const nbGroupOf = (it) => (NB_NGOO.indexOf(it.loi.ma) >= 0 ? 'ngoo' : 'hong');
+  const nbSrcId = (it) => (it.nguon.luyenTap ? 'LT' : 'E:' + it.nguon.examId);
+  const nbDay = (s) => { const m = /^(\d{1,2})\/(\d{1,2})/.exec(String(s || '')); return m ? m[1].padStart(2, '0') + '/' + m[2].padStart(2, '0') : ''; };
+
+  function renderNotebook(d) {
+    nb.data = d;
+    const t = d.tongHop;
+    let h = `<div class="nb-head"><h1>Sổ tay của em</h1>
+      <p class="muted" id="nbMeta">${t.tong} câu đã sai · ${t.chuaKhacPhuc} câu chưa làm đúng lại · ${t.lapLai} lỗi đang lặp lại</p></div>`;
+    if (!d.items.length) {
+      $app.innerHTML = h + `<div class="card empty" id="nbEmpty">Em chưa có câu sai nào. Sau mỗi bài làm, các câu sai sẽ tự vào sổ tay để em xem lại.
+        <div style="margin-top:10px"><a class="btn" href="#/">← Trang chủ</a></div></div>`;
+      return;
+    }
+    const srcs = [];
+    const seen = {};
+    d.items.forEach((it) => { const k = nbSrcId(it); if (!seen[k]) { seen[k] = 1; srcs.push([k, it.nguon.luyenTap ? 'Bài luyện tập' : it.nguon.tieuDe]); } });
+    h += `<div class="nb-tabs" role="tablist" aria-label="Chọn nửa màn hình">
+        <button role="tab" id="nbTabBook" aria-selected="${nb.tab === 'sotay'}" data-nbtab="sotay">Sổ tay</button>
+        <button role="tab" id="nbTabList" aria-selected="${nb.tab === 'cau'}" data-nbtab="cau">Câu đã sai (${d.items.length})</button></div>
+      <div class="nb-split" id="nbSplit" data-tab="${nb.tab}">
+        <section class="nb-pane nb-list-pane" aria-labelledby="nbListTitle">
+          <div class="nb-pane-title"><h2 id="nbListTitle">Câu đã sai</h2><span class="muted num" id="nbCount"></span></div>
+          <div class="nb-filters">
+            <select id="nbfLoai" aria-label="Lọc theo loại lỗi"><option value="">Mọi loại lỗi</option>${NB_NGOO.map((m) => `<option value="${m}">${esc(NB_LOAI[m].ten)}</option>`).join('')}
+              <option value="HONG">Hổng kiến thức</option><option value="CHUA_RO">Chưa phân loại</option></select>
+            <select id="nbfSrc" aria-label="Lọc theo đề"><option value="">Mọi đề</option>${srcs.map(([k, n]) => `<option value="${esc(k)}">${esc(n)}</option>`).join('')}</select>
+            <select id="nbfMau" aria-label="Lọc theo mức độ"><option value="">Mọi mức độ</option>${Object.keys(NB_MAU).map((k) => `<option value="${k}">${NB_MAU[k]}</option>`).join('')}</select>
+            <input id="nbfQ" type="search" placeholder="Tìm theo bài, chương, đề…" aria-label="Tìm theo bài, chương, đề">
+          </div>
+          <div id="nbActive"></div><div id="nbList"></div>
+        </section>
+        <aside class="nb-pane nb-book-pane" aria-labelledby="nbBookTitle"><div class="nb-book" id="nbBook"></div></aside>
+      </div>`;
+    $app.innerHTML = h;
+    const f = nb.filter;
+    document.getElementById('nbfLoai').value = f.loai;
+    document.getElementById('nbfSrc').value = f.src;
+    document.getElementById('nbfMau').value = f.mau;
+    document.getElementById('nbfQ').value = f.q;
+    nbRenderBook();
+    nbRenderList();
+    const onFilter = () => {
+      f.loai = document.getElementById('nbfLoai').value; f.src = document.getElementById('nbfSrc').value;
+      f.mau = document.getElementById('nbfMau').value; f.q = document.getElementById('nbfQ').value.trim(); f.from = '';
+      nbRenderList();
+    };
+    ['nbfLoai', 'nbfSrc', 'nbfMau'].forEach((id) => { document.getElementById(id).onchange = onFilter; });
+    document.getElementById('nbfQ').oninput = onFilter;
+    $app.querySelector('.nb-tabs').onclick = (e) => { const b = e.target.closest('[data-nbtab]'); if (b) nbSetTab(b.dataset.nbtab); };
+    document.getElementById('nbList').onclick = nbListClick;
+    document.getElementById('nbActive').onclick = (e) => { if (e.target.closest('[data-nbclear]')) { nb.filter = { loai: '', src: '', mau: '', q: '', from: '' }; renderNotebook(nb.data); } };
+    document.getElementById('nbBook').onclick = nbBookClick;
+  }
+
+  function nbSetTab(tab) {
+    nb.tab = tab;
+    const sp = document.getElementById('nbSplit');
+    if (sp) sp.dataset.tab = tab;
+    document.getElementById('nbTabBook').setAttribute('aria-selected', String(tab === 'sotay'));
+    document.getElementById('nbTabList').setAttribute('aria-selected', String(tab === 'cau'));
+  }
+
+  function nbPasses(it) {
+    const f = nb.filter;
+    if (f.loai === 'HONG' ? !(it.loi.ma === 'HONG_KT' || it.loi.ma === 'DOAN_MO') : f.loai && it.loi.ma !== f.loai) return false;
+    if (f.src && nbSrcId(it) !== f.src) return false;
+    if (f.mau && it.mau !== f.mau) return false;
+    if (f.chuong && it.chuong !== f.chuong) return false;
+    if (f.q) {
+      const hay = (it.bai + ' ' + it.chuong + ' ' + it.nguon.tieuDe).toLowerCase();
+      if (!hay.includes(f.q.toLowerCase())) return false;
+    }
+    return true;
+  }
+
+  function nbTag(it) {
+    const L = NB_LOAI[it.loi.ma] || NB_LOAI.CHUA_RO;
+    const ask = it.loi.nguon === 'MAY' && it.loi.canHoi;
+    const y = it.loi.y && NB_Y[it.loi.y] ? ' · ' + NB_Y[it.loi.y] : '';
+    const title = it.loi.nguon === 'HS' ? 'Em chọn' : it.loi.nguon === 'MAY' ? (ask ? 'Máy đoán, chưa chắc chắn' : 'Máy nhận ra') : 'Chưa phân loại';
+    return `<span class="nb-tag${ask ? ' guess' : ''}" title="${title}"><i class="nb-sw" style="background:${L.mau}"></i>${esc(L.ten)}${y}${ask ? ' ?' : ''}</span>`;
+  }
+
+  function nbRenderList() {
+    const d = nb.data;
+    const ng = d.tongHop.saiNgoo.map((s) => s.ma);
+    const order = (it) => (nbGroupOf(it) === 'ngoo' ? ng.indexOf(it.loi.ma) * 10 + NB_SEV[it.mau] : 100 + NB_SEV[it.mau]);
+    const all = d.items.filter(nbPasses).sort((a, b) => (order(a) - order(b)) || String(b.nguon.nopLuc).localeCompare(String(a.nguon.nopLuc)));
+    document.getElementById('nbCount').textContent = `${all.length}/${d.items.length} câu`;
+    document.getElementById('nbActive').innerHTML = nb.filter.from ? `<div class="nb-active"><span class="muted">Đang xem:</span><button class="nb-pill" data-nbclear="1">${esc(nb.filter.from)} ✕</button></div>` : '';
+    const el = document.getElementById('nbList');
+    if (!all.length) { el.innerHTML = '<div class="card empty">Không có câu nào khớp bộ lọc.</div>'; return; }
+    const groups = [['Sai ngoo', all.filter((i) => nbGroupOf(i) === 'ngoo')], ['Hổng kiến thức và chưa phân loại', all.filter((i) => nbGroupOf(i) !== 'ngoo')]];
+    el.innerHTML = groups.filter((g) => g[1].length).map(([ten, its]) => `<div class="nb-group">${ten}</div><div class="nb-items">${its.map(nbItemHtml).join('')}</div>`).join('');
+    math(el);
+    // câu đang mở mà chưa có chi tiết: tải
+    const need = [...nb.open].filter((k) => !nb.detail[k] && !nb.loading[k] && all.some((x) => x.key === k));
+    if (need.length) nbLoadDetail(need);
+  }
+
+  function nbItemHtml(it) {
+    const open = nb.open.has(it.key);
+    const n = it.nguon;
+    const sub = [n.luyenTap ? 'Luyện tập: ' + n.tieuDe : n.tieuDe, nbDay(n.nopLuc), it.bai].filter(Boolean).map(esc).join(' · ');
+    return `<div class="nb-item${open ? ' open' : ''}${it.mau === 'xanh' ? ' done' : ''}" data-key="${esc(it.key)}">
+      <button class="nb-row" data-nbopen="${esc(it.key)}" aria-expanded="${open}">
+        <i class="nb-dot ${it.mau}" title="${NB_MAU[it.mau]}"></i>
+        <span class="nb-row-main"><span class="nb-row-title">Câu ${esc(n.stt)} · Phần ${NB_PHAN[it.phan] || esc(it.phan)}</span> ${nbTag(it)}
+          <span class="nb-row-sub">${sub}</span></span>
+        <span class="nb-row-side">${it.lanSai > 1 ? `<span class="nb-count">sai ${it.lanSai} lần</span>` : ''}${it.mau === 'xanh' ? '<span class="nb-fixed">Đã khắc phục</span>' : ''}<span class="nb-chev" aria-hidden="true">▸</span></span>
+      </button>${open ? `<div class="nb-detail">${nbDetailHtml(it)}</div>` : ''}</div>`;
+  }
+
+  function nbAnswerText(it, a) {
+    if (it.loai === 'DS') return String(a || '').split('').map((x) => (x === 'D' ? 'Đ' : x === 'S' ? 'S' : '–')).join(' ');
+    return a || '(bỏ trống)';
+  }
+
+  function nbDetailHtml(it) {
+    const x = nb.detail[it.key];
+    if (!x) return nb.loading[it.key] === 'err' ? '<div class="notice warn">Chưa tải được câu này. <button class="btn btn-sm" data-nbretry="1">Thử lại</button></div>' : loadingHtml('Đang tải câu…');
+    let h = `<div class="nb-meta muted">${[it.chuong === 'Chưa rõ chương' ? '' : it.chuong, x.bai || it.bai, App.LEVELS[x.mucDo || it.mucDo] || x.mucDo || it.mucDo].filter(Boolean).map(esc).join(' · ')}</div>`;
+    if (x.go) {
+      h += `<div class="notice warn">${esc(x.noiDung)}</div><div class="small">Em trả lời: <b>${esc(nbAnswerText(it, x.answer))}</b></div>`;
+    } else {
+      if (x.daSua) h += '<div class="notice">Câu này đã được thầy sửa sau khi em làm; nội dung dưới đây là bản hiện tại.</div>';
+      h += `<div class="q-body">${rich(x.noiDung)}</div>${x.hinhAnh ? `<img class="q-img" src="${esc(x.hinhAnh)}" alt="Hình câu ${esc(it.nguon.stt)}" loading="lazy">` : ''}`;
+      if (it.loai === 'TN') {
+        h += '<div class="nb-opts">' + ['A', 'B', 'C', 'D'].map((k) => {
+          const em = x.answer === k, dung = x.dapAn != null && String(x.dapAn).toUpperCase().trim() === k;
+          return `<div class="nb-opt${em ? ' em' : ''}${dung ? ' dung' : ''}"><b>${k}.</b> ${rich(x[k])}${em ? '<span class="nb-lab bad">EM CHỌN</span>' : ''}${dung ? '<span class="nb-lab good">ĐÁP ÁN</span>' : ''}</div>`;
+        }).join('') + '</div>';
+        if (!x.answer) h += '<div class="small nb-bad">Em bỏ trống câu này.</div>';
+      } else if (it.loai === 'DS') {
+        const ans = String(x.answer || '____').split('');
+        const key = x.dapAn != null ? String(x.dapAn).toUpperCase().replace(/Đ/g, 'D').replace(/[^DS]/g, '').split('') : null;
+        h += '<div class="nb-opts one">' + ['A', 'B', 'C', 'D'].map((k, i) => {
+          const sai = key && ans[i] !== key[i];
+          const v = (c) => (c === 'D' ? 'Đ' : c === 'S' ? 'S' : '–');
+          return `<div class="nb-opt${sai ? ' em' : ''}"><b>${'abcd'[i]})</b> ${rich(x[k])} <span class="nb-lab">Em: ${v(ans[i])}${key ? ' · Đáp án: ' + v(key[i]) : ''}</span></div>`;
+        }).join('') + '</div>';
+      } else {
+        h += `<div class="nb-ans"><span>Em trả lời: <b class="nb-bad num">${esc(x.answer || '(bỏ trống)')}</b></span>${x.dapAn != null ? `<span>Đáp án: <b class="nb-good num">${esc(String(x.dapAn).split('|').join(' hoặc '))}</b></span>` : ''}</div>`;
+      }
+      if (x.an) h += `<div class="nb-lock">${esc(x.anNote)}</div>`;
+      else if (x.loiGiai) h += `<details class="nb-sol"><summary>Xem lời giải</summary><div class="solution">${rich(x.loiGiai)}</div></details>`;
+    }
+    const src = it.loi.nguon === 'HS' ? 'Em đã chọn loại lỗi này.'
+      : it.loi.nguon === 'MAY' ? (it.loi.canHoi ? 'Máy đoán loại lỗi này nhưng chưa chắc chắn.' : 'Máy nhận ra loại lỗi này từ câu trả lời của em.')
+      : 'Máy chưa đoán được loại lỗi của câu này.';
+    h += `<div><div class="nb-blk">Loại lỗi</div>${nbTag(it)}<div class="nb-src">${src}</div></div>`;
+    if (it.nguon.resultId) h += `<div class="row"><a class="btn btn-sm" href="#/ket-qua/${encodeURIComponent(it.nguon.resultId)}">Xem lại bài làm</a></div>`;
+    return h;
+  }
+
+  async function nbLoadDetail(keys) {
+    keys.forEach((k) => { nb.loading[k] = 1; });
+    const my = App.currentView();
+    try {
+      const r = await api('notebookItem', { keys });
+      r.items.forEach((x) => { nb.detail[x.key] = x; delete nb.loading[x.key]; });
+    } catch (e) {
+      keys.forEach((k) => { nb.loading[k] = 'err'; });
+      toast(e.message, 'err');
+    }
+    if (App.currentView() === my && document.getElementById('nbList')) nbRenderList();
+  }
+
+  function nbListClick(e) {
+    const retry = e.target.closest('[data-nbretry]');
+    if (retry) {
+      const key = retry.closest('.nb-item').dataset.key;
+      delete nb.loading[key];
+      nbLoadDetail([key]);
+      nbRenderList();
+      return;
+    }
+    const b = e.target.closest('[data-nbopen]');
+    if (!b) return;
+    const k = b.dataset.nbopen;
+    if (nb.open.has(k)) nb.open.delete(k); else nb.open.add(k);
+    nbRenderList();
+  }
+
+  function nbBookClick(e) {
+    const t = e.target.closest('[data-nbtype]');
+    const c = e.target.closest('[data-nbch]');
+    if (!t && !c) return;
+    if (t) {
+      const ma = t.dataset.nbtype;
+      nb.filter = { loai: ma, src: '', mau: '', q: '', from: ma === 'CHUA_RO' ? 'Chưa phân loại' : NB_LOAI[ma].ten };
+    } else {
+      nb.filter = { loai: '', src: '', mau: '', q: '', from: 'Chương: ' + c.dataset.nbch, chuong: c.dataset.nbch };
+    }
+    ['nbfLoai', 'nbfSrc', 'nbfMau', 'nbfQ'].forEach((id) => { document.getElementById(id).value = id === 'nbfLoai' && t ? t.dataset.nbtype : ''; });
+    nbRenderList();
+    nbSetTab('cau');
+    if (window.matchMedia('(min-width: 901px)').matches) document.getElementById('nbListTitle').scrollIntoView({ block: 'start' });
+  }
+
+  function nbRenderBook() {
+    const t = nb.data.tongHop;
+    const segColor = (ma) => (NB_LOAI[ma] || NB_LOAI.CHUA_RO).mau;
+    let h = `<div class="nb-book-head"><h2 id="nbBookTitle">Sổ tay</h2><div class="nb-legend"><span><i class="nb-dot do"></i>Lặp lại</span><span><i class="nb-dot vang"></i>Đang mắc</span><span><i class="nb-dot xanh"></i>Đã khắc phục</span></div></div>`;
+    h += `<div class="nb-ratio-row"><div class="nb-ratio" role="img" aria-label="Tỉ lệ các loại lỗi">${t.tiLe.map((s) => `<i style="width:${(s.so / t.tong) * 100}%;background:${segColor(s.ma)}" title="${esc(s.ten)}: ${s.so} câu"></i>`).join('')}</div></div>`;
+    h += `<div class="nb-ratio-legend">${t.tiLe.map((s) => `<span><i class="nb-sw" style="background:${segColor(s.ma)}"></i>${esc(s.ten)} <b class="num">${s.tiLe}%</b></span>`).join('')}</div>`;
+    h += `<div class="nb-sec"><div class="nb-sec-h"><h3>Sai ngoo</h3><span class="muted">sửa được ngay bằng thói quen</span></div>`;
+    h += t.saiNgoo.length ? t.saiNgoo.map((s) => `<div class="nb-err"><div class="nb-err-line"><i class="nb-dot ${s.mau}" title="${s.lapLai ? 'Lặp lại' : s.mau === 'vang' ? 'Đang mắc' : 'Đã khắc phục'}"></i>
+        <button class="nb-err-name" data-nbtype="${s.ma}" title="Xem các câu thuộc lỗi này">${esc(s.ten)}</button>
+        <span class="nb-err-meta">${s.lapLai ? '<span class="nb-rep">Lặp lại</span>' : ''}<span class="num"><b>${s.so}</b> câu · ${s.tiLe}%</span></span></div>
+        <div class="nb-err-sub"><div class="nb-err-bar"><i style="width:${s.tiLe}%;background:${segColor(s.ma)}"></i></div></div></div>`).join('')
+      : '<div class="muted nb-line">Chưa có lỗi nào thuộc nhóm này.</div>';
+    h += '</div>';
+    const hk = t.hongKT;
+    if (hk.so) {
+      h += `<details class="nb-hkt nb-sec" id="nbHkt"${nb.hkt ? ' open' : ''}><summary><h3>Hổng kiến thức</h3><span class="nb-more"><span class="closed">${hk.so} câu · Xem bản đồ ▸</span><span class="opened">Thu gọn ▾</span></span></summary>
+        <div class="nb-hkt-sum">Gồm câu chưa biết làm${hk.doanMo ? `, ${hk.doanMo} câu đoán mò` : ''}${hk.chuaRo ? ` và ${hk.chuaRo} câu chưa phân loại` : ''}.</div>
+        ${hk.chuong.map((c) => `<div class="nb-map-ch"><i class="nb-dot ${c.mau}"></i><button class="nb-err-name" data-nbch="${esc(c.chuong)}">${esc(c.chuong)}</button><span class="num">${c.so} câu</span></div>
+          ${c.bai.map((b) => `<div class="nb-map-bai"><span>${esc(b.bai)}</span><span class="num">${b.so}</span></div>`).join('')}`).join('')}
+        ${hk.chuaRo ? `<button class="nb-link" data-nbtype="CHUA_RO">Xem ${hk.chuaRo} câu chưa phân loại ▸</button>` : ''}</details>`;
+    }
+    const el = document.getElementById('nbBook');
+    el.innerHTML = h;
+    const det = document.getElementById('nbHkt');
+    if (det) det.addEventListener('toggle', () => { nb.hkt = det.open; });
   }
 
   /* ---------- lịch sử ---------- */

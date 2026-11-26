@@ -108,7 +108,7 @@ Mỗi học sinh có một nơi xem lại mọi câu đã làm sai, biết mình
 
 ## Tiêu chí nghiệm thu
 **7a — Sổ tay tự động**
-- **TC-7.1** Học sinh có bài cũ (dữ liệu trước Pha 7, không có `t`, `goc`): `notebook` liệt kê đúng mọi câu `sc < m` lần làm gần nhất, gộp theo `key`; câu đã làm đúng lại thì có màu đúng §4.
+- **TC-7.1** Học sinh có bài cũ (dữ liệu trước Pha 7, không có `t`, `goc`): `notebook` liệt kê đúng mọi câu **từng** có `sc < m` (ở bất kỳ lần làm nào), gộp theo `key`; câu đã làm đúng lại vẫn còn trong danh sách, với màu đúng §4.
 - **TC-7.2** `notebook` không chứa `noiDung`, `dapAn`, `loiGiai`. `notebookItem` với câu của đề đang mở hoặc chưa công bố lời giải: có nội dung và đáp án em chọn, **không** có `dapAn`, `loiGiai`; đóng đề có lời giải thì có.
 - **TC-7.3** Máy đoán: Phần III đáp án 0,25 với đáp án đúng 25 → `TINH_TOAN/DON_VI`, chắc; 2,48 với 2,5 → `TINH_TOAN/BAM_MAY`, cần hỏi; bỏ trống → `SOT`, chắc; Phần II sai 1 ý → `SOT`, cần hỏi; Phần I sai → `CHUA_RO`.
 - **TC-7.4** Loại lỗi 🔴 "Lặp lại" đúng ngưỡng 3 câu / 2 đề; 3 câu cùng 1 đề thì chỉ 🟡.
@@ -158,3 +158,5 @@ Mỗi pha con: dán Code.gs mới, Triển khai → Phiên bản mới, chạy `
 ## Ước lượng: 7a **M** · 7b **L** · 7c **M**
 
 Sửa đặc tả ngày 26/11/2026: giáo viên duyệt đặc tả và chốt Q1–Q4 theo đề xuất. Trang mẫu giao diện: `docs/spec/mau-so-tay.html` (dữ liệu giả).
+
+Sửa đặc tả ngày 26/11/2026 (Pha 7a, người làm): TC-7.1 ghi rõ danh sách gồm mọi câu từng sai (câu đã làm đúng lại vẫn hiện, màu vàng/xanh), khớp §4 và trang mẫu; câu chữ cũ "lần làm gần nhất" mâu thuẫn với đèn xanh "đã khắc phục".

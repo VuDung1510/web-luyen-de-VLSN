@@ -26,7 +26,7 @@ Học sinh / Giáo viên ──► Trang web (GitHub Pages) ──► Máy chủ
 ```
 
 - Đáp án **chỉ nằm trong Google Sheet**. Trang web không bao giờ nhận đáp án trước khi học sinh nộp bài, và việc chấm điểm chạy trên máy chủ, nên học sinh không thể xem trộm hay sửa điểm.
-- File Google Sheet có 7 trang tính: `HocSinh`, `DeThi`, `CauHoi`, `KetQua`, `CaiDat`, `LuyenTap` (câu cho học sinh luyện tập), `KetQuaLuyenTap` (bài luyện đã nộp). Thầy/cô mở trực tiếp để xem, lọc hay tải về Excel bất cứ lúc nào. Không đổi tên trang tính, hàng tiêu đề, cột Mã HS / Mã đề.
+- File Google Sheet có 9 trang tính: `HocSinh`, `DeThi`, `CauHoi`, `KetQua`, `CaiDat`, `LuyenTap` (câu cho học sinh luyện tập), `KetQuaLuyenTap` (bài luyện đã nộp), `SoTay` (loại lỗi và ghi chú học sinh tự nhập trong Sổ tay), `CongThuc` (thẻ công thức theo bài, giáo viên nhập). Thầy/cô mở trực tiếp để xem, lọc hay tải về Excel bất cứ lúc nào. Không đổi tên trang tính, hàng tiêu đề, cột Mã HS / Mã đề.
 - Ngân hàng câu hỏi nằm ở một file Google Sheet **riêng** ("KHO CÂU HỎI VẬT LÝ"). Máy chủ chỉ **đọc** kho khi giáo viên tạo đề; học sinh không đọc kho.
 
 ### Hiệu năng (nhớ tạm 60 giây)
@@ -47,7 +47,7 @@ Học sinh / Giáo viên ──► Trang web (GitHub Pages) ──► Máy chủ
 3. Xóa hết nội dung có sẵn trong `Code.gs`, rồi dán **toàn bộ** nội dung file [`apps-script/Code.gs`](apps-script/Code.gs) vào. Bấm 💾 **Lưu**.
 4. Trên thanh công cụ, chọn hàm **`setup`** rồi bấm ▶ **Chạy**.
    - Google sẽ hỏi cấp quyền: **Xem xét quyền → chọn tài khoản → Nâng cao → Đi tới … (không an toàn) → Cho phép**. Cảnh báo này xuất hiện vì đây là script do chính thầy/cô tạo.
-   - Chạy xong, quay lại Google Sheet sẽ thấy 7 trang tính, một học sinh mẫu và một đề mẫu.
+   - Chạy xong, quay lại Google Sheet sẽ thấy 9 trang tính, một học sinh mẫu và một đề mẫu.
    - **Mật khẩu trang quản trị** nằm ở trang tính `CaiDat`, dòng `MAT_KHAU_QUAN_TRI` (nhật ký của `setup` cũng in mật khẩu: đừng chụp gửi ai).
 5. Bấm **Triển khai → Tùy chọn triển khai mới**:
    - Bấm ⚙ cạnh "Chọn loại", chọn **Ứng dụng web**.
@@ -66,7 +66,7 @@ Danh sách từng bước có ô đánh dấu: [`docs/VIEC-GIAO-VIEN.md`](docs/V
 2. Mở **Tiện ích mở rộng → Apps Script**, mở file .gs đang có code (`Code.gs` hoặc `Mã.gs`), xóa hết nội dung cũ, dán **toàn bộ** `apps-script/Code.gs` mới, bấm 💾 **Lưu**.
 3. Chạy hàm **`setup`** một lần. Dữ liệu cũ giữ nguyên; `setup` chỉ **thêm** trang tính, cột và dòng cài đặt còn thiếu. Chạy lại nhiều lần cũng không trùng. Nếu Google hỏi quyền mới (đọc file khác, Drive): **Nâng cao → Đi tới … (không an toàn) → Cho phép**.
 4. **Triển khai → Quản lý các bản triển khai → ✏ Chỉnh sửa → Phiên bản: Phiên bản mới → Triển khai.** URL giữ nguyên, không sửa `config.js`. Quên chọn "Phiên bản mới" thì học sinh vẫn dùng máy chủ cũ.
-5. Chạy hàm **`kiemTraSauTrienKhai`** (chỉ gửi nhật ký của hàm này, không gửi nhật ký `setup`), rồi mở trang quản trị → **Cài đặt** → khung **Dữ liệu** (cuối trang): dòng "Phiên bản máy chủ" phải là số mới (hiện là **1.5.0**). Trang đang mở từ trước: bấm F5 một lần là web nhận máy chủ mới.
+5. Chạy hàm **`kiemTraSauTrienKhai`** (chỉ gửi nhật ký của hàm này, không gửi nhật ký `setup`), rồi mở trang quản trị → **Cài đặt** → khung **Dữ liệu** (cuối trang): dòng "Phiên bản máy chủ" phải là số mới (hiện là **1.6.0**; bản trước là 1.5.0). Trang đang mở từ trước: bấm F5 một lần là web nhận máy chủ mới.
 6. Hỏng thì quay về: **Triển khai → Quản lý các bản triển khai → ✏ → Phiên bản:** chọn số phiên bản cũ → **Triển khai**. Giao diện web vẫn chạy được với máy chủ cũ (tự ẩn nút cần máy chủ mới).
 
 ### Bước 2. Nối trang web với máy chủ
@@ -191,6 +191,13 @@ Sửa kho (thêm đáp án, thêm câu) xong thì bấm **↻ Đọc lại kho**
 3. **Cài đặt → Mục Luyện tập cho học sinh = Bật** (`CHO_LUYEN_TAP` = `CO`). Mặc định là Tắt. "Đề nhanh theo bài" mặc định `7,1,2,10` (số câu Phần I, II, III, số phút).
 4. Học sinh vào **🎯 Luyện tập**: tự tạo đề theo bài, **luyện lại câu đã sai**, hoặc **đề nhanh** theo bài. Nộp xong có đáp án và lời giải ngay. Bài luyện ghi vào `KetQuaLuyenTap`, **không** tính vào bảng xếp hạng hay bảng điểm.
 5. Câu đang nằm trong một **đề thi chưa đóng** (hoặc đề không cho xem lời giải) không xuất hiện trong luyện tập; tab Pool gắn nhãn "đang thi". Câu chỉ vào luyện tập khi đề đó đã đóng và cho xem lời giải.
+
+### Sổ tay cá nhân (cần máy chủ 1.6.0)
+
+1. Học sinh vào **Sổ tay**: một nửa là danh sách **mọi câu đã làm sai** (đề thi và luyện tập), một nửa là **cuốn sổ** tổng hợp lỗi. Câu sai gộp theo câu: làm lại đúng thì đèn chuyển **đỏ → vàng → xanh** (xanh = đúng 2 lần ở 2 ngày khác nhau).
+2. Lỗi chia hai nhóm: **Sai ngoo** (nhớ nhầm công thức, đọc sai đề, tính toán / quên đổi đơn vị, sót ý / sót câu) hiện trước; **Hổng kiến thức** (theo chương, bài; gồm câu đoán mò và câu chưa phân loại) để dưới cùng. Loại lỗi nào sai ≥ 3 câu ở ≥ 2 đề thì gắn nhãn **Lặp lại**.
+3. Máy tự nhận ra câu bỏ trống, và (khi đề đã công bố lời giải) đáp án Phần III lệch đúng 10ⁿ lần, lệch nhỏ hoặc ngược dấu. Câu thuộc đề chưa công bố lời giải vẫn hiện nội dung và câu trả lời của em, **không** hiện đáp án và lời giải.
+4. **Cài đặt → Mục Sổ tay cho học sinh** (`BAT_SO_TAY`): mặc định Bật. Trang tính `CongThuc` (thẻ công thức theo bài) do giáo viên nhập dần; học sinh tự phân loại lỗi, ghi chú, đề khắc phục sẽ có ở các bản sau (Pha 7b, 7c).
 
 ### Mục tiêu điểm
 

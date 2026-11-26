@@ -12,9 +12,9 @@ const K = require('./fixtures/kho-gia');
 const ROOT = path.join(__dirname, '..');
 const OLD_CODE = path.join(__dirname, 'fixtures', 'Code-1.0.0.gs');
 const OUT = process.env.OUT || '';
-const VERSION = '1.5.0';
-const FEATURES = ['changePin', 'goal', 'bootstrap', 'cache', 'bank', 'practice'];
-const NEW_SHEETS = ['LuyenTap', 'KetQuaLuyenTap'];
+const VERSION = '1.6.0'; // Pha 7a: máy chủ lên 1.6.0
+const FEATURES = ['changePin', 'goal', 'bootstrap', 'cache', 'bank', 'practice', 'notebook'];
+const NEW_SHEETS = ['LuyenTap', 'KetQuaLuyenTap', 'SoTay', 'CongThuc'];
 const FAKE_PW = 'MkGiaPha6-73915';      // mật khẩu GIẢ đặt vào CaiDat để dò trong nhật ký
 const FAKE_PIN = '4826';                 // PIN riêng GIẢ của một học sinh giả
 const KHO_ID = 'KHOGIAkiemthuPha6xxxxxxxxxxxxxxxxxxxxxxxx'; // id GIẢ dài như id thật (không bắt đầu bằng 1)
@@ -216,7 +216,7 @@ const after = snapshot(M);
   const newOrder = sheetNames(M).filter((n) => oldOrder.includes(n));
   ok('6.3', 'thứ tự các trang tính cũ giữ nguyên', JSON.stringify(oldOrder) === JSON.stringify(newOrder), newOrder);
   const added = sheetNames(M).filter((n) => !before[n]);
-  ok('6.3', 'chỉ thêm LuyenTap, KetQuaLuyenTap', JSON.stringify(added.slice().sort()) === JSON.stringify(NEW_SHEETS.slice().sort()), added);
+  ok('6.3', 'chỉ thêm ' + NEW_SHEETS.join(', '), JSON.stringify(added.slice().sort()) === JSON.stringify(NEW_SHEETS.slice().sort()), added);
   let cells = 0; const diffs = [];
   const growth = {};
   Object.keys(before).forEach((n) => {
@@ -313,7 +313,7 @@ function idem(label, g, runs) {
   const g = newCtx();
   const logs = captureLogs(g);
   idem('Sheet trống', g, 3);
-  ok('6.4', 'Sheet trống: có đủ 7 trang tính chuẩn', ['HocSinh', 'DeThi', 'CauHoi', 'KetQua', 'CaiDat', ...NEW_SHEETS].every((n) => g._sheets[n]), sheetNames(g));
+  ok('6.4', 'Sheet trống: có đủ ' + (5 + NEW_SHEETS.length) + ' trang tính chuẩn', ['HocSinh', 'DeThi', 'CauHoi', 'KetQua', 'CaiDat', ...NEW_SHEETS].every((n) => g._sheets[n]), sheetNames(g));
   // định dạng số KetQuaLuyenTap giống KetQua
   const hK = header(g, 'KetQua'), hL = header(g, 'KetQuaLuyenTap');
   const common = hK.filter((l) => l && hL.includes(l));
@@ -450,9 +450,9 @@ console.log('\n=== TC-6.6 (phần Node) — đối chiếu tài liệu với hà
   const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   // (vòng 2) A2: "Ctrl+F, tìm APP_VERSION: phải thấy var APP_VERSION = '1.5.0'; (ở khoảng dòng 21, sau khối chú thích)"
   const firstHit = code.findIndex((l) => l.includes('APP_VERSION'));
-  const declLine = code.findIndex((l) => /var APP_VERSION = '1\.5\.0';/.test(l));
+  const declLine = code.findIndex((l) => l.includes("var APP_VERSION = '" + VERSION + "';"));
   const lineDoc = +((/khoảng dòng (\d+)/.exec(viec) || [])[1]);
-  ok('6.6', 'A2 Ctrl+F "APP_VERSION": kết quả tìm ĐẦU TIÊN chính là dòng var APP_VERSION = \'1.5.0\';', firstHit >= 0 && firstHit === declLine, `lần gặp đầu: dòng ${firstHit + 1}: ${code[firstHit]}`);
+  ok('6.6', 'A2 Ctrl+F "APP_VERSION": kết quả tìm ĐẦU TIÊN chính là dòng var APP_VERSION = \'' + VERSION + '\';', firstHit >= 0 && firstHit === declLine, `lần gặp đầu: dòng ${firstHit + 1}: ${code[firstHit]}`);
   ok('6.6', `A2 "khoảng dòng ${lineDoc}" khớp vị trí thật (dòng ${declLine + 1}, lệch ≤ 3), và trước đó chỉ là khối chú thích`, Math.abs(lineDoc - (declLine + 1)) <= 3 && code.slice(0, declLine).every((l) => /^\s*(\/\*\*?|\*|\*\/|\/\/|$)/.test(l)), code.slice(0, declLine).filter((l) => !/^\s*(\/\*\*?|\*|\*\/|\/\/|$)/.test(l)).slice(0, 3));
   ok('6.6', 'VIEC-GIAO-VIEN ghi Code.gs 1.5.0', viec.includes('1.5.0') && readme.includes('1.5.0'));
   const g = newCtx();

@@ -1,4 +1,20 @@
-# Việc giáo viên cần làm — phát hành (Pha 6)
+# Việc giáo viên cần làm
+
+## Pha 7a — Sổ tay cá nhân: Code.gs 1.6.0 (làm khi Pha 7a đã gộp vào `main`)
+
+Bản 1.6.0 thêm mục **Sổ tay** cho học sinh. Trước khi dán, học sinh vẫn dùng web bình thường (mục Sổ tay chỉ hiện khi máy chủ đã là 1.6.0).
+- ☐ Sao lưu Google Sheet "web luyện đề" (**Tệp → Tạo bản sao**), ghi số phiên bản triển khai đang dùng (như A1 bên dưới).
+- ☐ **Tiện ích mở rộng → Apps Script**, Ctrl+A xóa code cũ, dán `apps-script/Code.gs` (nút **Copy raw file** trên GitHub), bấm 💾 **Lưu**. Ctrl+F tìm `APP_VERSION`: phải thấy `var APP_VERSION = '1.6.0';` (ở khoảng dòng 21, sau khối chú thích đầu file).
+- ☐ Chọn hàm **`setup`** → ▶ **Chạy**. Google sẽ không hỏi quyền mới. Quay lại Google Sheet: có thêm trang tính `SoTay`, `CongThuc` (tổng cộng 9 trang tính của web) và 2 dòng mới cuối `CaiDat`: `BAT_SO_TAY` = `CO`, `TU_KHOA_DOC_SAI`.
+- ☐ **Triển khai → Quản lý các bản triển khai → ✏ Chỉnh sửa → Phiên bản: Phiên bản mới → Triển khai** (URL giữ nguyên).
+- ☐ Chạy **`kiemTraSauTrienKhai`**: không có dòng ❌. Trang quản trị → **Cài đặt** → khung **Dữ liệu**: "Phiên bản máy chủ" là **1.6.0**; trong khung Chung có ô **Mục Sổ tay cho học sinh** (Bật).
+- ☐ Trang học sinh (F5 một lần): đăng nhập Học Sinh Mẫu, thấy mục **Sổ tay** trên thanh menu; bấm vào thấy các câu từng làm sai.
+- ☐ (Khi rảnh) Nhập dần trang tính `CongThuc`: mỗi hàng một công thức — *Mã bài* (ghi đúng tên bài như cột Bài của câu, hoặc mã bài như `L12C1B2`), *Tên công thức*, *Công thức* (LaTeX), *Tên gợi nhớ*, *Phạm vi áp dụng*, *Dấu hiệu sử dụng*, *Bật* = `CO`. Đã chốt: Cowork "Kho đề" soạn nháp, thầy duyệt rồi dán.
+- ☐ Muốn tạm tắt Sổ tay: **Cài đặt → Mục Sổ tay cho học sinh = Tắt** (hoặc `BAT_SO_TAY` = `KHONG`).
+
+---
+
+# Phát hành (Pha 6) — đã xong 21/11/2026
 
 Gom từ báo cáo Pha 1 → Pha 5. Làm lần lượt từng nhóm. Xong bước nào thì đánh dấu ☐ → ☑ (hoặc ghi ✓ bên cạnh).
 Máy chủ mới: **Code.gs 1.5.0** (gồm toàn bộ thay đổi máy chủ của Pha 1, 2, 4 và 6). Dán **một lần**, lấy file `apps-script/Code.gs` trên nhánh `main` **sau khi Pha 6 đã gộp**.
