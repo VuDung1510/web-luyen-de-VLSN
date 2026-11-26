@@ -181,6 +181,10 @@ async function runNew(browser) {
     // câu gốc: bài luyện "Bài 9" bỏ trống (đã có lời giải ngay → được làm câu gốc)
     const s0 = await api(srv.base, 'practiceStart', { token: st, kieu: 'TU_TAO', bai: ['Bài 9. Định luật Boyle'], so: { TN: 5, DS: 1, TL: 1 }, phut: 10 });
     await api(srv.base, 'submitExam', { token: st, attemptToken: s0.attemptToken, answers: {} });
+    // thêm câu "chưa phân loại": một bài luyện Bài 11 chọn sai (không bỏ trống)
+    const s1 = await api(srv.base, 'practiceStart', { token: st, kieu: 'TU_TAO', bai: ['Bài 11. Phương trình trạng thái khí lí tưởng'], so: { TN: 5 }, phut: 5 });
+    const a1 = {}; s1.questions.forEach((q) => { const r = BY_ND.get(q.noiDung); a1[q.stt] = q.loai === 'TN' && r ? 'ABCD'.replace(r[13], '')[0] : ''; });
+    await api(srv.base, 'submitExam', { token: st, attemptToken: s1.attemptToken, answers: a1 });
     const nb0 = await api(srv.base, 'notebook', { token: st });
     console.log('      · sổ tay: ' + nb0.items.length + ' câu sai (' + [...new Set(nb0.items.map((x) => x.loi.ma))].join(',') + ')');
 
@@ -231,6 +235,14 @@ async function runNew(browser) {
     verdict('Nút (Luyện tập)', b2.includes('ON_NHANH') && b2.includes('MUOI_CAU') && d3.questions && d3.questions.length === 5 && +d3.durationSec === 420, `trang Luyện tập có ${JSON.stringify(b2)}; "Ôn trước giờ kiểm tra" → ${d3.questions && d3.questions.length} câu, ${d3.durationSec} giây`);
     await submitUI(page);
     verdict('Không tràn ngang', await noHScroll(page), '1280 sáng: trang kết quả khắc phục');
+    // Vòng 2 (G-1): "Ôn phần hổng kiến thức" gồm câu chưa phân loại
+    await page.goto(srv.base + '/#/so-tay'); await page.waitForSelector('#nbSplit .nb-item'); await page.waitForTimeout(500);
+    const hb = await page.$('#nbBook [data-nbstart="MOT_LOI"][data-ma="HONG"]');
+    let hd = null;
+    if (hb) { const vis = await hb.isVisible(); if (!vis) await page.click('#nbHkt summary'); await page.waitForTimeout(200); hd = await startVia(page, '#nbBook [data-nbstart="MOT_LOI"][data-ma="HONG"]'); }
+    const nCR = (await api(srv.base, 'notebook', { token: st })).items.filter((x) => x.loi.ma === 'CHUA_RO').length;
+    verdict('Vòng 2 (G-1)', !!hb && hd && hd.questions && hd.questions.length === 5, `sổ có ${nCR} câu chưa phân loại → nút "${hb ? (await hb.textContent()).trim() : '—'}" có, bấm → ${hd && hd.questions ? hd.questions.length + ' câu' : JSON.stringify(hd)}`);
+    if (hd && hd.questions) await shot(page, '09-on-hong-kien-thuc-1280');
     await ctx.close();
 
     // ---- 390 sáng/tối, 1280 tối ----

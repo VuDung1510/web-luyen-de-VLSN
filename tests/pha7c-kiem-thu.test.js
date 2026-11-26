@@ -260,7 +260,9 @@ t('TC-7.19 đúng câu khắc phục ngày 1 → vàng; lần nữa cùng ngày 
   assert.strictEqual(a.mau, 'vang'); assert(a.has, 'đề có câu tương tự (khác X)');
   assert(Array.isArray(a.res.khacPhuc) && a.res.khacPhuc.some((k) => k.key === X && color(k.truoc) === 'do' && color(k.sau) === 'vang'), 'kết quả không báo X đỏ → vàng');
   assert.strictEqual(+a.it.lanSai, lan0, 'lanSai câu gốc đổi');
-  assert.strictEqual(run(true, '05/11/2026 15:00:00').mau, 'vang', 'cùng ngày vẫn vàng');
+  const b = run(true, '05/11/2026 15:00:00');
+  assert.strictEqual(b.mau, 'vang', 'cùng ngày vẫn vàng');
+  // (khacPhuc của lần này tính theo giờ nộp thật, trước khi bài được đổi ngày nộp → không so ở đây)
   const pre = ok(KP(w, { mau: 'MOT_LOI', ma: 'HONG' })); // dựng sẵn khi X còn vàng (câu xanh không còn được chọn làm câu gốc)
   const c = run(true, '06/11/2026 08:00:00');
   assert.strictEqual(c.mau, 'xanh', 'ngày 2 → xanh');
@@ -269,6 +271,7 @@ t('TC-7.19 đúng câu khắc phục ngày 1 → vàng; lần nữa cùng ngày 
   const d = run(false, '07/11/2026 08:00:00', pre);
   assert.strictEqual(d.mau, 'do', 'sai lại → đỏ');
   assert(d.res.khacPhuc.some((k) => k.key === X && color(k.sau) === 'do'), 'báo xanh → đỏ');
+  for (const r of [a, c, d]) assert(!(r.res.khacPhuc || []).some((k) => color(k.truoc) === color(k.sau)), 'vòng 2 (G-3): khacPhuc có mục không đổi màu');
 });
 t('TC-7.19 (biên) trong một bài có câu khắc phục đúng và sai cho cùng câu gốc → tính sai (đỏ); câu khắc phục sai thành mục riêng trong sổ', () => {
   const w = W7();
@@ -303,6 +306,26 @@ t('MOT_LOI ma=HONG khi sổ chỉ có câu "Chưa phân loại" (sổ tay xếp 
   examFromBank(w, 'Đề gốc', [X], new Set([X]));
   const r = KP(w, { mau: 'MOT_LOI', ma: 'HONG' });
   info('sổ chỉ có câu chưa phân loại → MOT_LOI HONG: ' + (r.ok ? r.data.questions.length + ' câu' : '"' + r.error + '"') + '; MUOI_CAU: ' + (KP(w, { mau: 'MUOI_CAU' }).ok ? 'dựng được' : 'không'));
+  assert(r.ok && r.data.questions.length === 5 && tokOf(r.data).goc.every((g) => g === X), 'vòng 2 (G-1): Ôn phần hổng kiến thức phải gồm câu chưa phân loại');
+});
+t('Vòng 2 (R-1): làm lại chính câu gốc SAI + câu tương tự ĐÚNG trong cùng bài → câu gốc đỏ (hai ngày liền vẫn đỏ); khacPhuc chỉ câu đổi màu (G-3)', () => {
+  const w = W7();
+  const X = bai9(w).filter((p) => p.loai === 'TN')[0].maKho;
+  examFromBank(w, 'Đề gốc X', [X], new Set([X])); stampLast(w, 'KetQua', '01/11/2026 08:00:00');
+  // đưa X lên vàng trước bằng một bài đúng hết
+  let st = ok(KP(w, { mau: 'MOT_LOI', ma: 'HONG' })); doKP(w, st, () => true); stampLast(w, 'KetQuaLuyenTap', '02/11/2026 08:00:00');
+  assert.strictEqual(color(byKey(nb(w))[X].mau), 'vang');
+  for (const day of ['03', '04']) {
+    let p; let tries = 0;
+    do { st = ok(KP(w, { mau: 'MOT_LOI', ma: 'HONG' })); p = tokOf(st); } while (!p.qids.includes(X) && ++tries < 20);
+    assert(p.qids.includes(X), 'đề khắc phục phải có chính câu gốc X');
+    const res = doKP(w, st, (q, qid) => qid !== X);
+    stampLast(w, 'KetQuaLuyenTap', day + '/11/2026 08:00:00');
+    const m = color(byKey(nb(w))[X].mau);
+    info(`ngày ${day}: X ${m}; khacPhuc ${JSON.stringify((res.khacPhuc || []).map((k) => k.truoc + '→' + k.sau))}`);
+    assert.strictEqual(m, 'do', 'câu gốc làm sai trong bài phải đỏ (ngày ' + day + ')');
+    assert(!(res.khacPhuc || []).some((k) => color(k.truoc) === color(k.sau)), 'khacPhuc có mục không đổi màu');
+  }
 });
 console.log('\nTC-7.20 — ON_NHANH, MOT_LOI');
 t('TC-7.20 ON_NHANH: 5 câu, 420 giây, nhắm loại lỗi đỏ nặng nhất', () => {
