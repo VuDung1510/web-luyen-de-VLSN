@@ -83,3 +83,31 @@ Bài kiểm thử mới (vòng 2 R-1/R-5, R-3/K-1) kiểm đúng ý: số lần 
 
 ### Kết luận vòng 2
 **CHƯA ĐẠT**, chỉ vì V2-1 (Vừa, mất chữ ghi chú chung; là phần còn sót của R-2). Sửa được bằng 1–2 dòng trong `nbSaveTag`. R-1, R-3, R-4, R-5, R-6, K-1, K-2 đã đúng. V2-2 và V2-3 là Nhẹ, nên sửa cùng lúc nếu tiện; không chặn. Sau khi sửa V2-1, có thể soát nhanh riêng phần đó (vòng 3).
+
+---
+
+## Vòng 3
+
+Phạm vi: `git diff d3fb29e..HEAD` (commit `0fee10b`). Soát lại các chỗ sửa và mọi đường có thể làm mất hoặc đè ghi chú.
+
+**Tóm tắt:**
+- Ghi chú chung không còn quay về chữ cũ khi em bấm chọn loại lỗi.
+- Mỗi ghi chú chỉ gửi một lần một lúc, nên bản cũ không ghi đè bản mới nữa.
+- Máy chủ vá bản nhớ tạm ngay trong lúc giữ khóa ghi.
+- Còn vài chỗ rất hẹp, mức Nhẹ, không chặn.
+
+**Đã chạy:** `pha7b` 11/11, `pha7b-kiem-thu` 16/16, `pha7` 16/16, `pha7a-kiem-thu` 28/28, backend, cache, pha6, pha6-kiem-thu 105/105: đạt. `scan-secrets`: sạch.
+
+| Mã | Đã sửa đúng chưa | Ghi chú / phát hiện mới |
+|---|---|---|
+| V2-1 | **Đúng** | `nbSaveTag` giữ `ghiChuChung` và `coGhiChu` của máy khách trước khi thay `nb.data`. Bản máy khách luôn mới nhất, vì `nbSetLocalNote` chạy ở mỗi lần gõ. Các đường khác: `nbLoadDetail` chỉ tải câu chưa có chi tiết, nên không đè `nb.detail[key].ghiChu`; vẽ lại danh sách hay cuốn sổ đều lấy chữ từ trạng thái đã cập nhật và giữ con trỏ. |
+| V2-2 | **Đúng** | `nbNoteInflight`: khi đang gửi, hẹn giờ tới hạn thì không gửi chồng. Gửi xong mà còn bản chờ (và không còn hẹn giờ) thì gửi tiếp bản mới nhất. Lỗi mạng thì giữ lại bản chờ, nhưng không đè bản mới hơn. |
+| V2-3 | **Đúng** | Vá đệm trong `withLock_`, sau khi bỏ `MEMO_` để đọc lại bản đệm và khóa đệm mới nhất. `afterWrite_` đã xóa bộ nhớ `rowsWhere_` của `SoTay`, nên nếu phải tính lại thì dùng dữ liệu vừa ghi. Hai lần lưu cùng lúc giờ chạy nối tiếp, không đè bản vá của nhau. Phiên bản đổi giữa chừng (gắn nhãn hay nộp bài) chỉ làm bản vá rơi vào khóa cũ, vô hại. |
+| V3-1 (mới) | Nhẹ | `Code.gs` `apiNotebookNote_` → `nbPatchCache_` trong khóa: với ghi chú chung (không tính sổ tay trước khi vào khóa), nếu đệm đã hết hạn (em ngừng hơn 60 giây) thì `nbCompute_` **tính lại cả sổ tay khi đang giữ khóa ghi**, tức đọc `KetQua`, `KetQuaLuyenTap` của em, chỉ mục pool… Thường chỉ dưới một giây. Nhưng nó kéo dài thời gian giữ khóa, mà khóa này dùng chung với nộp bài. | Trong `nbPatchCache_`, chỉ vá khi **có sẵn** bản đệm (đọc thẳng `cacheGetChunked_` theo khóa hiện tại); không có thì bỏ qua, lần sau tự tính. |
+| V3-2 (mới) | Nhẹ | `app.js` `viewNotebook` → `cached()`: em rời Sổ tay ngay sau khi gõ (ghi chú được gửi bằng `keepalive`) rồi quay lại trong vài giây. Lần vẽ thứ hai lấy dữ liệu máy chủ, có thể chưa có ghi chú vừa gửi, nên ô ghi chú hiện chữ cũ. Em gõ tiếp thì đè bản vừa lưu. Lần vẽ đầu cũng có thể dùng bản lưu cũ trên máy, vì bản lưu chỉ cập nhật khi gửi thành công. Khoảng thời gian rất hẹp. | Khi quay lại, nếu còn ghi chú đang gửi (`nbNoteInflight` / `nbNotePending`) thì giữ chữ của máy khách, như cách đã làm trong `nbSaveTag`. |
+| V3-3 (mới) | Nhẹ | `nbSendNote`: (a) lần gửi lỗi mà trong lúc đó em đã gõ thêm thì bản mới **không tự gửi lại**; dòng trạng thái báo "Chưa lưu được", bản này sẽ gửi ở lần gõ sau hoặc khi rời trang. (b) Lúc rời trang (`keepalive`), bản cuối được gửi ngay, không chờ lần gửi đang chạy, nên vẫn có khả năng rất nhỏ hai lần gửi đảo thứ tự. Đây là đánh đổi người làm đã chọn để không mất chữ khi đóng tab. | Chấp nhận, hoặc thử lại sau vài giây khi lỗi. |
+
+Không bài kiểm thử nào bị sửa trong vòng 3. Vòng này không thêm bài kiểm thử; các sửa đổi ở giao diện được kiểm bằng e2e của người kiểm thử (theo báo cáo người làm: `pha7b-kiem-thu.e2e.js all` 15/15 nhóm). Người soát chưa chạy lại e2e.
+
+### Kết luận vòng 3
+**ĐẠT.** V2-1 (Vừa), V2-2 và V2-3 đã sửa đúng. Không có phát hiện Nặng hay Vừa. V3-1, V3-2, V3-3 là Nhẹ, có thể sửa ở Pha 7c.
