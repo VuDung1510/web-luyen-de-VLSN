@@ -268,6 +268,18 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
   .opts { grid-template-columns: minmax(0, 1fr); }
   .head h1 { font-size: 22px; }
 }
+/* So sánh 2 kiểu dòng kẻ */
+.kieu-giua { --rule-shift: 0px; }
+.kieu-giua .book-head h2, .kieu-giua .saved { top: 0; }
+.cmp-label { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; margin-bottom: 10px; }
+.cmp-label b { font-family: var(--font-head); font-size: 15px; }
+.cmp-label span { font-size: 13px; color: var(--muted); }
+body:not(.cmp) .pane-a, body:not(.cmp) .cmp-label { display: none; }
+body.cmp .tabs, body.cmp .pane-list { display: none !important; }
+body.cmp .pane-book { display: block !important; }
+body.cmp .split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+body.cmp .book { position: static; }
+@media (max-width: 900px) { body.cmp .split { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 
@@ -275,6 +287,7 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
   <b>Trang mẫu, dữ liệu giả</b><span class="muted">Bấm thử mọi chỗ. Xem thêm màn hình khác:</span>
   <button class="linkbtn" data-act="open-why">Sau khi nộp bài: "Em sai vì sao?"</button>
   <button class="linkbtn" data-act="open-remind">Trước khi làm đề: "Điều cần nhớ"</button>
+  <button class="linkbtn" data-act="compare" id="cmpBtn">So sánh 2 kiểu dòng kẻ</button>
   <span class="sp"></span>
   <button class="linkbtn" data-act="reset">Đặt lại dữ liệu mẫu</button>
 </div></div>
@@ -317,7 +330,12 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
       <div id="activeFilter"></div>
       <div id="list"></div>
     </section>
+    <aside class="pane pane-a" aria-label="Kiểu 1: chữ nằm giữa hai dòng kẻ">
+      <div class="cmp-label"><b>Kiểu 1 · Chữ nằm giữa hai dòng kẻ</b><span>chỉ để xem</span></div>
+      <div class="book kieu-giua" id="bookA" inert></div>
+    </aside>
     <aside class="pane pane-book" aria-labelledby="bookTitle">
+      <div class="cmp-label"><b>Kiểu 2 · Chữ sát dòng kẻ như viết vở</b><span>bấm thử được</span></div>
       <div class="book" id="book"></div>
     </aside>
   </div>
@@ -661,6 +679,22 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
       p.style.paddingBottom = (r > 0.5 ? LN - r : 0) + 'px';
     });
     growNote();
+    cloneBook();
+  }
+  /* Bản sao "Kiểu 1" cho chế độ so sánh: chép nội dung sổ đang dùng, bỏ id để không trùng. */
+  function cloneBook() {
+    if (!document.body.classList.contains('cmp')) return;
+    const a = $('#bookA');
+    a.innerHTML = $('#book').innerHTML;
+    a.querySelectorAll('[id]').forEach((e) => e.removeAttribute('id'));
+    const t = a.querySelector('textarea'), src = $('#gnote');
+    if (t && src) { t.value = src.value; t.style.height = src.style.height; }
+  }
+  function setCompare(on) {
+    document.body.classList.toggle('cmp', on);
+    $('#cmpBtn').textContent = on ? 'Tắt so sánh, về trang Sổ tay' : 'So sánh 2 kiểu dòng kẻ';
+    $('#cmpBtn').setAttribute('aria-pressed', on);
+    if (on) cloneBook(); else snapBook();
   }
   function bookFix(ma) {
     if (ma === 'CONG_THUC') {
@@ -826,6 +860,7 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
     switch (a) {
       case 'nav': e.preventDefault(); toast('Trang mẫu chỉ có mục Sổ tay'); break;
       case 'tab': setTab(el.dataset.tab); break;
+      case 'compare': setCompare(!document.body.classList.contains('cmp')); break;
       case 'toggle-item': ui.open.has(id) ? ui.open.delete(id) : ui.open.add(id); renderList(); break;
       case 'set-loai':
         it.loi = { ma: el.dataset.ma, y: el.dataset.ma === 'TINH_TOAN' ? (it.loi.y || 'DON_VI') : undefined, nguon: 'HS', hoi: false };
@@ -833,6 +868,7 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
       case 'set-y': it.loi = Object.assign({}, it.loi, { y: el.dataset.y, nguon: 'HS', hoi: false }); saveLoi(); render(); break;
       case 'filter-type': {
         const ma = el.dataset.ma;
+        if (document.body.classList.contains('cmp')) setCompare(false);
         ui.filter = { loai: ma, de: '', mau: '', q: '', from: LOAI[ma].ten };
         renderFilters(); renderList(); setTab('cau');
         if (window.matchMedia('(min-width: 901px)').matches) $('#listTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -888,7 +924,7 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
     const t = e.target;
     if (t.id === 'fQ') { ui.filter.q = t.value; ui.filter.from = ''; renderList(); return; }
     if (t.id === 'gnote') {
-      gnote = t.value; growNote(); $('#gsaved').textContent = 'Đang lưu…'; clearTimeout(nt);
+      gnote = t.value; growNote(); cloneBook(); $('#gsaved').textContent = 'Đang lưu…'; clearTimeout(nt);
       nt = setTimeout(() => { store.set('gnote', gnote); const s = $('#gsaved'); if (s) s.textContent = 'Đã lưu'; }, 800);
       return;
     }
@@ -896,7 +932,7 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
 
-  load(); renderFilters(); render();
+  load(); renderFilters(); render(); setCompare(true);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(snapBook);
   window.addEventListener('resize', snapBook);
 })();
