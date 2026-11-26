@@ -47,3 +47,39 @@ Không có phát hiện mức **Nặng**. R-1 và R-2 xếp Vừa nhưng ảnh h
 
 ## Kết luận
 **CHƯA ĐẠT** vì R-1 và R-2. Đề nghị người làm sửa ở vòng 2, kèm test đếm số lần đọc `SoTay` khi lưu 40 câu, và một bước e2e: gõ ghi chú rồi mở câu khác trước 1,2 giây, ghi chú vẫn còn. Các mục Nhẹ R-3 → R-6 có thể sửa cùng lúc hoặc để sang 7c.
+
+---
+
+## Vòng 2
+
+Phạm vi: `git diff 0c99255..HEAD` (commit `b23740e`). Đã soát lại toàn bộ phần 7b theo `00-quy-trinh` §2.3, tập trung vào việc sửa bản đệm (`nbPatchCache_`) và thứ tự lưu ghi chú.
+
+**Tóm tắt:**
+- Lưu nhiều câu cùng lúc nay chỉ đọc trang SoTay **một lần** (vòng 1 là 40 lần), nên không còn giữ khóa lâu.
+- Hàng của học sinh khác không thể bị ghi nhầm.
+- Ghi chú đang gõ không còn mất khi trang vẽ lại, và được gửi ngay khi rời trang.
+- Còn **một chỗ** ghi chú chung có thể quay về bản cũ: em vừa gõ ghi chú chung rồi bấm chọn loại lỗi trước khi lưu xong. Sửa một dòng.
+
+**Đã chạy:**
+- Đạt: `pha7b` 11/11, `pha7b-kiem-thu` 16/16, `pha7` 16/16, `pha7a-kiem-thu` 28/28, backend, cache, pha6, pha6-kiem-thu 105/105. `scan-secrets`: sạch.
+- Script đo tạm của vòng 1 cho kết quả mới:
+  - `notebookTag` 40 câu: 1 lần đọc cả trang `SoTay` và 2 lần đọc vùng (vòng 1: 40 và 80).
+  - `notebookItem` 20 câu: 3 lần đọc `KetQua`.
+
+| Mã | Đã sửa đúng chưa | Ghi chú / phát hiện mới |
+|---|---|---|
+| R-1 | **Đúng** | `nbWriteRows_`: một lần `readTable_ fresh` trong khóa; hàng mới gộp vào một lần `appendRows_`; mỗi hàng có sẵn 1 lần đọc và 1 lần ghi; `afterWrite_` chạy một lần. Khóa trùng trong cùng một lần gửi thì lấy mục cuối. |
+| R-5 | **Đúng** | Trước khi sửa, kiểm cả ô Mã HS lẫn ô Khóa câu của chính hàng đó; lệch thì báo lỗi, không ghi. Không còn đường dự phòng chỉ dựa vào `key`. (Nếu lỗi xảy ra giữa chừng thì các hàng đã sửa trước đó vẫn giữ; chấp nhận được, vì học sinh lưu lại là đúng.) |
+| R-2 | **Đúng một phần** | Đã đúng: chữ gõ được ghi ngay vào `nb.detail` / `nb.data`; `nbKeepFocus` giữ con trỏ khi vẽ lại; `pagehide` / `hashchange` / `visibilitychange` gửi các ghi chú còn chờ (có `keepalive`); lưu lỗi thì giữ bản chờ, nhưng không đè bản mới hơn. Còn sót: xem V2-1. |
+| R-3 | **Đúng** (xem V2-3) | `notebookNote` không đổi `nbVer_`, mà sửa bản đệm hiện có. Đã xét các trường hợp: (a) **trượt đệm hoặc đệm hết hạn**: `nbCompute_` tính lại từ Sheet rồi mới vá; với `_CHUNG`, phép tính chạy sau khi ghi nên đã có ghi chú mới; với câu, chỉ vá `coGhiChu`. Kết quả đúng. (b) **Phiên bản đổi giữa chừng** (nộp bài hoặc gắn nhãn chen vào): khóa đệm đã chốt từ trước (`__nbck_`), nên bản vá ghi vào khóa cũ, không ai đọc lại; không trả dữ liệu sai. (c) Không có CacheService: bỏ qua. `notebookItem` luôn đọc `SoTay` trực tiếp, nên chữ ghi chú trong chi tiết câu luôn đúng. |
+| R-4 | **Đúng** | `nbTimes_` lọc theo Mã HS (`rowsWhere_` theo `studentId`, nhớ trong lượt gọi), tìm theo `id` trong hàng của chính em. |
+| R-6 | **Đúng** | Hộp "Điều cần nhớ" hỏi máy chủ (`nbFetch(true)`). Lỗi mạng thì vẫn mở nút Bắt đầu. |
+| K-1, K-2 | **Đúng** | Thêm `soCauLoai` ("lỗi này em đã mắc n lần"). Thang đơn vị kiểm cặp đơn vị phải lệch đúng 10ⁿ, chỉ khi đáp án đã công bố, vì `dapAn` chỉ có khi `pub`. Không lộ đáp án. |
+| V2-1 (mới) | **Vừa** (mất chữ ghi chú chung) | `assets/js/app.js` `nbSaveTag`: sau khi lưu loại lỗi, hàm gọi `api('notebook')` rồi **thay** `nb.data = d` và `nbRenderBook()`. Nếu ghi chú chung còn chờ (chưa tới 1,2 giây) hoặc đang gửi, `d.ghiChuChung` từ máy chủ là bản **cũ**, nên ô ghi chú chung hiện lại chữ cũ. Bản chờ vẫn được gửi, nhưng em gõ tiếp vào ô cũ thì chữ cũ cộng chữ mới sẽ đè bản đã lưu. Cách gặp: máy tính hai cột, gõ ghi chú chung bên phải rồi bấm chip loại lỗi hoặc một bậc của thang đơn vị bên trái trong vài giây. `coGhiChu` của câu có ghi chú đang chờ cũng bị trả về giá trị cũ (chỉ ảnh hưởng hiển thị). | Trước `nb.data = d`, giữ chữ đang có: `d.ghiChuChung = nb.data.ghiChuChung` (vì nhánh R-2 đã cập nhật ngay khi gõ), và chép lại `coGhiChu` của các câu có trong `nbNotePending` hoặc đang gửi. Thêm bước e2e: gõ ghi chú chung, bấm chip trong vòng 1 giây, ô vẫn giữ chữ mới. |
+| V2-2 (mới) | Nhẹ | `nbSendNote`: một ghi chú (cùng khóa) có thể được gửi khi lần gửi trước **còn đang chạy**. Apps Script thường mất 1–3 giây, có khi hơn 1,2 giây hẹn giờ, và `hashchange` cũng gửi ngay. Hai lượt chạy song song trên máy chủ nên thứ tự lấy khóa không chắc chắn: bản cũ có thể ghi sau và đè bản mới. Ít gặp, chỉ mất phần sửa cuối. | Mỗi khóa chỉ gửi một lượt một lúc: đang gửi thì chờ xong rồi gửi bản mới nhất. Hoặc kèm số thứ tự hay thời điểm máy khách, máy chủ bỏ bản cũ hơn bản đã ghi. |
+| V2-3 (mới) | Nhẹ | `Code.gs` `nbPatchCache_`: hai lần lưu ghi chú **cùng lúc** của một học sinh (ghi chú câu và ghi chú chung bấm gần nhau) đều đọc cùng bản đệm, vá phần của mình rồi ghi lại cả bản. Bản ghi sau thắng, nên bản đệm có thể thiếu `ghiChuChung` hoặc `coGhiChu` mới **tối đa 60 giây**. Dữ liệu trên Sheet vẫn đúng. Bản lưu trên máy (`cacheSet` từ `nb.data`) cũng đúng. Chỉ khi tải lại sổ tay trong 60 giây đó, lần vẽ thứ hai của `cached()` mới hiện bản cũ của máy chủ. | Vá bản đệm trong `withLock_`, đọc lại bản đệm ngay trước khi vá. Hoặc với `_CHUNG`, đổi `nbVer_` như cũ (ghi chú chung ít khi lưu liên tục). |
+
+Bài kiểm thử mới (vòng 2 R-1/R-5, R-3/K-1) kiểm đúng ý: số lần đọc, không đụng hàng của học sinh khác, mục cuối thắng, đệm còn sau khi ghi chú. Không bài kiểm thử cũ nào bị sửa trong vòng này.
+
+### Kết luận vòng 2
+**CHƯA ĐẠT**, chỉ vì V2-1 (Vừa, mất chữ ghi chú chung; là phần còn sót của R-2). Sửa được bằng 1–2 dòng trong `nbSaveTag`. R-1, R-3, R-4, R-5, R-6, K-1, K-2 đã đúng. V2-2 và V2-3 là Nhẹ, nên sửa cùng lúc nếu tiện; không chặn. Sau khi sửa V2-1, có thể soát nhanh riêng phần đó (vòng 3).
