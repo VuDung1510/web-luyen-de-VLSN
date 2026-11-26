@@ -44,9 +44,9 @@ const soTay = (w) => w.g._sheets.SoTay ? w.g._sheets.SoTay._data().slice(1) : []
 
 console.log('Sổ tay — Pha 7b (máy chủ):');
 
-t('APP_VERSION 1.7.0; notebook trả từ khóa (TU_KHOA_DOC_SAI) và lời nhắc', () => {
+t('APP_VERSION 1.8.0; notebook trả từ khóa (TU_KHOA_DOC_SAI) và lời nhắc', () => {
   const w = world();
-  assert.strictEqual(ok(w.g.call('publicConfig')).version, '1.7.0');
+  assert.strictEqual(ok(w.g.call('publicConfig')).version, '1.8.0');
   const nb = w.nb();
   assert.ok(nb.tuKhoa.includes('làm tròn') && nb.tuKhoa.includes('ít nhất') && nb.tuKhoa.includes('lấy g ='), JSON.stringify(nb.tuKhoa));
   assert.deepStrictEqual(plain(nb.nhacNho), []);

@@ -66,7 +66,7 @@ Danh sách từng bước có ô đánh dấu: [`docs/VIEC-GIAO-VIEN.md`](docs/V
 2. Mở **Tiện ích mở rộng → Apps Script**, mở file .gs đang có code (`Code.gs` hoặc `Mã.gs`), xóa hết nội dung cũ, dán **toàn bộ** `apps-script/Code.gs` mới, bấm 💾 **Lưu**.
 3. Chạy hàm **`setup`** một lần. Dữ liệu cũ giữ nguyên; `setup` chỉ **thêm** trang tính, cột và dòng cài đặt còn thiếu. Chạy lại nhiều lần cũng không trùng. Nếu Google hỏi quyền mới (đọc file khác, Drive): **Nâng cao → Đi tới … (không an toàn) → Cho phép**.
 4. **Triển khai → Quản lý các bản triển khai → ✏ Chỉnh sửa → Phiên bản: Phiên bản mới → Triển khai.** URL giữ nguyên, không sửa `config.js`. Quên chọn "Phiên bản mới" thì học sinh vẫn dùng máy chủ cũ.
-5. Chạy hàm **`kiemTraSauTrienKhai`** (chỉ gửi nhật ký của hàm này, không gửi nhật ký `setup`), rồi mở trang quản trị → **Cài đặt** → khung **Dữ liệu** (cuối trang): dòng "Phiên bản máy chủ" phải là số mới (hiện là **1.7.0**; máy chủ thật đang là 1.5.0). Trang đang mở từ trước: bấm F5 một lần là web nhận máy chủ mới.
+5. Chạy hàm **`kiemTraSauTrienKhai`** (chỉ gửi nhật ký của hàm này, không gửi nhật ký `setup`), rồi mở trang quản trị → **Cài đặt** → khung **Dữ liệu** (cuối trang): dòng "Phiên bản máy chủ" phải là số mới (hiện là **1.8.0**; máy chủ thật đang là 1.5.0). Trang đang mở từ trước: bấm F5 một lần là web nhận máy chủ mới.
 6. Hỏng thì quay về: **Triển khai → Quản lý các bản triển khai → ✏ → Phiên bản:** chọn số phiên bản cũ → **Triển khai**. Giao diện web vẫn chạy được với máy chủ cũ (tự ẩn nút cần máy chủ mới).
 
 ### Bước 2. Nối trang web với máy chủ
@@ -192,7 +192,7 @@ Sửa kho (thêm đáp án, thêm câu) xong thì bấm **↻ Đọc lại kho**
 4. Học sinh vào **🎯 Luyện tập**: tự tạo đề theo bài, **luyện lại câu đã sai**, hoặc **đề nhanh** theo bài. Nộp xong có đáp án và lời giải ngay. Bài luyện ghi vào `KetQuaLuyenTap`, **không** tính vào bảng xếp hạng hay bảng điểm.
 5. Câu đang nằm trong một **đề thi chưa đóng** (hoặc đề không cho xem lời giải) không xuất hiện trong luyện tập; tab Pool gắn nhãn "đang thi". Câu chỉ vào luyện tập khi đề đó đã đóng và cho xem lời giải.
 
-### Sổ tay cá nhân (cần máy chủ 1.7.0)
+### Sổ tay cá nhân (cần máy chủ 1.8.0)
 
 1. Học sinh vào **Sổ tay**: một nửa là danh sách **mọi câu đã làm sai** (đề thi và luyện tập), một nửa là **cuốn sổ** tổng hợp lỗi. Câu sai gộp theo câu: làm lại đúng thì đèn chuyển **đỏ → vàng → xanh** (xanh = đúng 2 lần ở 2 ngày khác nhau).
 2. Lỗi chia hai nhóm: **Sai ngoo** (nhớ nhầm công thức, đọc sai đề, tính toán / quên đổi đơn vị, sót ý / sót câu) hiện trước; **Hổng kiến thức** (theo chương, bài; gồm câu đoán mò và câu chưa phân loại) để dưới cùng. Loại lỗi nào sai ≥ 3 câu ở ≥ 2 đề thì gắn nhãn **Lặp lại**.
