@@ -79,3 +79,30 @@ E2E tự chạy dev-server ở cổng 8790 (mới), 8791 (`SERVER_COMPAT=1.0.0`)
 
 ## Hạ tầng test đã sửa
 - **Thêm** `tests/fixtures/Code-1.5.0.gs` = `git show 36e9d9f:apps-script/Code.gs` (máy chủ 1.5.0 trước Pha 7a) để dev-server chạy được `SERVER_COMPAT=1.5.0` và kiểm "máy chủ 1.5.0" của TC-7.7 (cả hai bài kiểm thử tự tạo lại file này nếu thiếu). Không sửa `gas-shim.js`, `dev-server.js`, không sửa bài kiểm thử của người làm.
+
+## Vòng 2
+Ngày 26/11/2026 · commit `fab23cd` · đã chạy lại **toàn bộ** TC của Pha 7a (00-quy-trinh §2.3) và thêm ca kiểm cho các sửa đổi vòng 2.
+
+**Kết luận vòng 2: ĐẠT.** Mọi TC-7.1 → 7.8 đạt; K-1 đã sửa; K-2, K-3 đã ghi rõ trong đặc tả (dòng "Sửa đặc tả … vòng 2"). Chỉ còn TC-5.1 của Pha 5 (danh sách màu), chờ giáo viên chốt bảng màu Sổ tay.
+
+| Mã | Kết quả vòng 2 | Bằng chứng |
+|---|---|---|
+| TC-7.1 | ĐẠT | `tests/pha7a-kiem-thu.test.js` 28/28 (26 ca vòng 1 + 2 ca mới) |
+| TC-7.2 | ĐẠT | như vòng 1; thêm: đóng đề thì đáp án hiện ngay trong `notebookItem`, mở lại đề thì ẩn ngay (không bị đệm giữ lại) |
+| TC-7.3 | ĐẠT | như vòng 1 |
+| TC-7.4 | ĐẠT | như vòng 1 |
+| TC-7.5 | ĐẠT | như vòng 1; thêm: học sinh B nộp bài thì sổ của A vẫn đúng, không lẫn câu của B; A vẫn bị từ chối câu chỉ B sai |
+| TC-7.6 | ĐẠT | `tests/pha7a-kiem-thu.e2e.js all`: 50 bằng chứng, sáng và tối. Thêm: bấm "Tính toán" trong sổ rồi chọn màu Đỏ → 1/1 câu; đổi loại sang Sót → 3/3; bỏ hết lọc → 9/9. Bấm tên chương → chỉ câu Hổng kiến thức của chương (2/2, nhãn "Hổng kiến thức · <chương>"); đổi ô màu thì bỏ lọc chương, còn 8/8 câu đỏ. Điện thoại: rời trang khi đang ở tab Câu đã sai rồi vào lại → tab Sổ tay mở |
+| TC-7.7 | ĐẠT | máy chủ mới tắt sổ tay, giả lập 1.0.0 và 1.5.0: như vòng 1 |
+| TC-7.8 | ĐẠT (phần ghi kiểm ở 7b) | như vòng 1 |
+| Thêm | ĐẠT | Chính em nộp bài thì sổ cập nhật ngay (câu vừa đúng chuyển vàng, câu mới sai xuất hiện) |
+
+**K-1 kiểm lại (đo trên trang đang chạy):** sáng: "LẶP LẠI" 5,58 · "EM CHỌN" 5,58 · "ĐÁP ÁN" 5,67 · "sai 2 lần" 5,84; tối: 5,51 · 5,51 · 9,22 · 5,29. Đều ≥ 4,5:1 → **đã sửa**. Màu chấm giữ nguyên (đồ họa, đạt ≥ 3:1). Màu xám "Chưa phân loại" vẫn < 3:1 nhưng luôn đi kèm chữ — để giáo viên quyết.
+
+**Test cũ:** backend 13, importer, bank 30, cache 17, common-cache 5, bang-gach 13, docx 30/30, pha1-kiem-thu 29/29, pha2-kiem-thu 31/31, pha3-kiem-thu 17/17, pha4 22, pha4-kiem-thu 33/33, pha6 10/10, pha6-kiem-thu 105/105, pha6b-kiem-thu 97/97, pha6b-hinh 30/30, pha7 15/15, `scan-secrets` sạch: **ĐẠT**. `tests/e2e.js` máy chủ mới và `SERVER_COMPAT=1.0.0`: **ĐẠT**. `pha5.test.js` 10/11 và `pha5-kiem-thu.test.js` 26/27: TC-5.1 vẫn báo các màu `--nb-*` (thêm hai màu chữ nhãn `#b42323`, `#1D6B3E`). Không phải hồi quy; cần giáo viên chốt bảng màu Sổ tay rồi bổ sung vào danh sách cho phép.
+
+**Lỗi mới:** không có.
+
+**Ảnh:** các ảnh `kt-*.png` trong `docs/bao-cao/anh/pha-7a/` đã được chụp lại trên bản `fab23cd` ở lần chạy e2e này.
+
+**Hạ tầng test:** không sửa thêm. `tests/pha7a-kiem-thu.test.js` và `tests/pha7a-kiem-thu.e2e.js` có thêm các ca "Vòng 2" kể trên.
