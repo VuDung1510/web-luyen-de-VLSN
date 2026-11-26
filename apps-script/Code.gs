@@ -93,7 +93,7 @@ var DEFAULT_SETTINGS = [
   ['CHO_LUYEN_TAP', 'KHONG', 'CO = học sinh dùng được mục Luyện tập (câu trong trang tính LuyenTap); KHONG = tắt'],
   ['LUYEN_NHANH', '7,1,2,10', 'Đề nhanh theo bài: số câu Phần I, Phần II, Phần III, số phút'],
   ['BAT_SO_TAY', 'CO', 'CO = học sinh dùng được mục Sổ tay (câu đã sai, phân loại lỗi); KHONG = tắt'],
-  ['TU_KHOA_DOC_SAI', 'không;sai;chỉ;luôn;ít nhất;nhiều nhất;tối đa;tối thiểu;bỏ qua;ban đầu;từ trạng thái nghỉ;ngay sau;ngay trước;độ lớn;gần nhất;làm tròn;nửa;đơn vị;lấy g',
+  ['TU_KHOA_DOC_SAI', 'không;sai;đúng;chỉ;luôn;ít nhất;nhiều nhất;tối đa;tối thiểu;bỏ qua;ban đầu;từ trạng thái nghỉ;ngay sau;ngay trước;độ lớn;gần nhất;làm tròn;đơn vị;lấy g =',
     'Sổ tay: từ khóa dễ đọc sai, cách nhau dấu ;']
 ];
 
@@ -652,6 +652,7 @@ function apiSubmitExam_(req) {
     for (var tries = 0; tries < 5 && resultIdTaken_('KetQua', result.id); tries++) result.id = newResultId_(now);
     appendRows_('KetQua', [result]);
   });
+  nbVer_(st.id, true); // Pha 7: sổ tay của em có bài mới
   cache.put(doneKey, result.id, 21600);
   notifyTeacher_(result);
   return buildResultView_(readTable_('KetQua').filter(function (r) { return r.id === result.id; })[0] || result, e, 'student');
@@ -2606,6 +2607,7 @@ function practiceSubmit_(st, p, req) {
     return true;
   });
   cache.put(doneKey, id, 21600);
+  if (wrote) nbVer_(st.id, true);
   if (!wrote) return view();
   return buildPracticeView_(result, 'student'); // không đọc lại trang (R-3)
 }
@@ -2928,7 +2930,7 @@ function nbEvents_(st) {
  * Câu đề thi: theo stt; có mã kho mà ô stt đã đổi câu → tìm lại theo mã trong đề, rồi trong pool.
  * Câu nhập tay bị sửa (mã băm khác) → daSua (vẫn hiện nội dung lúc xem). Ô stt nay là câu kho khác → coi như gỡ.
  */
-function nbResolve_(refs) {
+function nbResolve_(refs, full) {
   var out = [], needPool = {};
   var qsOf = {};
   var examQs = function (eid) { return qsOf[eid] || (qsOf[eid] = examQuestions_(eid)); };
@@ -2947,12 +2949,59 @@ function nbResolve_(refs) {
     if (!r.q && ref.k) needPool[ref.k] = 1;
     out[i] = r;
   });
+  // Vòng 2 (R-1): câu pool chỉ cần chương/bài/mức độ → lấy từ chỉ mục (không đọc hàng); cần đáp án → đọc hàng theo khối gộp
   var codes = Object.keys(needPool);
   if (codes.length) {
-    var got = poolGet_(codes);
-    refs.forEach(function (ref, i) { if (!out[i].q && ref.k && got[ref.k]) out[i].q = got[ref.k]; });
+    var idx = poolIndex_();
+    var want = {};
+    refs.forEach(function (ref, i) { if (!out[i].q && ref.k && (!full || full[i])) want[ref.k] = 1; });
+    var got = nbPoolGet_(Object.keys(want));
+    refs.forEach(function (ref, i) {
+      if (out[i].q || !ref.k) return;
+      if (got[ref.k]) out[i].q = got[ref.k];
+      else if (full && !full[i] && idx.byMa[ref.k]) {
+        var x = idx.byMa[ref.k];
+        out[i].q = { maKho: x.maKho, chuong: x.chuong, bai: x.bai, mucDo: x.mucDo, loai: x.loai, chuDe: bankTopic_(x.bai, x.chuong) };
+      }
+    });
   }
   return out;
+}
+
+/** Như poolGet_ nhưng đọc các hàng theo khối GỘP (ít lần gọi Sheet hơn khi hàng nằm rải rác). */
+function nbPoolGet_(codes) {
+  if (!codes.length) return {};
+  var tryOnce = function (idx) {
+    var info = poolSheetInfo_();
+    var out = {}, stale = false;
+    if (!info) return { out: out, stale: false };
+    var want = codes.map(function (c) { return idx.byMa[c]; }).filter(Boolean).map(function (x) { return x.hang; });
+    var got = readRowRuns_(info, want, true);
+    codes.forEach(function (c) {
+      var x = idx.byMa[c];
+      if (!x) return;
+      var r = got[x.hang];
+      if (!r || str_(r.maKho) !== c) { stale = true; return; }
+      out[c] = poolQuestion_(r);
+    });
+    return { out: out, stale: stale };
+  };
+  var r = tryOnce(poolIndex_());
+  if (r.stale) r = tryOnce(poolIndex_({ refresh: true }));
+  return r.out;
+}
+
+/**
+ * Phiên bản dữ liệu sổ tay của MỘT học sinh (Vòng 2, R-1): đổi khi chính học sinh đó nộp bài, nên học sinh khác nộp
+ * không làm mất đệm sổ tay của em. Sửa tay trang KetQua thì đệm tự hết sau CACHE_SECONDS.
+ */
+function nbVer_(sid, bump) {
+  var cache = scriptCache_();
+  if (!cache) return null;
+  var k = 'nbv_' + sid;
+  var v = bump ? null : cache.get(k);
+  if (!v) { v = newGen_(); try { cache.put(k, v, GEN_SECONDS); } catch (e) { return null; } }
+  return v;
 }
 
 /** Đáp án + lời giải đã công bố chưa (luật Pha 4: đề đã đóng và cho xem lời giải; mã kho không nằm trong đề đang thi). */
@@ -3015,11 +3064,14 @@ function nbCompute_(st) {
   if (MEMO_[mk]) return MEMO_[mk];
   var cache = scriptCache_(), ck = null;
   if (cache) {
-    var gens = ['KetQua', 'KetQuaLuyenTap', 'DeThi', 'CauHoi', 'SoTay', 'LuyenTap'].map(function (n) { return readGen_(cache, n); });
-    if (gens.every(Boolean)) ck = 'nb_' + st.id + '_' + gens.join('_');
+    var gens = ['DeThi', 'CauHoi', 'SoTay', 'LuyenTap'].map(function (n) { return readGen_(cache, n); });
+    var ver = nbVer_(st.id);
+    if (ver && gens.every(Boolean)) ck = 'nb_' + st.id + '_' + ver + '_' + gens.join('_');
     if (ck) {
-      var hit = parseJson_(cache.get(ck), null);
-      if (hit && Array.isArray(hit.items)) return (MEMO_[mk] = hit);
+      try {
+        var hit = parseJson_(cacheGetChunked_(cache, ck), null);
+        if (hit && Array.isArray(hit.items)) return (MEMO_[mk] = hit);
+      } catch (e) { /* tính lại */ }
     }
   }
   var evs = nbEvents_(st);
@@ -3031,12 +3083,17 @@ function nbCompute_(st) {
     list.forEach(function (e, i) { if (e.sai) lw = i; });
     if (lw >= 0) lastWrong.push({ key: key, list: list, lw: lw });
   });
-  var res = nbResolve_(lastWrong.map(function (x) { return x.list[x.lw]; }));
+  var rows = nbRows_(st);
+  // chỉ đọc đầy đủ câu (cần đáp án) khi máy có thể phải đoán: Phần III đã trả lời, học sinh chưa tự chọn loại lỗi
+  var full = lastWrong.map(function (x) {
+    var ev = x.list[x.lw], tag = rows[x.key];
+    return ev.l === 'TL' && String(ev.a == null ? '' : ev.a).trim() !== '' && !(tag && NB_LOAI[str_(tag.loai)] && str_(tag.loai) !== 'CHUA_RO');
+  });
+  var res = nbResolve_(lastWrong.map(function (x) { return x.list[x.lw]; }), full);
   var exams = {};
   readTable_('DeThi').forEach(function (e) { exams[e.id] = e; });
   var blocked = blockedBankIds_();
   var now = Date.now();
-  var rows = nbRows_(st);
   var items = lastWrong.map(function (x, i) {
     var ev = x.list[x.lw], r = res[i], q = r.q;
     var after = x.list.slice(x.lw + 1).filter(function (e) { return !e.sai; });
@@ -3070,7 +3127,7 @@ function nbCompute_(st) {
     };
   });
   var out = { items: items, tongHop: nbSummary_(items), ghiChuChung: rows[NB_CHUNG] ? str_(rows[NB_CHUNG].ghiChu) : '', nhacNho: [] };
-  if (ck) { try { var j = JSON.stringify(out); if (j.length < CACHE_CHUNK_BYTES) cache.put(ck, j, CACHE_SECONDS); } catch (e) { /* bỏ qua */ } }
+  if (ck) { try { cachePutChunked_(cache, ck, JSON.stringify(out), CACHE_SECONDS, CACHE_MAX_BYTES); } catch (e) { /* bỏ qua */ } }
   return (MEMO_[mk] = out);
 }
 

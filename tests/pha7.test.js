@@ -324,4 +324,42 @@ t('Bài luyện tập: câu sai ở bài luyện có trong sổ tay (nguồn luy
   assert.ok(w.item([X])[0].an, 'câu đang nằm trong đề thi chưa đóng → ẩn đáp án');
 });
 
+t('Vòng 2 (R-1): sổ tay đọc ít Sheet — câu luyện tập chỉ cần chương/bài lấy từ chỉ mục, Phần III đọc theo khối gộp; học sinh khác nộp bài không làm mất đệm', () => {
+  const w = world({ kho: true });
+  let r;
+  do { r = ok(w.g.call('adminPracticeSync', { token: w.tTok, mode: 'them', filter: {}, cursor: r && r.tiepTuc })); } while (r.tiepTuc != null);
+  const meta = ok(w.g.call('practiceMeta', { token: w.sTok }));
+  const tong = meta.cay.reduce((a, x) => ({ TN: a.TN + x.dem.TN, TL: a.TL + x.dem.TL }), { TN: 0, TL: 0 });
+  for (let k = 0; k < 3; k++) {
+    const s = ok(w.g.call('practiceStart', { token: w.sTok, kieu: 'TU_TAO', so: { TN: Math.min(10, tong.TN), TL: Math.min(3, tong.TL) }, phut: 10 }));
+    const n = JSON.parse(Buffer.from(s.attemptToken.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')).qids.length;
+    const ans = {};
+    for (let i = 1; i <= n; i++) ans[i] = s.questions[i - 1].loai === 'TL' ? '123456' : 'Z';
+    ok(w.g.call('submitExam', { token: w.sTok, attemptToken: s.attemptToken, answers: ans }));
+  }
+  const s2 = ok(w.g.call('adminSaveStudent', { token: w.tTok, student: { hoTen: 'Học Sinh Thử', lop: '12A1', ngaySinh: '05/03/2008' } }));
+  const tok2 = ok(w.g.call('loginPin', { studentId: s2.id, pin: '0503' })).token; // PIN mẫu của README
+  const e = saveExam(w, { trangThai: 'MO', hienLoiGiai: 'NGAY' }, [TN(1)]); // tạo đề trước (tạo đề đổi thế hệ DeThi → đệm mới là đúng)
+  clearCache(w.g);
+  w.g._resetStats();
+  const nb = w.nb();
+  assert.ok(nb.items.length >= 10, 'có nhiều câu sai: ' + nb.items.length);
+  const lt = w.g._stats.ranges.LuyenTap || 0;
+  assert.ok(lt <= 2 + w.g.ROW_RUNS_MAX, 'số lần đọc LuyenTap: ' + lt);
+  // đệm: học sinh khác nộp bài → sổ tay của em vẫn lấy từ đệm (không đọc lại KetQua / LuyenTap)
+  doExam(w, e, { 1: 'B' }, null, tok2);
+  w.g._resetStats();
+  const again = w.nb();
+  assert.strictEqual(again.items.length, nb.items.length);
+  assert.ok(!w.g._stats.ranges.LuyenTap && !w.g._stats.ranges.KetQuaLuyenTap, 'lấy từ đệm: ' + JSON.stringify(w.g._stats.ranges));
+  // chính em nộp bài → có số liệu mới ngay
+  doExam(w, e, { 1: 'C' });
+  assert.strictEqual(w.nb().items.length, nb.items.length + 1);
+  // xem 1 câu: không phải đọc cả pool
+  w.g._resetStats();
+  const its = w.item([nb.items[0].key]);
+  assert.ok(its[0].noiDung);
+  assert.ok((w.g._stats.ranges.LuyenTap || 0) <= 3, 'notebookItem đọc LuyenTap: ' + w.g._stats.ranges.LuyenTap);
+});
+
 console.log(`\n${passed} kiểm thử đạt${failed ? ', ' + failed + ' KHÔNG ĐẠT' : '.'}`);

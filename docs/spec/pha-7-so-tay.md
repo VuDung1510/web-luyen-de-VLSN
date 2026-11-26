@@ -53,7 +53,7 @@ Mỗi học sinh có một nơi xem lại mọi câu đã làm sai, biết mình
 
 ### 4. Màu mức độ
 - **Mỗi câu:** 🔴 chưa làm đúng lại · 🟡 đã đúng 1 lần (hoặc đúng 2 lần trong cùng 1 ngày) · 🟢 đã khắc phục (đúng 2 lần ở 2 ngày khác nhau). Lần làm đúng tính khi làm lại chính câu đó **hoặc** làm đúng một câu khắc phục có `goc` trỏ về câu đó. Sai lại thì về 🔴, đếm lại từ đầu.
-- **Mỗi loại lỗi (sổ tay):** 🔴 **lặp lại** khi có ≥ 3 câu 🔴 thuộc ≥ 2 đề khác nhau · 🟡 còn câu 🔴/🟡 nhưng chưa tới ngưỡng lặp lại · 🟢 mọi câu đều 🟢. Ngưỡng `3` và `2` đặt trong hằng số để chỉnh sau.
+- **Mỗi loại lỗi (sổ tay):** 🔴 **lặp lại** khi có ≥ 3 câu 🔴 thuộc ≥ 2 đề khác nhau · 🟡 còn câu 🔴/🟡 nhưng chưa tới ngưỡng lặp lại · 🟢 mọi câu đều 🟢. Ngưỡng `3` và `2` đặt trong hằng số để chỉnh sau. "Đề" của một câu là nguồn của **lần sai gần nhất**: mã đề thi, hoặc **từng bài luyện tập** (mỗi bài luyện tính là một đề). Màu nhóm chương trong bản đồ Hổng kiến thức dùng cùng quy tắc.
 
 ### 5. Công cụ sửa từng loại lỗi (7b)
 1. **Nhớ nhầm công thức:** thẻ công thức của bài chứa câu đó (từ `CongThuc`): **tên gợi nhớ** chữ to, công thức (KaTeX), phạm vi áp dụng, dấu hiệu sử dụng. Bài chưa có công thức thì hiện lời giải (nếu đã công bố) và gợi ý em tự ghi công thức vào ghi chú.
@@ -67,7 +67,7 @@ Mỗi học sinh có một nơi xem lại mọi câu đã làm sai, biết mình
 ### 6. API (Code.gs tăng số phụ ở mỗi pha con; `features` thêm `"notebook"`)
 | Action | Ai | Tham số | Kết quả |
 |---|---|---|---|
-| `notebook` | HS | — | `{ items:[{key, nguon:{examId,tieuDe,nopLuc,stt} hoặc {luyenTap}, phan, loai, chuong, bai, mucDo, lanSai, soDe, mau, loi:{ma, y, nguon, canHoi}, coGhiChu}], tongHop:{ saiNgoo:[{ma,ten,so,tiLe,mau}], hongKT:[{chuong,bai,so,mau}], chuaRo }, ghiChuChung, nhacNho:[…] }`. **Không có nội dung câu, đáp án, lời giải.** |
+| `notebook` | HS | — | `{ items:[{key, nguon:{examId,tieuDe,nopLuc,stt} hoặc {luyenTap}, phan, loai, chuong, bai, mucDo, lanSai, soDe, mau, loi:{ma, y, nguon, canHoi}, coGhiChu}], tongHop:{ tong, chuaKhacPhuc, lapLai, tiLe:[{ma,ten,so,tiLe}], saiNgoo:[{ma,ten,so,tiLe,mau,lapLai,con}], hongKT:{ so, doanMo, chuaRo, chuong:[{chuong,so,mau,lapLai,bai:[{bai,so}]}] } }, ghiChuChung, nhacNho:[…] }`. **Không có nội dung câu, đáp án, lời giải.** |
 | `notebookItem` | HS | `{keys[] ≤ 20}` | nội dung câu, hình, phương án, đáp án em chọn; `dapAn`, `loiGiai` **chỉ khi** được công bố; `congThuc[]` của bài; `ghiChu`; `chiTiet` lỗi |
 | `notebookTag` | HS | `{items:[{key, ma, y?, chiTiet?}] ≤ 40}` | `{n}`. Từ chối key không phải câu sai của chính học sinh |
 | `notebookNote` | HS | `{key \| "_CHUNG", text}` | `{ok}`; cắt 500 ký tự |
@@ -85,7 +85,7 @@ Mỗi học sinh có một nơi xem lại mọi câu đã làm sai, biết mình
 4. **Ghi chú của em**: ô viết luôn hiện, tự lưu sau 2 giây ngừng gõ.
 
 *Nửa trái — Câu đã sai:*
-- Bộ lọc: loại lỗi · đề · chương · màu; ô tìm kiếm. Thứ tự: nhóm Sai ngoo trước (🔴 trước), Hổng kiến thức sau, cùng nhóm thì mới nhất trước.
+- Bộ lọc: loại lỗi · đề · chương · màu; ô tìm kiếm. Thứ tự: nhóm Sai ngoo trước — xếp theo thứ tự các loại lỗi trong sổ (loại nặng nhất trước), trong cùng loại thì 🔴 → 🟡 → 🟢, rồi mới nhất trước; sau đó nhóm Hổng kiến thức (🔴 → 🟡 → 🟢, mới nhất trước). Bấm tên chương trong bản đồ thì chỉ lọc các câu thuộc nhóm Hổng kiến thức của chương đó.
 - Mỗi câu thu gọn là một dòng: đèn màu · "Câu 14 · Tên đề · 20/11" · chip loại lỗi (chip "máy đoán" viền đứt) · số lần sai.
 - Mở ra (gọi `notebookItem`): nội dung câu, đáp án em chọn, đáp án đúng hoặc dòng "Đáp án hiện khi đề công bố lời giải", lời giải (thu gọn), **đổi loại lỗi**, ghi chú riêng của câu, công cụ sửa đúng loại lỗi (§5), nút "Làm lại câu này" (chỉ khi câu vào được luyện tập).
 
@@ -160,3 +160,5 @@ Mỗi pha con: dán Code.gs mới, Triển khai → Phiên bản mới, chạy `
 Sửa đặc tả ngày 26/11/2026: giáo viên duyệt đặc tả và chốt Q1–Q4 theo đề xuất. Trang mẫu giao diện: `docs/spec/mau-so-tay.html` (dữ liệu giả).
 
 Sửa đặc tả ngày 26/11/2026 (Pha 7a, người làm): TC-7.1 ghi rõ danh sách gồm mọi câu từng sai (câu đã làm đúng lại vẫn hiện, màu vàng/xanh), khớp §4 và trang mẫu; câu chữ cũ "lần làm gần nhất" mâu thuẫn với đèn xanh "đã khắc phục".
+
+Sửa đặc tả ngày 26/11/2026 (Pha 7a vòng 2, theo `docs/bao-cao/pha-7a-soat.md` R-8, R-10 và `pha-7a-kiem-thu.md` K-2, K-3): "đề" khi đếm lặp lại (mỗi bài luyện là một đề); dạng `tongHop` đúng như máy chủ trả; thứ tự danh sách và phạm vi lọc theo chương. Đã biết, chấp nhận: nhãn loại lỗi máy đoán có thể chậm tối đa 60 giây (đệm) sau khi đề tự đóng theo giờ — không lộ đáp án vì chi tiết câu luôn kiểm tra lại lúc xem (R-4).

@@ -57,3 +57,22 @@ Xem `docs/VIEC-GIAO-VIEN.md` → mục "Pha 7a" (dán Code.gs 1.6.0, chạy `set
 ### Rủi ro còn lại
 - Học sinh có rất nhiều bài nộp: chưa đo thời gian `notebook` trên dữ liệu lớn (TC-7.23 thuộc 7c, khuyến nghị).
 - Câu nhập tay không có Chương / Bài: gom vào "Chưa rõ chương", bài lấy theo chủ đề của câu.
+
+## Người làm — Vòng 2 (sau soát code và kiểm thử vòng 1)
+
+| Phát hiện | Đã sửa |
+|---|---|
+| R-1 (Vừa) chậm khi nhiều câu sai ở bài luyện | Câu luyện tập chỉ cần chương/bài/mức độ thì lấy từ chỉ mục pool (không đọc hàng); chỉ câu Phần III đã trả lời mà học sinh chưa tự phân loại mới đọc đủ (cần đáp án để đoán), đọc theo khối gộp (`nbPoolGet_`). Đệm sổ tay cất theo mảnh (`cachePutChunked_`, ≤ 900 KB). Khóa đệm dùng **phiên bản riêng của từng học sinh** (`nbVer_`, đổi khi chính em nộp bài) cộng thế hệ DeThi, CauHoi, SoTay, LuyenTap — học sinh khác nộp bài không làm mất đệm của em. `notebookItem` dùng lại đệm, chỉ đọc đủ ≤ 20 câu được xem. Kiểm thử mới đo số lần đọc Sheet (`tests/pha7.test.js`, mục "Vòng 2 (R-1)"). |
+| R-2 (Vừa) ô lọc mất tác dụng sau khi bấm trong sổ | Ô lọc luôn tạo lại `nb.filter` hiện tại; bỏ lọc chương ẩn khi đổi ô lọc. Đã thử trên trình duyệt: bấm tên lỗi / tên chương rồi đổi ô lọc, ô tìm đều đúng. |
+| R-3, K-1 (Nhẹ) chữ nhãn sáng < 4,5:1 | Thêm `--nb-do-text` #b42323, `--nb-xanh-text` #1D6B3E (sáng; tối giữ màu cũ) cho chữ nhãn ("LẶP LẠI", "EM CHỌN", "ĐÁP ÁN", "sai n lần", "Đã khắc phục"). Tương phản: 5,58 / 6,49 / 5,67 / 6,51 (sáng), ≥ 5,5 (tối). Màu chấm giữ nguyên. |
+| R-5 (Nhẹ) kích thước đệm theo ký tự | Dùng `cachePutChunked_` (chia theo byte). |
+| R-6 (Nhẹ) tắt sổ tay vẫn hiện bản lưu | Vào `#/so-tay` mà cấu hình đã tắt thì xóa bản lưu, hiện "chưa mở". |
+| R-7 (Nhẹ) điện thoại không luôn mở tab Sổ tay | Mỗi lần vào trang đặt lại tab Sổ tay. |
+| R-8 (Nhẹ) lọc chương lẫn câu Sai ngoo | Lọc theo chương chỉ lấy câu nhóm Hổng kiến thức; nhãn "Hổng kiến thức · <chương>". |
+| R-9 (Nhẹ) từ khóa mặc định lệch §5.2 | Đúng danh sách §5.2 (Sheet chưa dán 1.6.0 nên chưa ảnh hưởng dữ liệu thật). |
+| R-10, K-2, K-3 (đặc tả) | Ghi rõ trong đặc tả, có dòng "Sửa đặc tả ngày 26/11/2026 (vòng 2)". |
+| R-4 (Nhẹ) nhãn đoán chậm ≤ 60 giây | Chấp nhận, ghi trong đặc tả: đáp án/lời giải luôn kiểm tra lại lúc xem nên không lộ. |
+| R-11 người làm tự sửa đặc tả | Ghi nhận: trong dự án này kiến trúc sư và người làm cùng là Claude phiên chính; các lần sửa đặc tả đều có dòng ngày ở cuối file để giáo viên duyệt. |
+| TC-5.1 (danh sách màu Pha 5) | Chưa đổi: cần giáo viên chốt bảng màu Sổ tay (QUYET-DINH §6) rồi người kiểm thử thêm vào danh sách cho phép. |
+
+Kiểm thử vòng 2: `tests/pha7.test.js` 15/15, `tests/pha7a-kiem-thu.test.js` 26/26, `tests/pha7a-kiem-thu.e2e.js all` ĐẠT (TC-7.6, 7.7; máy chủ mới, 1.0.0, 1.5.0), `tests/e2e.js` ĐẠT, các test cũ như vòng 1, `scan-secrets` sạch.

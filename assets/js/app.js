@@ -620,7 +620,7 @@
   const NB_MAU = { do: 'Đỏ: chưa làm đúng lại', vang: 'Vàng: đang tiến bộ', xanh: 'Xanh: đã khắc phục' };
   const NB_SEV = { do: 0, vang: 1, xanh: 2 };
   const NB_PHAN = { 1: 'I', 2: 'II', 3: 'III' };
-  const nb = { data: null, filter: { loai: '', src: '', mau: '', q: '', from: '' }, open: new Set(), detail: {}, loading: {}, tab: 'sotay', hkt: false };
+  const nb = { data: null, filter: { loai: '', src: '', mau: '', q: '', from: '', chuong: '' }, open: new Set(), detail: {}, loading: {}, tab: 'sotay', hkt: false };
 
   function notebookOffHtml() {
     return `<h1>Sổ tay của em</h1><div class="card empty" id="notebookOff">Mục Sổ tay hiện chưa mở. Khi giáo viên bật, các câu em làm sai sẽ được tập hợp ở đây.
@@ -628,9 +628,11 @@
   }
 
   function viewNotebook() {
-    if (!App.has('notebook')) { $app.innerHTML = notebookOffHtml(); return; }
+    // Vòng 2 (R-6): giáo viên đã tắt sổ tay thì không vẽ bản lưu cũ trên máy
+    if (!notebookAllowed()) { App.cacheDel('notebook'); $app.innerHTML = notebookOffHtml(); refreshPub(); return; }
     nb.open = new Set(); nb.detail = {}; nb.loading = {};
-    nb.filter = { loai: '', src: '', mau: '', q: '', from: '' };
+    nb.filter = { loai: '', src: '', mau: '', q: '', from: '', chuong: '' };
+    nb.tab = 'sotay'; // Vòng 2 (R-7): điện thoại luôn mở tab Sổ tay trước
     return cached('notebook', () => api('notebook'), renderNotebook, { skeleton: () => { $app.innerHTML = App.skeletonHtml('table'); } })
       .catch((e) => {
         if (e.unsupported || /tắt sổ tay/.test(e.message)) {
@@ -686,15 +688,16 @@
     nbRenderBook();
     nbRenderList();
     const onFilter = () => {
-      f.loai = document.getElementById('nbfLoai').value; f.src = document.getElementById('nbfSrc').value;
-      f.mau = document.getElementById('nbfMau').value; f.q = document.getElementById('nbfQ').value.trim(); f.from = '';
+      // Vòng 2 (R-2): luôn sửa nb.filter hiện tại (bấm trong sổ có thể đã thay object), bỏ lọc chương ẩn
+      nb.filter = { loai: document.getElementById('nbfLoai').value, src: document.getElementById('nbfSrc').value,
+        mau: document.getElementById('nbfMau').value, q: document.getElementById('nbfQ').value.trim(), from: '', chuong: '' };
       nbRenderList();
     };
     ['nbfLoai', 'nbfSrc', 'nbfMau'].forEach((id) => { document.getElementById(id).onchange = onFilter; });
     document.getElementById('nbfQ').oninput = onFilter;
     $app.querySelector('.nb-tabs').onclick = (e) => { const b = e.target.closest('[data-nbtab]'); if (b) nbSetTab(b.dataset.nbtab); };
     document.getElementById('nbList').onclick = nbListClick;
-    document.getElementById('nbActive').onclick = (e) => { if (e.target.closest('[data-nbclear]')) { nb.filter = { loai: '', src: '', mau: '', q: '', from: '' }; renderNotebook(nb.data); } };
+    document.getElementById('nbActive').onclick = (e) => { if (e.target.closest('[data-nbclear]')) { nb.filter = { loai: '', src: '', mau: '', q: '', from: '', chuong: '' }; renderNotebook(nb.data); } };
     document.getElementById('nbBook').onclick = nbBookClick;
   }
 
@@ -711,7 +714,7 @@
     if (f.loai === 'HONG' ? !(it.loi.ma === 'HONG_KT' || it.loi.ma === 'DOAN_MO') : f.loai && it.loi.ma !== f.loai) return false;
     if (f.src && nbSrcId(it) !== f.src) return false;
     if (f.mau && it.mau !== f.mau) return false;
-    if (f.chuong && it.chuong !== f.chuong) return false;
+    if (f.chuong && (it.chuong !== f.chuong || nbGroupOf(it) === 'ngoo')) return false;
     if (f.q) {
       const hay = (it.bai + ' ' + it.chuong + ' ' + it.nguon.tieuDe).toLowerCase();
       if (!hay.includes(f.q.toLowerCase())) return false;
@@ -834,9 +837,9 @@
     if (!t && !c) return;
     if (t) {
       const ma = t.dataset.nbtype;
-      nb.filter = { loai: ma, src: '', mau: '', q: '', from: ma === 'CHUA_RO' ? 'Chưa phân loại' : NB_LOAI[ma].ten };
+      nb.filter = { loai: ma, src: '', mau: '', q: '', from: ma === 'CHUA_RO' ? 'Chưa phân loại' : NB_LOAI[ma].ten, chuong: '' };
     } else {
-      nb.filter = { loai: '', src: '', mau: '', q: '', from: 'Chương: ' + c.dataset.nbch, chuong: c.dataset.nbch };
+      nb.filter = { loai: '', src: '', mau: '', q: '', from: 'Hổng kiến thức · ' + c.dataset.nbch, chuong: c.dataset.nbch };
     }
     ['nbfLoai', 'nbfSrc', 'nbfMau', 'nbfQ'].forEach((id) => { document.getElementById(id).value = id === 'nbfLoai' && t ? t.dataset.nbtype : ''; });
     nbRenderList();

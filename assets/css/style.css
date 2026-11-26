@@ -20,6 +20,7 @@
   /* Sổ tay (Pha 7): giấy kẻ, mức độ đỏ/vàng/xanh, màu từng loại lỗi */
   --nb-paper: #fffef9; --nb-rule: #e6ecf3; --nb-margin: #b9d9c4;
   --nb-do: #d23b3b; --nb-do-soft: #fde8e8; --nb-vang: #b97d00; --nb-xanh: #2f8a4f; --nb-xanh-soft: #e1f4e7;
+  --nb-do-text: #b42323; --nb-xanh-text: #1D6B3E;
   --nb-ct: #6d5dd3; --nb-dd: #2b7bbd; --nb-tt: #0f8f86; --nb-sot: #c04a8c; --nb-hkt: #66758c; --nb-cr: #c3cad6;
   --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 4px 16px rgba(16, 24, 40, .06);
   --radius: 14px;
@@ -34,6 +35,7 @@
     --bad: #fb923c; --bad-soft: #3a2314; --warn: #fbbf24; --info-soft: #132c3d; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
     --nb-paper: #161d2b; --nb-rule: #222c40; --nb-margin: #2b5a3e;
     --nb-do: #f87171; --nb-do-soft: #3a1d22; --nb-vang: #fbbf24; --nb-xanh: #6ee7a0; --nb-xanh-soft: #15301f;
+    --nb-do-text: #f87171; --nb-xanh-text: #6ee7a0;
     --nb-ct: #a397ff; --nb-dd: #6fb4ee; --nb-tt: #3fd1c4; --nb-sot: #f08cc4; --nb-hkt: #9aa7bd; --nb-cr: #4a5468;
     color-scheme: dark;
   }
@@ -44,6 +46,7 @@
   --bad: #fb923c; --bad-soft: #3a2314; --warn: #fbbf24; --info-soft: #132c3d; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
   --nb-paper: #161d2b; --nb-rule: #222c40; --nb-margin: #2b5a3e;
   --nb-do: #f87171; --nb-do-soft: #3a1d22; --nb-vang: #fbbf24; --nb-xanh: #6ee7a0; --nb-xanh-soft: #15301f;
+  --nb-do-text: #f87171; --nb-xanh-text: #6ee7a0;
   --nb-ct: #a397ff; --nb-dd: #6fb4ee; --nb-tt: #3fd1c4; --nb-sot: #f08cc4; --nb-hkt: #9aa7bd; --nb-cr: #4a5468;
   color-scheme: dark;
 }
@@ -447,8 +450,8 @@ textarea.todo { background: #fff3b0; border-color: #e0b100; }
 .nb-tag { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1px 9px; font-size: .75rem; font-weight: 600; white-space: nowrap; background: var(--surface-2); border: 1px solid transparent; vertical-align: 1px; }
 .nb-tag.guess { border-style: dashed; border-color: currentColor; }
 .nb-sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; flex: none; }
-.nb-count { font-size: .75rem; color: var(--nb-do); font-weight: 600; white-space: nowrap; }
-.nb-fixed { font-size: .75rem; color: var(--nb-xanh); font-weight: 600; white-space: nowrap; }
+.nb-count { font-size: .75rem; color: var(--nb-do-text); font-weight: 600; white-space: nowrap; }
+.nb-fixed { font-size: .75rem; color: var(--nb-xanh-text); font-weight: 600; white-space: nowrap; }
 .nb-detail { border-top: 1px solid var(--border); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
 .nb-meta { font-size: .83rem; }
 .nb-opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
@@ -457,8 +460,8 @@ textarea.todo { background: #fff3b0; border-color: #e0b100; }
 .nb-opt.em { border-color: var(--nb-do); background: var(--nb-do-soft); }
 .nb-opt.dung { border-color: var(--nb-xanh); background: var(--nb-xanh-soft); }
 .nb-lab { font-size: .7rem; font-weight: 700; margin-left: 6px; color: var(--muted); }
-.nb-lab.bad, .nb-bad { color: var(--nb-do); }
-.nb-lab.good, .nb-good { color: var(--nb-xanh); }
+.nb-lab.bad, .nb-bad { color: var(--nb-do-text); }
+.nb-lab.good, .nb-good { color: var(--nb-xanh-text); }
 .nb-ans { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .nb-lock { font-size: .85rem; background: var(--surface-2); border-radius: 8px; padding: 8px 10px; color: var(--muted); }
 .nb-sol summary { cursor: pointer; font-weight: 600; color: var(--primary); }
@@ -493,7 +496,7 @@ textarea.todo { background: #fff3b0; border-color: #e0b100; }
 .nb-err-name { background: none; border: 0; padding: 0; text-align: left; font: inherit; font-weight: 600; color: var(--text); cursor: pointer; min-width: 0; line-height: 32px; }
 .nb-err-name:hover { color: var(--primary); text-decoration: underline; }
 .nb-err-meta { display: flex; gap: 8px; align-items: center; font-size: .82rem; min-height: 32px; }
-.nb-rep { background: var(--nb-do-soft); color: var(--nb-do); border-radius: 999px; padding: 1px 8px; font-size: .68rem; line-height: 18px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.nb-rep { background: var(--nb-do-soft); color: var(--nb-do-text); border-radius: 999px; padding: 1px 8px; font-size: .68rem; line-height: 18px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
 .nb-err-sub { height: 32px; display: flex; align-items: center; padding-left: 24px; }
 .nb-err-bar { flex: 1; height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
 .nb-err-bar i { display: block; height: 100%; }
