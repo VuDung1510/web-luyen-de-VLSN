@@ -266,6 +266,44 @@ async function runNew(browser) {
         await page.waitForTimeout(600);
         const detB = (await page.textContent(`.nb-item[data-key="${kB3}"]`)).replace(/\s+/g, ' ');
         verdict('TC-7.6', /2,5|2\.5/.test(detB) && (/Lời giải/.test(detB)), `${scheme}: câu đề đã công bố có đáp án đúng và mục lời giải`);
+        // ---- Vòng 2: bấm trong sổ rồi đổi ô lọc ----
+        {
+          const vis = () => page.evaluate(() => [...document.querySelectorAll('#nbList .nb-item')].filter((e) => e.offsetParent !== null).map((e) => e.dataset.key).sort());
+          const exp = (f) => nbData.items.filter(f).map((x) => x.key).sort();
+          const ngoo = ['CONG_THUC', 'DOC_DE', 'TINH_TOAN', 'SOT'];
+          await page.click('#nbBook .nb-err-name[data-nbtype="TINH_TOAN"]'); await page.waitForTimeout(200);
+          await page.selectOption('#nbfMau', 'do'); await page.waitForTimeout(200);
+          const g1 = await vis(); const w1 = exp((x) => x.loi.ma === 'TINH_TOAN' && x.mau === 'do');
+          await page.selectOption('#nbfLoai', 'SOT'); await page.waitForTimeout(200);
+          const g2 = await vis(); const w2 = exp((x) => x.loi.ma === 'SOT' && x.mau === 'do');
+          await page.selectOption('#nbfMau', ''); await page.selectOption('#nbfLoai', ''); await page.waitForTimeout(200);
+          const g3 = await vis(); const w3 = exp(() => true);
+          verdict('TC-7.6', JSON.stringify(g1) === JSON.stringify(w1) && JSON.stringify(g2) === JSON.stringify(w2) && JSON.stringify(g3) === JSON.stringify(w3),
+            `${scheme} vòng 2: bấm "Tính toán" rồi chọn màu Đỏ → ${g1.length}/${w1.length}; đổi loại sang Sót → ${g2.length}/${w2.length}; bỏ hết lọc → ${g3.length}/${w3.length}`);
+          await page.click('#nbHkt summary'); await page.waitForTimeout(150);
+          const ch = await page.getAttribute('#nbHkt [data-nbch]', 'data-nbch');
+          await page.click('#nbHkt [data-nbch]'); await page.waitForTimeout(250);
+          const g4 = await vis(); const w4 = exp((x) => ngoo.indexOf(x.loi.ma) < 0 && x.chuong === ch);
+          const lab = (await page.textContent('#nbActive')).replace(/\s+/g, ' ').trim();
+          await page.selectOption('#nbfMau', 'do'); await page.waitForTimeout(200);
+          const g5 = await vis(); const w5 = exp((x) => x.mau === 'do');
+          verdict('TC-7.6', JSON.stringify(g4) === JSON.stringify(w4) && g4.length > 0 && JSON.stringify(g5) === JSON.stringify(w5),
+            `${scheme} vòng 2: bấm chương "${ch}" → chỉ câu Hổng kiến thức của chương (${g4.length}/${w4.length}, nhãn "${lab}"); đổi ô màu → lọc chương bỏ, còn ${g5.length}/${w5.length} câu đỏ`);
+          await page.selectOption('#nbfMau', ''); await page.waitForTimeout(150);
+          await page.click('#nbHkt summary'); await page.waitForTimeout(100);
+        }
+        // ---- Vòng 2 (K-1): tương phản chữ nhãn ----
+        {
+          await page.click(`.nb-row[data-nbopen="${S.B}#4"]`); await page.waitForTimeout(600);
+          const cs = await page.evaluate(() => {
+            const rgb = (s) => (s.match(/\d+(\.\d+)?/g) || []).slice(0, 3).map(Number);
+            const lum = (c) => { const v = c.map((x) => x / 255).map((x) => (x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4))); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+            const eff = (el) => { while (el) { const c = getComputedStyle(el).backgroundColor; if (c && !/rgba\(0, 0, 0, 0\)|transparent/.test(c)) return c; el = el.parentElement; } return 'rgb(255,255,255)'; };
+            return [...document.querySelectorAll('.nb-rep, .nb-lab, .nb-count')].filter((e) => e.offsetParent !== null).map((e) => { const a = lum(rgb(getComputedStyle(e).color)), b = lum(rgb(eff(e))); return { t: e.textContent.trim().slice(0, 12), r: Math.round(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) * 100) / 100 }; });
+          });
+          const uniq = [...new Map(cs.map((x) => [x.t, x])).values()];
+          verdict('TC-7.6', uniq.length >= 3 && uniq.every((x) => x.r >= 4.5), `${scheme} vòng 2 (K-1): tương phản chữ nhãn ${JSON.stringify(uniq)}`);
+        }
         verdict('TC-7.6', await noHScroll(page), `1280 ${scheme}: không tràn ngang`);
         await ctx.close();
       }
@@ -301,6 +339,11 @@ async function runNew(browser) {
         await page.waitForTimeout(600);
         verdict('TC-7.6', st2.list && !st2.book && (await noHScroll(page)), `${scheme} 390: tab "Câu đã sai" hiện danh sách, ẩn sổ, mở chi tiết không tràn ngang`);
         await shot(page, scheme === 'light' ? '07-cau-sai-390' : '09-cau-sai-390-toi', { fullPage: true });
+        // Vòng 2 (R-7): rời trang rồi vào lại → tab Sổ tay mở lại
+        await page.goto(srv.base + '/#/lich-su'); await page.waitForTimeout(400);
+        await page.goto(srv.base + '/#/so-tay'); await page.waitForSelector('#nbSplit'); await page.waitForTimeout(400);
+        const re = await page.evaluate(() => ({ sel: document.querySelector('#nbTabBook').getAttribute('aria-selected'), book: getComputedStyle(document.querySelector('.nb-book-pane')).display !== 'none', list: getComputedStyle(document.querySelector('.nb-list-pane')).display !== 'none' }));
+        verdict('TC-7.6', re.sel === 'true' && re.book && !re.list, `${scheme} 390 vòng 2: rời trang khi đang ở tab Câu đã sai rồi vào lại → tab Sổ tay mở`);
         // bấm tên lỗi trên điện thoại → chuyển sang tab danh sách đã lọc
         await page.click('#nbTabBook'); await page.waitForTimeout(150);
         await page.click('#nbBook .nb-err-name[data-nbtype="SOT"]'); await page.waitForTimeout(300);

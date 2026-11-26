@@ -529,6 +529,45 @@ t('notebook: tongHop có saiNgoo, bản đồ chương hongKT, số câu chưa p
   info('thứ tự items máy chủ trả: ' + ks + ' (thứ tự hiển thị Sai ngoo trước do giao diện sắp — kiểm ở e2e)');
 });
 
+// =====================================================================
+console.log('\nVòng 2 — đệm riêng từng học sinh');
+// =====================================================================
+t('Vòng 2: học sinh B nộp bài không làm sai sổ tay của A; A nộp bài thì sổ của A cập nhật ngay; sổ của B cũng đúng', () => {
+  const w = world();
+  const e = mkExam(w, 'Đề chung', [TN(1, 'A'), TN(2, 'B'), TL(3, '5')]);
+  submit(w, w.A, e, { 1: 'B', 2: 'B', 3: '5' });
+  const a1 = nb(w, w.A); assert.deepStrictEqual(itemsOf(a1).map((x) => x.key), [e + '#1']);
+  // B nộp (sai cả 3) — sổ A không đổi, sổ B có 3 câu
+  submit(w, w.B, e, { 1: 'C', 2: 'C', 3: '' });
+  const a2 = nb(w, w.A);
+  assert.deepStrictEqual(itemsOf(a2).map((x) => x.key), [e + '#1'], 'sổ A bị lẫn câu B: ' + itemsOf(a2).map((x) => x.key));
+  assert.strictEqual(itemsOf(nb(w, w.B)).length, 3, 'sổ B');
+  // A nộp lần 2: sai thêm câu 2, câu 1 đúng → cập nhật ngay
+  submit(w, w.A, e, { 1: 'A', 2: 'C', 3: '5' });
+  const a3 = byKey(nb(w, w.A));
+  assert.deepStrictEqual(Object.keys(a3).sort(), [e + '#1', e + '#2'].sort(), 'sổ A sau khi nộp');
+  assert.strictEqual(color(a3[e + '#1'].mau), 'vang');
+  // B nộp tiếp, rồi A xem lại vẫn đúng; notebookItem của A vẫn từ chối câu chỉ B sai
+  submit(w, w.B, e, { 1: 'A', 2: 'B', 3: '5' });
+  assert.strictEqual(itemsOf(nb(w, w.A)).length, 2);
+  const r = nbItem(w, [e + '#3'], w.A);
+  assert(!/tự soạn số 3/.test(JSON.stringify(r)), 'A đọc được câu chỉ B sai');
+  // B đã làm đúng hết lần 2 → câu của B thành vàng
+  assert(itemsOf(nb(w, w.B)).every((x) => color(x.mau) === 'vang'), 'sổ B sau khi B nộp lại');
+});
+t('Vòng 2: giáo viên đóng đề (công bố) thì đáp án hiện ngay trong notebookItem, không chờ đệm', () => {
+  const w = world({ studentB: false });
+  const e = mkExam(w, 'Đề đóng sau', [TL(1, '25')]);
+  submit(w, w.A, e, { 1: '0,25' });
+  nb(w); assert.deepStrictEqual(forbidKeys(ok(nbItem(w, [e + '#1'])), ['dapAn']), []);
+  const ex = ok(w.adm('adminGetExam', { examId: e }));
+  ok(w.adm('adminSaveExam', { exam: Object.assign({}, ex.exam, { trangThai: 'DONG' }), questions: ex.questions })); // không xóa đệm bằng tay
+  assert.strictEqual(forbidKeys(ok(nbItem(w, [e + '#1'])), ['dapAn']).length, 1, 'đáp án chưa hiện sau khi đóng đề');
+  const back = ok(w.adm('adminGetExam', { examId: e }));
+  ok(w.adm('adminSaveExam', { exam: Object.assign({}, back.exam, { trangThai: 'MO' }), questions: back.questions }));
+  assert.deepStrictEqual(forbidKeys(ok(nbItem(w, [e + '#1'])), ['dapAn', 'loiGiai']), [], 'mở lại đề mà vẫn hiện đáp án (đệm cũ)');
+});
+
 // ---------- tổng kết ----------
 const pass = results.filter((r) => r[1]).length;
 console.log(`\n${pass}/${results.length} đạt`);
