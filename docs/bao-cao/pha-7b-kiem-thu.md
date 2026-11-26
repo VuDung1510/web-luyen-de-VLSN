@@ -79,3 +79,20 @@ Ngày 27/11/2026 · commit `b23740e` ("Pha 7b vòng 2") · đã chạy lại **t
 **Ảnh:** `docs/bao-cao/anh/pha-7b/kt-*.png` chụp lại trên `b23740e`. Ảnh Pha 7a bị e2e 7a ghi đè đã được trả về (`git checkout -- docs/bao-cao/anh/pha-7a`).
 
 **Bài kiểm thử:** `tests/pha7b-kiem-thu.e2e.js` thêm các ca "vòng 2" (ghi chú khi trang vẽ lại, chuyển trang ngay, số lần mắc lỗi, cặp đơn vị sai mức báo đỏ và không lưu). Không sửa thêm hạ tầng test.
+
+## Vòng 3
+Ngày 27/11/2026 · commit `0fee10b` ("Pha 7b vòng 3") · đã chạy lại toàn bộ TC-7.9 → 7.17, test cũ và e2e, thêm ca kiểm cho các sửa đổi vòng 3.
+
+**Kết luận vòng 3: ĐẠT.** Mọi TC đạt, không có lỗi mới.
+
+| Mã | Vòng 3 | Bằng chứng |
+|---|---|---|
+| TC-7.9, 7.10, 7.12 → 7.17, trang kết quả "mắc n lần", TC-7.7/7.8 phần 7b | ĐẠT | Như vòng 2 (`pha7b-kiem-thu.e2e.js all`, `pha7b-kiem-thu.test.js` 16/16) |
+| TC-7.11 | ĐẠT | Như vòng 2; **thêm** (1280×800, hai cột): gõ ghi chú chung rồi 0,4 giây sau bấm chip loại lỗi ở một câu đang mở → ô vẫn giữ chữ vừa gõ; gõ tiếp rồi 0,9 giây sau bấm bậc thang đơn vị → ô vẫn giữ; máy chủ và lần tải lại trang đều là bản mới nhất. Gõ 4 lần, mỗi lần cách 1,5 giây, lần gửi đầu bị làm chậm 3 giây (các bản gửi chồng nhau) → Sheet giữ bản cuối "… r1 r2 r3 r4", tải lại đúng bản này |
+| Dòng kẻ 32px, không tràn ngang, không lỗi JS | ĐẠT | 1280/390, sáng/tối |
+
+**Test cũ:** mọi `tests/*.test.js` đạt (pha7 16, pha7a-kiem-thu 28/28, pha7b 11, pha7b-kiem-thu 16/16…), `scan-secrets` sạch; `pha7a-kiem-thu.e2e.js all` ĐẠT; `tests/e2e.js` máy chủ mới và `SERVER_COMPAT=1.0.0` ĐẠT. TC-5.1 (Pha 5) vẫn chỉ báo bảng màu Sổ tay, chờ giáo viên chốt.
+
+**Ảnh:** `docs/bao-cao/anh/pha-7b/kt-*.png` chụp lại trên `0fee10b`; ảnh Pha 7a đã trả về (`git checkout -- docs/bao-cao/anh/pha-7a`).
+
+**Bài kiểm thử:** `tests/pha7b-kiem-thu.e2e.js` thêm hai ca "vòng 3" (làm chậm lần gửi bằng `page.route`, không sửa hạ tầng test).
