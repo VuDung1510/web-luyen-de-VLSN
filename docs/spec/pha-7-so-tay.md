@@ -6,7 +6,7 @@
 - Máy tự đoán loại lỗi khi chắc chắn (bỏ trống, lệch đúng 10ⁿ lần). Không chắc thì hỏi em. Em sửa lại được loại lỗi của từng câu.
 - Mỗi loại "sai ngoo" có một công cụ sửa riêng: thẻ công thức có tên gợi nhớ, bài tập gạch từ khóa, thang đổi đơn vị, kế hoạch chia thời gian.
 - Có **đề khắc phục** ngắn dựng từ chính câu em đã sai cộng với câu tương tự. Một lỗi tính là đã khắc phục khi em làm đúng 2 lần ở 2 ngày khác nhau.
-- Chia 3 pha con: **7a** sổ tay tự động, **7b** em tự phân loại lỗi, công cụ sửa và lời nhắc, **7c** đề khắc phục. Mỗi pha con thầy dán lại Code.gs một lần.
+- Chia 3 pha con: **7a** sổ tay tự động, **7b** em tự phân loại lỗi, công cụ sửa và lời nhắc, **7c** đề khắc phục. ~~Mỗi pha con thầy dán lại Code.gs một lần.~~ Chốt 26/11/2026: làm xong cả ba pha con rồi thầy dán Code.gs **một lần**; mỗi pha con vẫn tăng số phụ `APP_VERSION` và gộp `main` qua pull request.
 
 ## Mục tiêu
 Mỗi học sinh có một nơi xem lại mọi câu đã làm sai, biết mình hay mắc **loại lỗi nào** (nhất là các lỗi "sai ngoo" sửa được ngay bằng thói quen), được nhắc trước khi làm đề, và có đề ngắn để sửa đúng lỗi của mình.

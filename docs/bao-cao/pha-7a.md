@@ -81,3 +81,8 @@ Kiểm thử vòng 2: `tests/pha7.test.js` 15/15, `tests/pha7a-kiem-thu.test.js`
 - V2-1 (Nhẹ, soát vòng 2): `apiAdminDeleteResult_` gọi `nbVer_(r.studentId, true)` sau khi xóa bài, để sổ tay của học sinh đó bỏ ngay câu thuộc bài đã xóa. Thêm kiểm thử `tests/pha7.test.js` mục "Vòng 2 (V2-1)" (16/16 đạt); `pha7a-kiem-thu` 28/28, backend, cache, pha6, pha6-kiem-thu vẫn đạt. Sửa một dòng, chưa qua soát lại.
 - V2-2 (Nhẹ): giữ như mục Luyện tập — cấu hình trên máy học sinh sống tối đa 10 phút nên ngay sau khi tắt Sổ tay, em có thể thấy sổ cũ thêm một lần.
 - V2-3 / TC-5.1: chờ giáo viên chốt bảng màu Sổ tay.
+
+### Sau khi giáo viên duyệt (26/11/2026)
+- Màu 6 loại lỗi đậm hơn ×1,5 độ tương phản với nền giấy (giao diện sáng): #5347a0, #215f92, #0c7069, #94396c, #4e5a6b, #9fa5ae; giao diện tối chỉ đậm thêm "chưa phân loại" (#676f80) vì các màu kia làm sáng thêm sẽ ngả trắng, khó phân biệt. Trang mẫu cập nhật theo.
+- Bảng màu Sổ tay ghi vào QUYET-DINH §6, nên TC-5.1 của Pha 5 (so với `main`) sẽ đạt sau khi gộp.
+- Kế hoạch: KHÔNG dán Code.gs sau 7a; dán một lần sau 7c (`docs/VIEC-GIAO-VIEN.md`).

@@ -21,7 +21,7 @@
   --nb-paper: #fffef9; --nb-rule: #e6ecf3; --nb-margin: #b9d9c4;
   --nb-do: #d23b3b; --nb-do-soft: #fde8e8; --nb-vang: #b97d00; --nb-xanh: #2f8a4f; --nb-xanh-soft: #e1f4e7;
   --nb-do-text: #b42323; --nb-xanh-text: #1D6B3E;
-  --nb-ct: #6d5dd3; --nb-dd: #2b7bbd; --nb-tt: #0f8f86; --nb-sot: #c04a8c; --nb-hkt: #66758c; --nb-cr: #c3cad6;
+  --nb-ct: #5347a0; --nb-dd: #215f92; --nb-tt: #0c7069; --nb-sot: #94396c; --nb-hkt: #4e5a6b; --nb-cr: #9fa5ae; /* đậm ×1,5 (chốt 26/11/2026) */
   --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 4px 16px rgba(16, 24, 40, .06);
   --radius: 14px;
   --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -36,7 +36,7 @@
     --nb-paper: #161d2b; --nb-rule: #222c40; --nb-margin: #2b5a3e;
     --nb-do: #f87171; --nb-do-soft: #3a1d22; --nb-vang: #fbbf24; --nb-xanh: #6ee7a0; --nb-xanh-soft: #15301f;
     --nb-do-text: #f87171; --nb-xanh-text: #6ee7a0;
-    --nb-ct: #a397ff; --nb-dd: #6fb4ee; --nb-tt: #3fd1c4; --nb-sot: #f08cc4; --nb-hkt: #9aa7bd; --nb-cr: #4a5468;
+    --nb-ct: #a397ff; --nb-dd: #6fb4ee; --nb-tt: #3fd1c4; --nb-sot: #f08cc4; --nb-hkt: #9aa7bd; --nb-cr: #676f80;
     color-scheme: dark;
   }
 }
@@ -47,7 +47,7 @@
   --nb-paper: #161d2b; --nb-rule: #222c40; --nb-margin: #2b5a3e;
   --nb-do: #f87171; --nb-do-soft: #3a1d22; --nb-vang: #fbbf24; --nb-xanh: #6ee7a0; --nb-xanh-soft: #15301f;
   --nb-do-text: #f87171; --nb-xanh-text: #6ee7a0;
-  --nb-ct: #a397ff; --nb-dd: #6fb4ee; --nb-tt: #3fd1c4; --nb-sot: #f08cc4; --nb-hkt: #9aa7bd; --nb-cr: #4a5468;
+  --nb-ct: #a397ff; --nb-dd: #6fb4ee; --nb-tt: #3fd1c4; --nb-sot: #f08cc4; --nb-hkt: #9aa7bd; --nb-cr: #676f80;
   color-scheme: dark;
 }
 
