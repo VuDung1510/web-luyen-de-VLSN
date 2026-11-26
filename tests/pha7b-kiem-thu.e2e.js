@@ -268,7 +268,7 @@ async function runNew(browser) {
     verdict('TC-7.12', isRight(fbRight) && /10²|10\^2|×\s*10/.test(fbRight.join(' ') + arrow), `em dùng "cm", chọn đơn vị đúng "m" → ${JSON.stringify(fbRight)}`);
     await page.waitForTimeout(1500);
     const itU = (await api(srv.base, 'notebookItem', { token: S.st, keys: [kU] }));
-    const ctU = JSON.stringify((itU.items || itU)[0] && ((itU.items || itU)[0].chiTiet || (itU.items || itU)[0].loi));
+    const ctU = (JSON.stringify(itU).match(/"dv(Em|Dung)"\s*:\s*"[^"]*"/g) || []).join(', ') || '(không có dvEm/dvDung)';
     verdict('TC-7.12 (biên)', !isRight(fbWrong) && fbWrong.some((x) => /^\[bad\]/.test(x)) && !/"dvDung":"mm"/.test(ctU), `máy đã biết lệch 10², em dùng "cm" mà chọn "mm" (chỉ 10¹) → ${JSON.stringify(fbWrong)}; chi tiết lỗi đã lưu ${ctU}`);
     await shot(page, '04-cong-cu-don-vi-1280');
     // chọn nhiệt độ: công thức cộng trừ

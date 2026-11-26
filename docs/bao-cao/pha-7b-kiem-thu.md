@@ -57,3 +57,25 @@ Không có lỗi Nặng hay Vừa.
 node tests/pha7b-kiem-thu.test.js
 NODE_PATH=$(npm root -g) LIBS_DIR=<node_modules có katex, chart.js> node tests/pha7b-kiem-thu.e2e.js [new|compat|all]
 ```
+
+## Vòng 2
+Ngày 27/11/2026 · commit `b23740e` ("Pha 7b vòng 2") · đã chạy lại **toàn bộ** TC-7.9 → 7.17 và test cũ (00-quy-trinh §2.3), thêm ca kiểm cho các sửa đổi vòng 2.
+
+**Kết luận vòng 2: ĐẠT.** Mọi TC đạt; K-1 và K-2 đã sửa; không có lỗi mới.
+
+| Mã | Vòng 2 | Bằng chứng |
+|---|---|---|
+| TC-7.9 | ĐẠT | Như vòng 1 (thẻ 3 câu, chọn sẵn, Bỏ qua, mở lại, luyện tập, chip "?") |
+| TC-7.10 | ĐẠT | Node 16/16 (gồm lô lẫn key, 1 hàng/câu); chọn trên giao diện ghi đúng |
+| TC-7.11 | ĐẠT | Như vòng 1; **thêm**: đang gõ ghi chú câu thì bấm chip ở câu khác, mở "Cách sửa ▸", một câu khác tải xong → ô vẫn đủ chữ "một hai ba bốn năm", con trỏ ở cuối, vẫn trong ô; máy chủ lưu đúng. Gõ rồi chuyển trang sau 0,2–0,3 giây (dưới 1,2 giây chờ lưu) → ghi chú câu và ghi chú chung vẫn được lưu |
+| TC-7.12 | ĐẠT | Như vòng 1; **K-2 đã sửa**: đáp án lệch 10², chọn cm → mm báo đỏ "Đổi từ cm sang mm chỉ lệch 10¹ lần, nhưng đáp án của em lệch 10² lần…" và không lưu (chi tiết lỗi vẫn là cặp đúng cm → m đã chọn trước đó) |
+| TC-7.13 → 7.17 | ĐẠT | Như vòng 1 |
+| Trang kết quả (§7) | ĐẠT | **K-1 đã sửa**: "Câu 3: Sót ý…: lỗi này em đã mắc 5 lần." — khớp 5 câu Sót ý trong sổ tay |
+| TC-7.7 (7b), TC-7.8 (ghi) | ĐẠT | Tắt sổ tay; máy chủ 1.0.0, 1.5.0 không có các phần 7b, làm bài bình thường |
+| Dòng kẻ 32px, không tràn ngang, không lỗi JS | ĐẠT | 1280/390, sáng/tối, mở "Cách sửa", ghi chú 5 dòng |
+
+**Test cũ:** backend 13, importer, bank 30, cache 17, common-cache 5, bang-gach 13, docx 30/30, pha1–pha4 kiểm thử, pha6 10/10, pha6-kiem-thu 105/105, pha6b 97/97, pha6b-hinh 30/30, pha7 16, pha7a-kiem-thu 28/28, pha7b 11, pha7b-kiem-thu 16/16, `scan-secrets` sạch; `pha7a-kiem-thu.e2e.js all` ĐẠT; `tests/e2e.js` máy chủ mới và `SERVER_COMPAT=1.0.0` (dev-server riêng) ĐẠT. TC-5.1 (Pha 5) vẫn chỉ báo bảng màu Sổ tay, chờ giáo viên chốt.
+
+**Ảnh:** `docs/bao-cao/anh/pha-7b/kt-*.png` chụp lại trên `b23740e`. Ảnh Pha 7a bị e2e 7a ghi đè đã được trả về (`git checkout -- docs/bao-cao/anh/pha-7a`).
+
+**Bài kiểm thử:** `tests/pha7b-kiem-thu.e2e.js` thêm các ca "vòng 2" (ghi chú khi trang vẽ lại, chuyển trang ngay, số lần mắc lỗi, cặp đơn vị sai mức báo đỏ và không lưu). Không sửa thêm hạ tầng test.
