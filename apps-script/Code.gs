@@ -1232,6 +1232,7 @@ function apiAdminDeleteResult_(req) {
     var r = readTable_('KetQua', { fresh: true }).filter(function (x) { return x.id === req.resultId; })[0];
     if (!r) throw new Error('Không tìm thấy bài làm.');
     deleteRows_('KetQua', [r._row], 'id', [r.id]);
+    nbVer_(r.studentId, true); // Pha 7a vòng 2 (V2-1): sổ tay của em đó bỏ ngay câu thuộc bài đã xóa
     return true;
   });
 }

@@ -76,3 +76,8 @@ Xem `docs/VIEC-GIAO-VIEN.md` → mục "Pha 7a" (dán Code.gs 1.6.0, chạy `set
 | TC-5.1 (danh sách màu Pha 5) | Chưa đổi: cần giáo viên chốt bảng màu Sổ tay (QUYET-DINH §6) rồi người kiểm thử thêm vào danh sách cho phép. |
 
 Kiểm thử vòng 2: `tests/pha7.test.js` 15/15, `tests/pha7a-kiem-thu.test.js` 26/26, `tests/pha7a-kiem-thu.e2e.js all` ĐẠT (TC-7.6, 7.7; máy chủ mới, 1.0.0, 1.5.0), `tests/e2e.js` ĐẠT, các test cũ như vòng 1, `scan-secrets` sạch.
+
+### Sau soát và kiểm thử vòng 2 (cả hai ĐẠT)
+- V2-1 (Nhẹ, soát vòng 2): `apiAdminDeleteResult_` gọi `nbVer_(r.studentId, true)` sau khi xóa bài, để sổ tay của học sinh đó bỏ ngay câu thuộc bài đã xóa. Thêm kiểm thử `tests/pha7.test.js` mục "Vòng 2 (V2-1)" (16/16 đạt); `pha7a-kiem-thu` 28/28, backend, cache, pha6, pha6-kiem-thu vẫn đạt. Sửa một dòng, chưa qua soát lại.
+- V2-2 (Nhẹ): giữ như mục Luyện tập — cấu hình trên máy học sinh sống tối đa 10 phút nên ngay sau khi tắt Sổ tay, em có thể thấy sổ cũ thêm một lần.
+- V2-3 / TC-5.1: chờ giáo viên chốt bảng màu Sổ tay.

@@ -362,4 +362,16 @@ t('Vòng 2 (R-1): sổ tay đọc ít Sheet — câu luyện tập chỉ cần c
   assert.ok((w.g._stats.ranges.LuyenTap || 0) <= 3, 'notebookItem đọc LuyenTap: ' + w.g._stats.ranges.LuyenTap);
 });
 
+t('Vòng 2 (V2-1): giáo viên xóa bài → sổ tay của học sinh đó bỏ ngay câu thuộc bài đã xóa (không chờ đệm)', () => {
+  const w = world();
+  const e = saveExam(w, { trangThai: 'MO', hienLoiGiai: 'NGAY' }, [TN(1), TN(2)]);
+  doExam(w, e, { 1: 'B', 2: 'A' });
+  const res = doExam(w, e, { 1: 'A', 2: 'B' });
+  assert.strictEqual(w.nb().items.length, 2);
+  ok(w.g.call('adminDeleteResult', { token: w.tTok, resultId: res.id }));
+  const nb = w.nb();
+  assert.strictEqual(nb.items.length, 1, 'chỉ còn câu 1 (sai ở bài chưa xóa)');
+  assert.strictEqual(nb.items[0].nguon.stt, 1);
+});
+
 console.log(`\n${passed} kiểm thử đạt${failed ? ', ' + failed + ' KHÔNG ĐẠT' : '.'}`);
