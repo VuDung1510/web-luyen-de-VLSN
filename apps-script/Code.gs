@@ -3335,12 +3335,23 @@ function apiNotebookResult_(req) {
   return { resultId: id, items: out, daPhanLoai: out.length > 0 && out.every(function (x) { return x.loi.nguon === 'HS'; }) };
 }
 
-/** Sửa bản sổ tay đang đệm của học sinh (cùng khóa đệm), không tính lại. Không có đệm thì thôi. */
+/**
+ * Sửa bản sổ tay đang đệm của học sinh (cùng khóa đệm). Vòng 3 (V3-1): chỉ vá khi bản đệm đang có;
+ * không có thì thôi (lần đọc sau tự tính lại) — không tính lại cả sổ tay trong lúc giữ khóa ghi.
+ */
 function nbPatchCache_(st, fn) {
-  var nb = nbCompute_(st);
-  fn(nb);
-  var ck = MEMO_['__nbck_' + st.id], cache = scriptCache_();
-  if (ck && cache) { try { cachePutChunked_(cache, ck, JSON.stringify(nb), CACHE_SECONDS, CACHE_MAX_BYTES); } catch (e) { /* bỏ qua */ } }
+  var cache = scriptCache_();
+  if (!cache) return;
+  var gens = ['DeThi', 'CauHoi', 'LuyenTap'].map(function (n) { return readGen_(cache, n); });
+  var ver = nbVer_(st.id);
+  if (!ver || !gens.every(Boolean)) return;
+  var ck = 'nb_' + st.id + '_' + ver + '_' + gens.join('_');
+  try {
+    var nb = parseJson_(cacheGetChunked_(cache, ck), null);
+    if (!nb || !Array.isArray(nb.items)) return;
+    fn(nb);
+    cachePutChunked_(cache, ck, JSON.stringify(nb), CACHE_SECONDS, CACHE_MAX_BYTES);
+  } catch (e) { /* bỏ qua: đệm tự hết hạn */ }
 }
 
 /** Bỏ trường nội bộ (_ref, _src) trước khi gửi cho học sinh. */

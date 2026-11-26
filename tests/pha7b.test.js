@@ -249,4 +249,16 @@ t('Vòng 2 (R-3, K-1): lưu ghi chú không làm mất đệm (sổ tay vẫn đ
   assert.ok(res.items.every((x) => x.soCauLoai === 2), JSON.stringify(res.items));
 });
 
+t('Vòng 3 (V3-1): lưu ghi chú khi đệm đã hết không tính lại sổ tay trong khóa; lần đọc sau vẫn đúng', () => {
+  const w = world();
+  const e = saveExam(w, { trangThai: 'MO', hienLoiGiai: 'NGAY' }, [TN(1)]);
+  doExam(w, e, { 1: 'B' });
+  w.nb();
+  clearCache(w.g);
+  w.g._resetStats();
+  ok(w.call('notebookNote', { key: '_CHUNG', text: 'khi đệm hết' }));
+  assert.ok(!w.g._stats.ranges.KetQua, 'không đọc KetQua khi lưu ghi chú: ' + JSON.stringify(w.g._stats.ranges));
+  assert.strictEqual(w.nb().ghiChuChung, 'khi đệm hết');
+});
+
 console.log(`\n${passed} kiểm thử đạt${failed ? ', ' + failed + ' KHÔNG ĐẠT' : '.'}`);

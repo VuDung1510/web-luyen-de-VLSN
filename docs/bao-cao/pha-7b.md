@@ -60,3 +60,8 @@ Kiểm thử vòng 2: `pha7b` 11/11 (thêm 2 ca), `pha7b-kiem-thu` 16/16, `pha7b
 - V2-2 (Nhẹ): mỗi ghi chú chỉ một lần gửi một lúc; gửi xong mà còn bản mới thì gửi tiếp (bản cũ không ghi sau bản mới). Lúc rời trang vẫn gửi ngay.
 - V2-3 (Nhẹ): máy chủ vá bản đệm ngay trong khóa ghi, đọc lại bản đệm mới nhất trước khi vá.
 - Kiểm thử: `pha7b` 11/11, `pha7b-kiem-thu` 16/16, `pha7b-kiem-thu.e2e.js all` 15/15 nhóm ĐẠT, `pha7`, `pha7a-kiem-thu`, backend, cache, `pha6-kiem-thu` đạt.
+
+## Kết luận Pha 7b
+- Soát code vòng 3 **ĐẠT**, kiểm thử vòng 3 **ĐẠT** (TC-7.9 → 7.17).
+- Sau đó sửa thêm V3-1 (Nhẹ): `nbPatchCache_` chỉ vá khi bản đệm đang có, không tính lại sổ tay trong khóa ghi; kiểm thử `pha7b` "Vòng 3 (V3-1)" (12/12). Sửa nhỏ, chưa qua soát lại.
+- Ghi nhận, chấp nhận (Nhẹ): V3-2 (rời Sổ tay rồi quay lại trong vài giây có thể thấy ghi chú cũ), V3-3 (lúc đóng tab, bản cuối gửi ngay không chờ bản đang gửi — đánh đổi để không mất chữ).
