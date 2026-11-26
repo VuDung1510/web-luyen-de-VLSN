@@ -143,12 +143,13 @@ function color(v) { const s = String(v || '').toLowerCase(); return /do|đỏ|re
 function stampLast(w, sheet, when) { const d = w.g._sheets[sheet]._data(); d[d.length - 1][d[0].indexOf('Nộp lúc')] = when; clearCache(w.g); }
 const KP = (w, body, lop) => w.S(lop, 'practiceStart', Object.assign({ kieu: 'KHAC_PHUC' }, body));
 const tokOf = (st) => decodeTok(st.attemptToken).p;
+// Mức độ đặt cố định: P1 xen kẽ Biết/Hiểu; P2 Hiểu,Hiểu,Vận dụng,Vận dụng; P3 Biết,Biết,Vận dụng,Vận dụng.
 // Kho riêng cho 7c: chương "Khí lí tưởng" (ch 1): Bài 9 (bai 0) nhiều câu; Bài 11 (bai 1) 6 câu P1; chương "Từ trường" (ch 2) Bài 14: 4 câu P1.
 function rows7c() {
   const r = [];
   for (let i = 1; i <= 10; i++) r.push(K.row({ phan: 1, cau: i, ch: 1, bai: 0, dapAn: 'ABCD'[i % 4], muc: i % 2 ? 'Biết' : 'Hiểu', noiDung: `B9 P1 câu ${i} (tự soạn).`, loiGiai: `Lời giải B9 P1 ${i} tự soạn dài.` }));
-  for (let i = 1; i <= 4; i++) r.push(K.row({ phan: 2, cau: i, ch: 1, bai: 0, dapAn: 'a) Đúng b) Sai c) Đúng d) Sai', noiDung: `B9 P2 câu ${i} (tự soạn).`, loiGiai: `Lời giải B9 P2 ${i} tự soạn dài.` }));
-  for (let i = 1; i <= 4; i++) r.push(K.row({ phan: 3, cau: i, ch: 1, bai: 0, dapAn: '2,5', noiDung: `B9 P3 câu ${i} (tự soạn).`, loiGiai: `Lời giải B9 P3 ${i} tự soạn dài.` }));
+  for (let i = 1; i <= 4; i++) r.push(K.row({ phan: 2, cau: i, ch: 1, bai: 0, muc: i <= 2 ? 'Hiểu' : 'Vận dụng', dapAn: 'a) Đúng b) Sai c) Đúng d) Sai', noiDung: `B9 P2 câu ${i} (tự soạn).`, loiGiai: `Lời giải B9 P2 ${i} tự soạn dài.` }));
+  for (let i = 1; i <= 4; i++) r.push(K.row({ phan: 3, cau: i, ch: 1, bai: 0, muc: i <= 2 ? 'Biết' : 'Vận dụng', dapAn: '2,5', noiDung: `B9 P3 câu ${i} (tự soạn).`, loiGiai: `Lời giải B9 P3 ${i} tự soạn dài.` }));
   for (let i = 1; i <= 6; i++) r.push(K.row({ phan: 1, cau: 20 + i, ch: 1, bai: 1, dapAn: 'B', noiDung: `B11 P1 câu ${i} (tự soạn).`, loiGiai: `Lời giải B11 ${i} tự soạn dài.` }));
   for (let i = 1; i <= 4; i++) r.push(K.row({ phan: 1, cau: 40 + i, ch: 2, bai: 0, dapAn: 'C', noiDung: `B14 P1 câu ${i} (tự soạn).`, loiGiai: `Lời giải B14 ${i} tự soạn dài.` }));
   return r;
@@ -246,8 +247,8 @@ t('TC-7.19 đúng câu khắc phục ngày 1 → vàng; lần nữa cùng ngày 
   stampLast(w, 'KetQua', '01/11/2026 08:00:00');
   ok(w.S(null, 'notebookTag', { items: [{ key: X, ma: 'HONG_KT' }] }));
   const lan0 = +byKey(nb(w))[X].lanSai;
-  const run = (right, when) => {
-    const st = ok(KP(w, { mau: 'MOT_LOI', ma: 'HONG' }));
+  const run = (right, when, pre) => {
+    const st = pre || ok(KP(w, { mau: 'MOT_LOI', ma: 'HONG' }));
     const p = tokOf(st);
     assert(p.goc.every((g) => g === X), 'goc phải là X');
     const res = doKP(w, st, () => right);
@@ -260,9 +261,12 @@ t('TC-7.19 đúng câu khắc phục ngày 1 → vàng; lần nữa cùng ngày 
   assert(Array.isArray(a.res.khacPhuc) && a.res.khacPhuc.some((k) => k.key === X && color(k.truoc) === 'do' && color(k.sau) === 'vang'), 'kết quả không báo X đỏ → vàng');
   assert.strictEqual(+a.it.lanSai, lan0, 'lanSai câu gốc đổi');
   assert.strictEqual(run(true, '05/11/2026 15:00:00').mau, 'vang', 'cùng ngày vẫn vàng');
+  const pre = ok(KP(w, { mau: 'MOT_LOI', ma: 'HONG' })); // dựng sẵn khi X còn vàng (câu xanh không còn được chọn làm câu gốc)
   const c = run(true, '06/11/2026 08:00:00');
   assert.strictEqual(c.mau, 'xanh', 'ngày 2 → xanh');
-  const d = run(false, '07/11/2026 08:00:00');
+  const rG = KP(w, { mau: 'MOT_LOI', ma: 'HONG' });
+  info('X đã xanh → dựng đề khắc phục: ' + (rG.ok ? 'vẫn có (goc ' + [...new Set(tokOf(rG.data).goc)] + ')' : '"' + rG.error + '"'));
+  const d = run(false, '07/11/2026 08:00:00', pre);
   assert.strictEqual(d.mau, 'do', 'sai lại → đỏ');
   assert(d.res.khacPhuc.some((k) => k.key === X && color(k.sau) === 'do'), 'báo xanh → đỏ');
 });
@@ -321,36 +325,41 @@ t('TC-7.20 ON_NHANH: 5 câu, 420 giây, nhắm loại lỗi đỏ nặng nhất'
     assert(p.goc.every((g) => p2.slice(0, 3).includes(g)), 'goc phải là câu SOT: ' + p.goc);
   }
 });
-t('TC-7.20 MOT_LOI ma=SOT ưu tiên câu Phần II; ma không có câu → báo lỗi; thiếu ma → báo lỗi', () => {
+t('TC-7.20 MOT_LOI: thiếu ma / mẫu lạ / ma không có câu → báo lỗi rõ', () => {
   const w = W7();
   const p1 = bai9(w).filter((p) => p.loai === 'TN').map((p) => p.maKho);
-  examFromBank(w, 'Đề sót P1', p1.slice(0, 2), new Set(p1.slice(0, 2)), { blank: true }); // SOT ở Phần I, Bài 9
-  const st = ok(KP(w, { mau: 'MOT_LOI', ma: 'SOT' }));
-  const pl = Object.fromEntries(pool(w).map((x) => [x.maKho, x]));
-  const loai = tokOf(st).qids.map((q) => pl[q].loai);
-  info('MOT_LOI SOT: ' + loai.join(','));
-  assert.strictEqual(st.questions.length, 5);
-  const nP2 = loai.filter((x) => x === 'DS').length;
-  const nP2pool = bai9(w).filter((p) => p.loai === 'DS').length;
-  assert(nP2 >= Math.min(nP2pool, 5 - p1.slice(0, 2).length), `Phần II phải được ưu tiên: ${nP2}/${nP2pool}`);
+  examFromBank(w, 'Đề sót', p1.slice(0, 2), new Set(p1.slice(0, 2)), { blank: true });
   const r1 = KP(w, { mau: 'MOT_LOI', ma: 'CONG_THUC' });
-  assert(!r1.ok || r1.data.questions.length === 0 || /Chỉ dựng được 0/.test(JSON.stringify(r1.data)), 'ma không có câu: ' + JSON.stringify(r1).slice(0, 120));
+  assert(!r1.ok && !/undefined|TypeError/.test(r1.error), 'ma không có câu: ' + JSON.stringify(r1).slice(0, 120));
   assert(!KP(w, { mau: 'MOT_LOI' }).ok, 'thiếu ma phải lỗi');
   assert(!KP(w, { mau: 'BIA' }).ok, 'mẫu lạ phải lỗi');
-  info('ma không có câu: ' + (r1.ok ? 'ok' : r1.error));
+  info('ma không có câu: "' + r1.error + '"');
 });
-t('TC-7.20 (biên) DON_VI/BAM_MAY ưu tiên Phần III', () => {
+// Ưu tiên phần: câu gốc 1 câu ở Bài 9; Bài 9 còn 3–4 câu đúng phần ưu tiên → 4 câu tương tự mỗi đề phải gồm hết các câu đó.
+function partShare(ma, loaiO, tag, want) {
   const w = W7();
-  const p3 = bai9(w).filter((p) => p.loai === 'TL').map((p) => p.maKho);
-  examFromBank(w, 'Đề P3', [p3[0]], new Set([p3[0]]));
-  ok(w.S(null, 'notebookTag', { items: [{ key: p3[0], ma: 'TINH_TOAN', y: 'DON_VI' }] }));
-  const st = ok(KP(w, { mau: 'MOT_LOI', ma: 'TINH_TOAN' }));
+  const o = bai9(w).filter((p) => p.loai === loaiO)[0];
+  examFromBank(w, 'Đề gốc', [o.maKho], new Set([o.maKho]), { blank: !tag });
+  if (tag) ok(w.S(null, 'notebookTag', { items: [{ key: o.maKho, ma: tag.ma, y: tag.y }] }));
   const pl = Object.fromEntries(pool(w).map((x) => [x.maKho, x]));
-  const loai = tokOf(st).qids.map((q) => pl[q].loai);
-  info('MOT_LOI TINH_TOAN: ' + loai.join(','));
-  assert(loai.filter((x) => x === 'TL').length >= Math.min(4, p3.length), 'Phần III phải được ưu tiên');
+  const avail = bai9(w).filter((p) => p.loai === want && p.maKho !== o.maKho).length;
+  let got = 0; const N = 20;
+  for (let i = 0; i < N; i++) { const r = ok(KP(w, { mau: 'MOT_LOI', ma })); got += tokOf(r).qids.filter((q) => q !== o.maKho && pl[q].loai === want).length; }
+  return { avg: got / N, avail: Math.min(avail, 4) };
+}
+t('TC-7.20 MOT_LOI ma=SOT ưu tiên câu Phần II; TINH_TOAN (DON_VI) ưu tiên Phần III — câu gốc cùng phần', () => {
+  const a = partShare('SOT', 'DS', null, 'DS');
+  const c = partShare('TINH_TOAN', 'TL', { ma: 'TINH_TOAN', y: 'DON_VI' }, 'TL');
+  info(`SOT, gốc Phần II: trung bình ${a.avg}/${a.avail} câu tương tự là Phần II; TINH_TOAN, gốc Phần III: ${c.avg}/${c.avail} là Phần III`);
+  assert(a.avg >= a.avail - 0.5 && c.avg >= c.avail - 0.5);
 });
-
+t('TC-7.20 (biên) câu gốc ở phần khác: SOT gốc Phần I (bỏ trống cả câu) vẫn ưu tiên Phần II; TINH_TOAN/BAM_MAY gốc Phần I vẫn ưu tiên Phần III', () => {
+  const b = partShare('SOT', 'TN', null, 'DS');
+  const d = partShare('TINH_TOAN', 'TN', { ma: 'TINH_TOAN', y: 'BAM_MAY' }, 'TL');
+  info(`SOT gốc Phần I: ${b.avg}/${b.avail} câu Phần II; BAM_MAY gốc Phần I: ${d.avg}/${d.avail} câu Phần III (câu cùng mức độ được ưu tiên hơn đúng phần)`);
+  assert(b.avg >= b.avail - 0.5, `SOT gốc Phần I: chỉ ${b.avg}/${b.avail} câu Phần II`);
+  assert(d.avg >= d.avail - 0.5, `BAM_MAY gốc Phần I: chỉ ${d.avg}/${d.avail} câu Phần III`);
+});
 console.log('\nTC-7.21 — ghi KetQuaLuyenTap, không đổi bảng xếp hạng');
 t('TC-7.21 nộp KHAC_PHUC: KetQuaLuyenTap +1 (kieu KHAC_PHUC), KetQua không đổi; xếp hạng, bảng điểm, gợi ý đề không đổi; có lời giải ngay', () => {
   const w = W7();
