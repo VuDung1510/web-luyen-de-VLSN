@@ -54,3 +54,25 @@ Không sửa `gas-shim.js`, `dev-server.js`. Bài Node chép các hàm trợ gi�
 node tests/pha7c-kiem-thu.test.js
 NODE_PATH=$(npm root -g) LIBS_DIR=<node_modules có katex, chart.js> node tests/pha7c-kiem-thu.e2e.js [new|compat|all]
 ```
+
+## Vòng 2
+Ngày 27/11/2026 · commit `3c1f2b6` ("Pha 7c vòng 2") · đã chạy lại **toàn bộ** TC-7.18 → 7.23, test cũ và e2e (00-quy-trinh §2.3), thêm ca cho R-1, G-1, G-3.
+
+**Kết luận vòng 2: ĐẠT.** Mọi TC đạt; K-1, G-1, G-3 đã sửa; không có lỗi mới.
+
+| Mã | Vòng 2 | Bằng chứng |
+|---|---|---|
+| TC-7.18 | ĐẠT | Như vòng 1; 200 lần dựng đề, không lần nào có câu của đề chưa công bố |
+| TC-7.19 | ĐẠT | Như vòng 1; **thêm (R-1)**: câu gốc đang vàng, làm lại chính câu gốc **sai** cùng các câu tương tự **đúng** trong một bài → câu gốc đỏ (`khacPhuc` báo vàng → đỏ); hôm sau làm y như vậy → vẫn đỏ. **G-3**: `khacPhuc` không còn mục giữ nguyên màu (E2E: bỏ trống bài → chỉ "vàng → đỏ") |
+| TC-7.20 | **ĐẠT** (vòng 1: KHÔNG ĐẠT) | **K-1 đã sửa**: Sót ý, câu gốc Phần II → 3/3 câu tương tự là Phần II; câu gốc Phần I → 4/4 Phần II; Tính toán, câu gốc Phần III → 3/3 Phần III; câu gốc Phần I (bấm máy) → 4/4 Phần III. ON_NHANH 5 câu, 420 giây, đúng loại lỗi đỏ |
+| TC-7.21, 7.22, 7.23 | ĐẠT | Như vòng 1 (`notebook` ≈ 1,2 giây với 300 bài, `SHEET_READ_MS=300`) |
+| G-1 | Đã sửa | Node: sổ chỉ có câu chưa phân loại → `MOT_LOI ma=HONG` dựng 5 câu. E2E: nút "Ôn phần hổng kiến thức (5 câu · 7 phút) ▸" hiện trong nhóm Hổng kiến thức khi có 3 câu chưa phân loại; bấm → vào đề 5 câu (`kt-09-on-hong-kien-thuc-1280.png`) |
+| Tắt / máy chủ cũ / giao diện | ĐẠT | Như vòng 1: 1280/390, sáng/tối, không tràn ngang, không lỗi JS; tắt Luyện tập hoặc Sổ tay thì không có nút; máy chủ 1.0.0, 1.5.0 không có nút |
+
+Bài kiểm thử: `tests/pha7c-kiem-thu.test.js` **17/17** (thêm ca R-1, G-1, G-3); `tests/pha7c-kiem-thu.e2e.js all` ĐẠT.
+
+**Test cũ:** mọi `tests/*.test.js` đạt (pha7 16, pha7a-kiem-thu 28/28, pha7b 12, pha7b-kiem-thu 16/16, pha7c 11…), `scan-secrets` sạch; `pha7a-kiem-thu.e2e.js all`, `pha7b-kiem-thu.e2e.js all` ĐẠT; `tests/e2e.js` máy chủ mới và `SERVER_COMPAT=1.0.0` ĐẠT. TC-5.1 (Pha 5) vẫn chỉ báo bảng màu Sổ tay, chờ giáo viên chốt.
+
+**Ảnh:** `docs/bao-cao/anh/pha-7c/kt-*.png` chụp lại trên `3c1f2b6`; ảnh Pha 7a, 7b bị ghi đè đã trả về (`git checkout`).
+
+**Ghi chú về cách kiểm:** bài kiểm thử đổi ngày nộp **sau** khi nộp, nên `khacPhuc` trả về lúc nộp (tính theo giờ thật) có thể khác màu tính lại theo ngày đã đổi. Vì vậy chỉ so `khacPhuc` ở các bước mà ngày không ảnh hưởng.
