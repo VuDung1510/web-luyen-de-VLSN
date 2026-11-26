@@ -18,7 +18,7 @@
  * Máy chủ chỉ ĐỌC kho và thư mục hình của kho; câu được chọn được chép sang CauHoi, hình được chép sang thư mục web.
  */
 
-var APP_VERSION = '1.7.0';
+var APP_VERSION = '1.8.0';
 /** Tính năng máy chủ này hỗ trợ. Giao diện bật/tắt nút theo danh sách này (không so số phiên bản). */
 var FEATURES = ['changePin', 'goal', 'bootstrap', 'cache', 'bank', 'practice', 'notebook'];
 var TZ = 'Asia/Ho_Chi_Minh';
@@ -2043,7 +2043,7 @@ var PRACTICE_MIN_MIN = 5, PRACTICE_MAX_MIN = 90;
 var PRACTICE_WRONG_MAX = 20;
 var ROW_RUNS_MAX = 10;          // rowsWhere_: tối đa 10 lần đọc hàng (gộp các khối gần nhau)
 var POOL_INDEX_KEYS = ['maKho', 'lop', 'chuong', 'bai', 'loai', 'mucDo', 'bat'];
-var PRACTICE_KIEU = { TU_TAO: 'Tự tạo đề', CAU_SAI: 'Luyện câu đã sai', NHANH: 'Đề nhanh' };
+var PRACTICE_KIEU = { TU_TAO: 'Tự tạo đề', CAU_SAI: 'Luyện câu đã sai', NHANH: 'Đề nhanh', KHAC_PHUC: 'Đề khắc phục' };
 var PRACTICE_OFF = 'Giáo viên đang tắt luyện tập.';
 var PART_NAME_ = { TN: 'Phần I', DS: 'Phần II', TL: 'Phần III' };
 
@@ -2453,6 +2453,7 @@ function apiPracticeStart_(req) {
   var kieu = str_(req.kieu).toUpperCase();
   if (!PRACTICE_KIEU[kieu]) throw new Error('Kiểu luyện tập không hợp lệ.');
   var goal = parseGoal_(req.mucTieu);
+  if (kieu === 'KHAC_PHUC') return nbFixStart_(st, req, goal); // Pha 7c: đề khắc phục từ sổ tay
   var notes = [], qids = [], tieuDe = '', phut;
   if (kieu === 'CAU_SAI') {
     qids = wrongList_(st).map(function (x) { return x.qid; });
@@ -2507,7 +2508,17 @@ function apiPracticeStart_(req) {
     qids = got.TN.concat(got.DS, got.TL);
     if (!qids.length) throw new Error('Chưa có câu nào phù hợp trong pool luyện tập. Hãy chọn bài khác.');
   }
+  return practiceIssue_(st, kieu, qids, null, phut, tieuDe, notes, goal);
+}
+
+/**
+ * Phát đề luyện tập: lọc câu còn dùng được, xếp theo phần, ký token 'p'. goc (Pha 7c): mảng song song với qids —
+ * khóa câu sai gốc mà mỗi câu nhằm khắc phục; nằm trong token đã ký nên học sinh không sửa được.
+ */
+function practiceIssue_(st, kieu, qids, goc, phut, tieuDe, notes, goal) {
   phut = Math.max(PRACTICE_MIN_MIN, Math.min(PRACTICE_MAX_MIN, phut || 10));
+  var gocOf = {};
+  if (goc) qids.forEach(function (id, i) { gocOf[id] = goc[i] || ''; });
   var map = practiceQuestions_(qids);
   var blocked = blockedBankIds_();
   var list = qids.filter(function (id) { var q = map[id]; return q && !(q.maKho && blocked[q.maKho]) && (id.indexOf('#') > 0 || q.bat); })
@@ -2520,6 +2531,7 @@ function apiPracticeStart_(req) {
     t: 'p', pid: Utilities.getUuid(), sid: st.id, kieu: kieu, qids: list.map(function (x) { return x.id; }),
     st: now, dur: dur, exp: now + (dur + 6 * 3600) * 1000, goal: goal, td: tieuDe
   };
+  if (goc) tok.goc = list.map(function (x) { return gocOf[x.id] || ''; });
   return {
     attemptToken: signToken_(tok), startedAt: now, durationSec: dur, serverNow: now, mucTieu: goal, kieu: kieu, thongBao: notes,
     exam: { id: '__luyen', tieuDe: tieuDe },
@@ -2578,7 +2590,7 @@ function practiceSubmit_(st, p, req) {
   if (cache.get(doneKey)) return view();
   var map = practiceQuestions_(p.qids);
   var qs = [];
-  p.qids.forEach(function (qid, i) { if (map[qid]) qs.push(Object.assign({}, map[qid], { stt: i + 1, _qid: qid })); });
+  p.qids.forEach(function (qid, i) { if (map[qid]) qs.push(Object.assign({}, map[qid], { stt: i + 1, _qid: qid, _goc: Array.isArray(p.goc) ? str_(p.goc[i]) : '' })); });
   if (!qs.length) throw new Error('Các câu của bài luyện này không còn trong ngân hàng.');
   var graded = gradeExam_(qs, req.answers || {});
   var now = Date.now();
@@ -2602,9 +2614,11 @@ function practiceSubmit_(st, p, req) {
       if (q.maKho) it.k = q.maKho;
       var tt = answerTime_(req.times, g.stt, usedSec);
       if (tt != null) it.t = tt;
+      if (q._goc) it.goc = q._goc; // Pha 7c: câu khắc phục cho câu sai gốc này
       return it;
     }))
   };
+  var truoc = p.kieu === 'KHAC_PHUC' && notebookOn_() ? nbColors_(st) : null;
   var wrote = withLock_(function () {
     if (practiceResultExists_(id, st.id)) return false; // nộp hai lần cùng lúc: chỉ một hàng
     appendRows_('KetQuaLuyenTap', [result]);
@@ -2613,7 +2627,17 @@ function practiceSubmit_(st, p, req) {
   cache.put(doneKey, id, 21600);
   if (wrote) nbVer_(st.id, true);
   if (!wrote) return view();
-  return buildPracticeView_(result, 'student'); // không đọc lại trang (R-3)
+  var out = buildPracticeView_(result, 'student'); // không đọc lại trang (R-3)
+  if (truoc) {
+    // Pha 7c: câu gốc nào vừa đổi màu (đỏ → vàng → xanh, hoặc về đỏ)
+    Object.keys(MEMO_).forEach(function (k) { if (k.indexOf('__rw_KetQuaLuyenTap') === 0 || k === '__si_KetQuaLuyenTap' || k === '__nb_' + st.id) delete MEMO_[k]; });
+    var gocs = {};
+    qs.forEach(function (q) { if (q._goc) gocs[q._goc] = 1; });
+    out.khacPhuc = nbCompute_(st).items.filter(function (x) { return gocs[x.key] && truoc[x.key] !== x.mau; }).map(function (x) {
+      return { key: x.key, tieuDe: x.nguon.tieuDe, stt: x.nguon.stt, luyenTap: !!x.nguon.luyenTap, truoc: truoc[x.key] || '', sau: x.mau };
+    });
+  }
+  return out;
 }
 
 /**
@@ -2918,11 +2942,18 @@ function nbEvents_(st) {
   });
   rowsWhere_('KetQuaLuyenTap', 'studentId', st.id).forEach(function (r) {
     var t = timeOf_(r.nopLuc);
+    var dung = [], saiL = [];
     parseJson_(r.chiTiet, []).forEach(function (d) {
       if (!d.q || d.gone) return;
-      ev.push({ t: t, key: d.k || d.q, sai: num_(d.sc) < num_(d.m) - 1e-9, src: r.id, td: r.tieuDe, nop: r.nopLuc, luyen: 1,
+      var sai = num_(d.sc) < num_(d.m) - 1e-9, key = d.k || d.q;
+      (sai ? saiL : dung).push({ t: t, key: key, sai: sai, src: r.id, td: r.tieuDe, nop: r.nopLuc, luyen: 1,
         rid: r.id, q: d.q, s: num_(d.s), k: d.k || '', h: d.h || '', a: d.a == null ? '' : String(d.a), n: d.n, l: d.l, p: d.p, md: d.md, cd: d.cd });
+      // Pha 7c: câu khắc phục (goc) — đúng/sai tính cho câu gốc (chỉ đổi màu, không thành "lần sai" mới của câu gốc)
+      if (d.goc && str_(d.goc) !== key) (sai ? saiL : dung).push({ t: t, key: str_(d.goc), sai: sai, phu: 1, src: r.id });
     });
+    // Vòng 2 (R-1): trong cùng một bài, mọi lần làm đúng (kể cả câu khắc phục) xếp trước, lần sai xếp sau
+    // → câu gốc làm lại sai hoặc câu khắc phục sai thì câu gốc về đỏ
+    dung.concat(saiL).forEach(function (e) { ev.push(e); });
   });
   ev.forEach(function (e, i) { e.i = i; });
   ev.sort(function (a, b) { return (a.t - b.t) || (a.i - b.i); });
@@ -3084,9 +3115,10 @@ function nbCompute_(st) {
   evs.forEach(function (e) { if (!byKey[e.key]) { byKey[e.key] = []; order.push(e.key); } byKey[e.key].push(e); });
   var lastWrong = [];
   order.forEach(function (key) {
-    var list = byKey[key], lw = -1;
-    list.forEach(function (e, i) { if (e.sai) lw = i; });
-    if (lw >= 0) lastWrong.push({ key: key, list: list, lw: lw });
+    var list = byKey[key], lw = -1, lwAll = -1;
+    list.forEach(function (e, i) { if (e.sai) { lwAll = i; if (!e.phu) lw = i; } });
+    // lw: lần sai thật gần nhất (để hiện câu); lwAll: kể cả câu khắc phục sai (để tính màu)
+    if (lw >= 0) lastWrong.push({ key: key, list: list, lw: lw, lwAll: lwAll });
   });
   var rows = nbRows_(st);
   // chỉ đọc đầy đủ câu (cần đáp án) khi máy có thể phải đoán: Phần III đã trả lời, học sinh chưa tự chọn loại lỗi
@@ -3101,11 +3133,11 @@ function nbCompute_(st) {
   var now = Date.now();
   var items = lastWrong.map(function (x, i) {
     var ev = x.list[x.lw], r = res[i], q = r.q;
-    var after = x.list.slice(x.lw + 1).filter(function (e) { return !e.sai; });
+    var after = x.list.slice(x.lwAll + 1).filter(function (e) { return !e.sai; });
     var days = {};
     after.forEach(function (e) { if (e.t) days[dayOf_(e.t)] = 1; });
     var mau = Object.keys(days).length >= 2 ? 'xanh' : after.length ? 'vang' : 'do';
-    var wrongs = x.list.filter(function (e) { return e.sai; });
+    var wrongs = x.list.filter(function (e) { return e.sai && !e.phu; });
     var srcs = {};
     wrongs.forEach(function (e) { srcs[e.src] = 1; });
     var pub = nbPublished_(r.eid, q, ev.k, exams, blocked, now);
@@ -3352,6 +3384,121 @@ function nbPatchCache_(st, fn) {
     fn(nb);
     cachePutChunked_(cache, ck, JSON.stringify(nb), CACHE_SECONDS, CACHE_MAX_BYTES);
   } catch (e) { /* bỏ qua: đệm tự hết hạn */ }
+}
+
+/* ---------- Pha 7c: đề khắc phục ---------- */
+
+var NB_MAU_DE = {
+  ON_NHANH: { ten: 'Ôn trước giờ kiểm tra', so: 5, goc: 2, phut: 7 },
+  MUOI_CAU: { ten: 'Đề khắc phục', so: 10, goc: 4, phut: 15 },
+  MOT_LOI: { ten: 'Ôn một lỗi', so: 5, goc: 2, phut: 7 }
+};
+
+/** Màu hiện tại của mọi câu trong sổ tay: { key: 'do' | 'vang' | 'xanh' }. */
+function nbColors_(st) {
+  var m = {};
+  nbCompute_(st).items.forEach(function (x) { m[x.key] = x.mau; });
+  return m;
+}
+
+/**
+ * Câu sai gốc làm lại được trong luyện tập → qid (maKho của pool đang bật, hoặc examId#stt của đề đã công bố); không thì null.
+ * Cùng luật với "Luyện câu đã sai" (Pha 4): không bị chặn, đề đã đóng + cho xem lời giải, câu nhập tay chưa bị sửa.
+ */
+function nbRedoQid_(x, ctx) {
+  var ref = x._ref || {};
+  if (ref.k) {
+    if (ctx.blocked[ref.k]) return null;
+    var px = ctx.pool.byMa[ref.k];
+    if (px && px.bat) return ref.k;
+  }
+  var eid = ref.ex || (ref.q && ref.q.lastIndexOf('#') > 0 ? ref.q.slice(0, ref.q.lastIndexOf('#')) : '');
+  if (!eid) return null;
+  var e = ctx.exams[eid];
+  if (!e || examLocked_(e, ctx.now)) return null;
+  var qs = ctx.qsOf[eid] || (ctx.qsOf[eid] = examQuestions_(eid));
+  var stt = ref.ex ? ref.s : Math.floor(num_(ref.q.slice(ref.q.lastIndexOf('#') + 1)));
+  var q = ref.k ? qs.filter(function (z) { return z.maKho === ref.k; })[0] : qs.filter(function (z) { return z.stt === stt; })[0];
+  if (!q) return null;
+  if (!ref.k && (q.maKho || (ref.h && contentHash_(q) !== ref.h))) return null;
+  if (q.maKho && ctx.blocked[q.maKho]) return null;
+  return eid + '#' + q.stt;
+}
+
+/** Câu tương tự tốt nhất trong pool cho câu sai x: cùng bài (không có thì cùng chương), ưu tiên cùng mức độ, đúng phần, chưa làm. */
+function nbSimilar_(x, cand, taken, done) {
+  var pref = x.loi.ma === 'TINH_TOAN' ? 'TL' : x.loi.ma === 'SOT' ? 'DS' : x.loai;
+  var best = null, bestScore = -1;
+  // Vòng 2 (R-3): cand là { byBai, byChuong } — chỉ xét câu cùng bài, rồi cùng chương
+  var list = (cand.byBai[x.bai] || []).concat(cand.byChuong[x.chuong] || []);
+  list.forEach(function (c) {
+    if (taken[c.maKho]) return;
+    var sc = c.bai && c.bai === x.bai ? 100 : c.chuong && c.chuong === x.chuong ? 50 : 0;
+    if (!sc) return;
+    // Vòng 2 (K-1): đúng phần (Tính toán → Phần III, Sót → Phần II) ưu tiên hơn cùng mức độ
+    if (c.loai === pref) sc += 20;
+    if (c.mucDo && c.mucDo === x.mucDo) sc += 10;
+    if (!done[c.maKho]) sc += 5;
+    sc += Math.random();
+    if (sc > bestScore) { bestScore = sc; best = c; }
+  });
+  return best;
+}
+
+/** Đề khắc phục (practiceStart kieu KHAC_PHUC, mau ON_NHANH | MUOI_CAU | MOT_LOI, ma?): câu gốc làm lại được + câu tương tự. */
+function nbFixStart_(st, req, goal) {
+  requireNotebookOn_();
+  var key = str_(req.mau).toUpperCase(), mau = NB_MAU_DE[key];
+  if (!mau) throw new Error('Mẫu đề khắc phục không hợp lệ.');
+  var nb = nbCompute_(st);
+  var its = nb.items.filter(function (x) { return x.mau !== 'xanh' && !x.go; });
+  var tieuDe = mau.ten;
+  if (key === 'MOT_LOI') {
+    var ma = str_(req.ma).toUpperCase();
+    if (ma !== 'HONG' && (!NB_LOAI[ma] || ma === 'CHUA_RO')) throw new Error('Loại lỗi không hợp lệ.');
+    its = its.filter(function (x) { return ma === 'HONG' ? (x.loi.ma === 'HONG_KT' || x.loi.ma === 'DOAN_MO' || x.loi.ma === 'CHUA_RO') : x.loi.ma === ma; });
+    tieuDe += ' — ' + (ma === 'HONG' ? 'Hổng kiến thức' : NB_LOAI[ma].ten);
+  } else if (key === 'ON_NHANH') {
+    var top = nb.tongHop.saiNgoo.filter(function (s) { return s.mau !== 'xanh' && its.some(function (x) { return x.loi.ma === s.ma; }); })[0];
+    if (top) { its = its.filter(function (x) { return x.loi.ma === top.ma; }); tieuDe += ' — ' + top.ten; }
+  }
+  if (!its.length) throw new Error('Sổ tay của em chưa có câu sai nào cần khắc phục cho mẫu đề này.');
+  var sev = { do: 0, vang: 1, xanh: 2 };
+  var hong = function (x) { return key === 'MUOI_CAU' && (x.loi.ma === 'HONG_KT' || x.loi.ma === 'DOAN_MO') ? 0 : 1; };
+  its.sort(function (a, b) { return (hong(a) - hong(b)) || (sev[a.mau] - sev[b.mau]) || ((b._ref.t || 0) - (a._ref.t || 0)); });
+  var exams = {};
+  readTable_('DeThi').forEach(function (e) { exams[e.id] = e; });
+  var ctx = { exams: exams, blocked: blockedBankIds_(), pool: poolIndex_(), now: Date.now(), qsOf: {} };
+  var qids = [], goc = [], taken = {};
+  its.forEach(function (x) { if (x._ref.k) taken[x._ref.k] = 1; });
+  its.forEach(function (x) {
+    if (qids.length >= mau.goc) return;
+    var qid = nbRedoQid_(x, ctx);
+    if (qid && qids.indexOf(qid) < 0) { qids.push(qid); goc.push(x.key); taken[qid] = 1; }
+  });
+  var nGoc = qids.length;
+  var cand = { byBai: Object.create(null), byChuong: Object.create(null) }; // tên bài như "constructor" không đụng thuộc tính có sẵn
+  practiceCandidates_(st).forEach(function (c) {
+    if (c.bai) (cand.byBai[c.bai] = cand.byBai[c.bai] || []).push(c);
+    if (c.chuong) (cand.byChuong[c.chuong] = cand.byChuong[c.chuong] || []).push(c);
+  });
+  var done = practiceDone_(rowsWhere_('KetQuaLuyenTap', 'studentId', st.id));
+  // câu tương tự: chia vòng tròn cho các câu sai (nặng nhất trước), mỗi lượt một câu
+  for (var round = 0; qids.length < mau.so && round < mau.so; round++) {
+    var added = 0;
+    for (var i = 0; i < its.length && qids.length < mau.so; i++) {
+      var c = nbSimilar_(its[i], cand, taken, done);
+      if (!c) continue;
+      taken[c.maKho] = 1;
+      qids.push(c.maKho); goc.push(its[i].key);
+      added++;
+    }
+    if (!added) break;
+  }
+  if (!qids.length) throw new Error('Chưa dựng được đề: các câu sai của em chưa làm lại được (đề chưa công bố lời giải) và pool luyện tập chưa có câu cùng bài.');
+  var notes = [];
+  if (qids.length < mau.so) notes.push('Chỉ dựng được ' + qids.length + ' câu (' + nGoc + ' câu em từng sai, ' + (qids.length - nGoc) + ' câu tương tự): pool luyện tập chưa đủ câu cùng bài.');
+  return practiceIssue_(st, 'KHAC_PHUC', qids, goc, mau.phut, tieuDe, notes, goal);
 }
 
 /** Bỏ trường nội bộ (_ref, _src) trước khi gửi cho học sinh. */

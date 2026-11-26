@@ -587,3 +587,12 @@ textarea.todo { background: #fff3b0; border-color: #e0b100; }
 
 .nb-book .nb-tool button, .nb-book .nb-tool { line-height: 1.4; }
 .nb-book .nb-tool .nb-kw-text { line-height: 2.1; }
+
+/* ----- Sổ tay Pha 7c: đề khắc phục ----- */
+.nb-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 8px 20px; margin-bottom: 14px; }
+.nb-head p { margin-bottom: 0; }
+.nb-fixbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.nb-fixbar small, .nb-pt-fix small { font-weight: 500; opacity: .85; }
+.nb-kp { margin-bottom: 10px; display: grid; gap: 4px; font-size: .92rem; }
+.nb-kp .nb-dot { width: 10px; height: 10px; vertical-align: -1px; }
+
