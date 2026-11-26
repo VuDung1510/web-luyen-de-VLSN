@@ -59,6 +59,7 @@
   - Một lỗi tính là đã khắc phục khi làm đúng 2 lần ở 2 ngày khác nhau.
   - Trước khi làm đề, học sinh bắt buộc đánh dấu đã đọc phần "điều cần nhớ" lấy từ sổ tay.
   - Chốt thêm 26/11/2026: thẻ công thức (tên gợi nhớ, phạm vi, dấu hiệu theo từng bài) do Cowork "Kho đề" soạn nháp, giáo viên duyệt; thời gian đề xuất cho đề 50 phút: Phần I 15, Phần II 15, Phần III 12, kiểm tra lại 8 phút (co giãn theo thời gian đề); dùng danh sách từ khóa dễ đọc sai mặc định, giáo viên bổ sung trong CaiDat, chưa gắn từ khóa riêng từng câu; đánh dấu câu đúng nhưng đoán mò làm sau Pha 7c.
+  - Giao diện sổ tay (chốt 26/11/2026): nền giấy kẻ, mỗi dòng chữ cao đúng một dòng kẻ, chữ nằm giữa hai dòng kẻ (không dùng kiểu viết sát dòng kẻ).
 
 ## 6. Thiết kế
 - ~~Phương án B: nền sáng cho phần làm bài, đầu trang/kết quả phong cách bảng đen, chế độ tối.~~
@@ -116,3 +117,4 @@ Mỗi pha 3 vai độc lập: người làm, người soát code, người kiể
 - 26/11/2026 — Cowork: nhập Lớp 10 (13 đề chính thức + 41 đề cương, bản có lời giải) vào kho; ghi quy tắc nhập Lớp 10 vào mục 5. Kho trên máy đã chốt (2.674 câu L10); chưa đồng bộ lên Google Sheet kho.
 - 26/11/2026 — Claude Code: giáo viên chốt tính năng Sổ tay cá nhân cho học sinh (Pha 7a–7c), ghi ở mục 5 và mục 8. Đặc tả `docs/spec/pha-7-so-tay.md` chờ giáo viên duyệt.
 - 26/11/2026 — Claude Code: giáo viên duyệt đặc tả Pha 7 và chốt 4 câu hỏi mở theo đề xuất; dựng trang mẫu giao diện Sổ tay.
+- 26/11/2026 — Claude Code: giáo viên chốt giao diện sổ tay kiểu chữ nằm giữa hai dòng kẻ (mục 5); bắt đầu làm Pha 7a.

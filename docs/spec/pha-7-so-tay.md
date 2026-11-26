@@ -78,7 +78,7 @@ Mỗi học sinh có một nơi xem lại mọi câu đã làm sai, biết mình
 ### 7. Giao diện học sinh
 **Trang `#/so-tay` (máy tính: hai cột 55/45; điện thoại: 2 tab "📒 Sổ tay" mở trước, "📋 Câu sai").**
 
-*Nửa phải — Sổ tay* (nền giấy kẻ, viền xanh #1D6B3E, có chế độ tối):
+*Nửa phải — Sổ tay* (nền giấy kẻ, viền xanh #1D6B3E, có chế độ tối). **Chốt 26/11/2026:** mỗi dòng chữ cao đúng một dòng kẻ (32px), chữ nằm **giữa hai dòng kẻ** (giáo viên chọn kiểu này sau khi so với kiểu viết sát dòng kẻ); khoảng cách giữa các mục là bội số 32px; khối có chiều cao tự do (công cụ sửa lỗi) được bù cho tròn bội 32px; ô ghi chú cao theo số dòng, không có thanh cuộn. Xem `mau-so-tay.html`.
 1. **Thanh tỉ lệ loại lỗi**: một thanh ngang chia đoạn theo tỉ lệ từng loại.
 2. **Sai ngoo** (luôn mở): mỗi loại một dòng gồm chấm màu, tên lỗi, số câu, tỉ lệ. Dòng 🔴 có nhãn "Lặp lại". Bấm tên lỗi thì nửa trái lọc theo lỗi đó; bấm "Cách sửa ▸" thì mở công cụ §5 ngay trong sổ.
 3. **Hổng kiến thức** (thu gọn mặc định): mở ra là danh sách chương → bài có màu và số câu (bản đồ lỗi).
