@@ -48,6 +48,7 @@ Mỗi học sinh có một nơi xem lại mọi câu đã làm sai, biết mình
 | `CHUA_RO` | Chưa phân loại | — | mặc định khi chưa có gì |
 
 - Học sinh chọn thì ghi `nguon = HS` và **luôn thắng** máy đoán. Học sinh đổi được bất cứ lúc nào.
+- **Không lộ đáp án qua máy đoán:** các phép đoán cần so với đáp án đúng (lệch 10ⁿ, lệch nhỏ, ngược dấu, sai 1 ý Phần II) chỉ chạy khi đề đã công bố lời giải. Trước đó máy chỉ đoán `SOT` cho câu bỏ trống, câu còn lại là `CHUA_RO` để học sinh tự chọn. (Phát hiện khi dựng trang mẫu 26/11/2026.)
 - Câu `CHUA_RO` được xếp tạm vào nhóm Hổng kiến thức khi vẽ bản đồ chương, và có lời nhắc nhẹ "Còn n câu chưa phân loại".
 
 ### 4. Màu mức độ
@@ -145,7 +146,7 @@ Node `tests/pha7.test.js` (phần máy chủ của TC-7.1 → 7.5, 7.7 → 7.8, 
 - **Thiếu dữ liệu công thức:** công cụ vẫn chạy khi `CongThuc` trống (TC-7.14); nhập dần theo bài.
 - **Học sinh không phân loại:** sổ tay vẫn có nhóm tự động (SOT, TINH_TOAN) và bản đồ chương; câu chưa phân loại có lời nhắc nhẹ.
 
-## Câu hỏi mở (chưa trả lời thì làm theo đề xuất)
+## Câu hỏi mở — đã chốt theo đề xuất ngày 26/11/2026
 - **Q1. Ai nhập dữ liệu `CongThuc`?** Đề xuất: dự án Cowork "Kho đề" soạn bản nháp theo từng bài (tên gợi nhớ, phạm vi, dấu hiệu), thầy duyệt rồi dán vào trang tính. Web chạy được khi chưa có.
 - **Q2. Danh sách từ khóa dễ đọc sai:** dùng danh sách mặc định §5.2, thầy bổ sung trong `CaiDat`. Thầy có muốn gắn từ khóa riêng cho từng câu không? Đề xuất: chưa.
 - **Q3. Thời gian đề xuất từng phần (15/15/12/8 cho đề 50 phút):** thầy chỉnh lại nếu cần.
@@ -155,3 +156,5 @@ Node `tests/pha7.test.js` (phần máy chủ của TC-7.1 → 7.5, 7.7 → 7.8, 
 Mỗi pha con: dán Code.gs mới, Triển khai → Phiên bản mới, chạy `setup` (7a tạo `SoTay`, `CongThuc`). Nhập dần `CongThuc`. Bật/tắt bằng `BAT_SO_TAY`.
 
 ## Ước lượng: 7a **M** · 7b **L** · 7c **M**
+
+Sửa đặc tả ngày 26/11/2026: giáo viên duyệt đặc tả và chốt Q1–Q4 theo đề xuất. Trang mẫu giao diện: `docs/spec/mau-so-tay.html` (dữ liệu giả).

@@ -1,0 +1,878 @@
+<title>Sổ tay cá nhân</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Montserrat:wght@700;800&display=swap">
+<style>
+/* Bố cục: hai nửa — trái "Câu đã sai" (tra cứu, thu gọn), phải "Sổ tay" trên nền giấy kẻ; điện thoại thành 2 tab, Sổ tay trước. Màu theo web luyện đề VLSN. */
+:root {
+  --bg: #f4f6fb; --surface: #ffffff; --surface-2: #eef2fa; --text: #182033; --muted: #5b6478; --border: #dfe4ee;
+  --primary: #1D6B3E; --primary-hover: #15573A; --primary-ink: #ffffff; --primary-soft: #e3f1e8;
+  --paper: #fffef9; --rule: #e6ecf3; --margin: #b9d9c4;
+  --do: #d23b3b; --do-soft: #fde8e8; --vang: #b97d00; --vang-soft: #fff3d1; --xanh: #2f8a4f; --xanh-soft: #e1f4e7;
+  --c-ct: #6d5dd3; --c-dd: #2b7bbd; --c-tt: #0f8f86; --c-sot: #c04a8c; --c-hkt: #66758c; --c-cr: #c3cad6;
+  --hl-em: #fff1a8; --hl-kw: #ffd2d2; --hl-so: #d6ecff;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 4px 16px rgba(16,24,40,.06);
+  --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-head: "Montserrat", "Be Vietnam Pro", system-ui, sans-serif;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1420; --surface: #171e2e; --surface-2: #1f2840; --text: #dde3ec; --muted: #9aa4b8; --border: #2a3450;
+    --primary: #5fbf87; --primary-hover: #7fd3a2; --primary-ink: #0b1020; --primary-soft: #183826;
+    --paper: #161d2b; --rule: #222c40; --margin: #2b5a3e;
+    --do: #f87171; --do-soft: #3a1d22; --vang: #fbbf24; --vang-soft: #3a2f12; --xanh: #6ee7a0; --xanh-soft: #15301f;
+    --c-ct: #a397ff; --c-dd: #6fb4ee; --c-tt: #3fd1c4; --c-sot: #f08cc4; --c-hkt: #9aa7bd; --c-cr: #4a5468;
+    --hl-em: #5c5214; --hl-kw: #5e2626; --hl-so: #1d3b58;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1420; --surface: #171e2e; --surface-2: #1f2840; --text: #dde3ec; --muted: #9aa4b8; --border: #2a3450;
+  --primary: #5fbf87; --primary-hover: #7fd3a2; --primary-ink: #0b1020; --primary-soft: #183826;
+  --paper: #161d2b; --rule: #222c40; --margin: #2b5a3e;
+  --do: #f87171; --do-soft: #3a1d22; --vang: #fbbf24; --vang-soft: #3a2f12; --xanh: #6ee7a0; --xanh-soft: #15301f;
+  --c-ct: #a397ff; --c-dd: #6fb4ee; --c-tt: #3fd1c4; --c-sot: #f08cc4; --c-hkt: #9aa7bd; --c-cr: #4a5468;
+  --hl-em: #5c5214; --hl-kw: #5e2626; --hl-so: #1d3b58;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.55; margin: 0; }
+h1, h2, h3 { font-family: var(--font-head); font-weight: 700; text-wrap: balance; margin: 0; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1240px; margin: 0 auto; }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* dải ghi chú trang mẫu */
+.mock { background: var(--surface-2); border-bottom: 1px dashed var(--border); font-size: 13px; padding-block: 8px; }
+.mock .wrap { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.mock b { font-weight: 600; }
+.mock .sp { flex: 1; }
+.linkbtn { background: none; border: 1px solid var(--border); border-radius: 999px; padding: 3px 12px; font-size: 13px; }
+.linkbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+/* đầu trang giống web */
+.top { background: var(--surface); border-bottom: 1px solid var(--border); padding-block: 10px; }
+.top .wrap { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-head); font-weight: 700; color: var(--primary); }
+.brand img { width: 34px; height: 34px; border-radius: 8px; background: #fff; padding: 2px; }
+.nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav a { text-decoration: none; color: var(--muted); padding: 6px 12px; border-radius: 999px; font-weight: 500; font-size: 14px; }
+.nav a.on { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+
+/* tiêu đề trang + đề khắc phục */
+.head { padding-block: 22px 14px; }
+.head .wrap { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end; justify-content: space-between; }
+.head h1 { font-size: 26px; }
+.head p { margin: 4px 0 0; }
+.fixbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 8px 14px; font-weight: 600; font-size: 14px; display: inline-flex; gap: 8px; align-items: center; }
+.btn:hover { border-color: var(--primary); }
+.btn-primary { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn small { font-weight: 500; opacity: .85; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* tab điện thoại */
+.tabs { display: none; gap: 6px; margin-bottom: 12px; }
+.tabs button { flex: 1; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 9px; font-weight: 600; }
+.tabs button[aria-selected="true"] { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+
+.split { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; padding-bottom: 40px; }
+.pane { min-width: 0; }
+.pane-title { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.pane-title h2 { font-size: 18px; }
+
+/* ---------- nửa trái ---------- */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.filters select, .filters input { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 7px 10px; font-size: 14px; min-width: 0; }
+.filters input { flex: 1 1 160px; }
+.active-filter { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 10px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 600; background: var(--primary-soft); color: var(--primary); border: 0; }
+.group-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 16px 0 6px; display: flex; gap: 8px; align-items: center; }
+.group-label::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.list { display: flex; flex-direction: column; gap: 8px; }
+.item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.item.xanh-done .row-main { opacity: .62; }
+.row { width: 100%; display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; background: none; border: 0; text-align: left; }
+.row:hover { background: var(--surface-2); }
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.dot.do { background: var(--do); } .dot.vang { background: var(--vang); } .dot.xanh { background: var(--xanh); }
+.row-main { min-width: 0; }
+.row-title { font-weight: 600; font-size: 14px; }
+.row-sub { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-side { display: flex; align-items: center; gap: 8px; }
+.chev { transition: transform .15s; color: var(--muted); }
+.item.open .chev { transform: rotate(90deg); }
+.tag { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.tag .sw { width: 8px; height: 8px; border-radius: 2px; }
+.tag.guess { border-style: dashed; border-color: currentColor; }
+.tag.solid { background: var(--surface-2); }
+.count { font-size: 12px; color: var(--do); font-weight: 600; white-space: nowrap; }
+.detail { border-top: 1px solid var(--border); padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.q { line-height: 1.65; }
+.q b { font-weight: 600; }
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.opt { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 14px; }
+.opt.em { border-color: var(--do); background: var(--do-soft); }
+.opt.dung { border-color: var(--xanh); background: var(--xanh-soft); }
+.opt .lab { font-size: 11px; font-weight: 700; margin-left: 6px; }
+.ans { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; }
+.ans .bad { color: var(--do); font-weight: 600; } .ans .good { color: var(--xanh); font-weight: 600; }
+.lock { font-size: 13px; background: var(--surface-2); border-radius: 8px; padding: 8px 10px; color: var(--muted); }
+details.sol summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--primary); }
+details.sol div { margin-top: 6px; font-size: 14px; }
+.blk-title { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 4px 11px; font-size: 13px; display: inline-flex; gap: 6px; align-items: center; }
+.chip .sw { width: 8px; height: 8px; border-radius: 2px; }
+.chip.on { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.chip.ask::after { content: "?"; font-weight: 700; color: var(--vang); }
+.src { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.note-in { width: 100%; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 8px 10px; resize: vertical; min-height: 40px; font-size: 14px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tool { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--surface-2); display: flex; flex-direction: column; gap: 10px; }
+.tool h4 { margin: 0; font-size: 14px; font-family: var(--font-head); }
+.empty { text-align: center; color: var(--muted); padding: 24px; border: 1px dashed var(--border); border-radius: 12px; }
+
+/* ---------- nửa phải: sổ tay ---------- */
+.book {
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(90deg, transparent 38px, var(--margin) 38px, var(--margin) 40px, transparent 40px),
+    repeating-linear-gradient(180deg, transparent 0 31px, var(--rule) 31px 32px);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 18px 18px 22px 54px; position: sticky; top: 12px;
+}
+.book-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 10px; margin-bottom: 12px; }
+.book-head h2 { white-space: nowrap; }
+.book-head h2 { font-size: 20px; color: var(--primary); }
+.legend-sev { display: flex; gap: 10px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.legend-sev span { display: inline-flex; align-items: center; gap: 4px; }
+.ratio { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.ratio i { display: block; height: 100%; }
+.ratio-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; margin-top: 6px; color: var(--muted); }
+.ratio-legend span { display: inline-flex; gap: 5px; align-items: center; }
+.ratio-legend .sw { width: 8px; height: 8px; border-radius: 2px; }
+.sec { margin-top: 20px; }
+.sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.sec-h h3 { font-size: 16px; }
+.err { padding: 9px 0; border-bottom: 1px dashed var(--rule); }
+.err:last-child { border-bottom: 0; }
+.err-line { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.err-name { background: none; border: 0; padding: 0; text-align: left; font-weight: 600; font-size: 15px; min-width: 0; }
+.err-name:hover { color: var(--primary); text-decoration: underline; }
+.err-meta { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.rep { background: var(--do-soft); color: var(--do); border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.err-bar { margin: 6px 0 0 24px; height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.err-bar i { display: block; height: 100%; }
+.fix-toggle { margin: 6px 0 0 24px; background: none; border: 0; padding: 0; color: var(--primary); font-weight: 600; font-size: 13px; }
+.fix-panel { margin: 8px 0 4px 24px; }
+details.hkt > summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+details.hkt > summary::-webkit-details-marker { display: none; }
+details.hkt > summary h3 { font-size: 16px; }
+details.hkt > summary .more { color: var(--primary); font-size: 13px; font-weight: 600; }
+details.hkt[open] > summary .more .closed, details.hkt:not([open]) > summary .more .opened { display: none; }
+.map { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.map-ch { font-size: 14px; }
+.map-ch-h { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-weight: 600; }
+.map-bai { margin: 4px 0 0 20px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--muted); }
+.map-bai div { display: flex; justify-content: space-between; gap: 8px; }
+.hkt-sum { font-size: 13px; color: var(--muted); }
+.notes { width: 100%; min-height: 120px; border: 0; border-radius: 0; background: transparent; resize: vertical; line-height: 32px; padding: 0; font-size: 15px; font-family: var(--font); }
+.notes:focus-visible { outline: 2px dashed var(--primary); }
+.saved { font-size: 12px; color: var(--muted); }
+
+/* công cụ */
+.fcard { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; }
+.fcard .nick { font-family: var(--font-head); font-weight: 800; font-size: 18px; color: var(--primary); }
+.fcard .ct { font-size: 20px; font-weight: 600; letter-spacing: .02em; font-family: "Cambria Math", "STIX Two Math", Georgia, serif; }
+.fcard dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; font-size: 13px; }
+.fcard dt { color: var(--muted); font-weight: 600; }
+.fcard dd { margin: 0; }
+.ladder-wrap { overflow-x: auto; padding-bottom: 4px; }
+.ladder { display: flex; align-items: center; gap: 0; width: max-content; }
+.rung { border: 1.5px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 10px; font-weight: 600; font-size: 14px; min-width: 52px; text-align: center; }
+.rung.chuan { border-color: var(--text); box-shadow: inset 0 -3px 0 var(--text); }
+.rung.em { border-color: var(--do); background: var(--do-soft); color: var(--do); }
+.rung.ok { border-color: var(--xanh); background: var(--xanh-soft); color: var(--xanh); }
+.rung.wrong { animation: shake .3s; }
+.rung.from { border-color: var(--c-dd); background: var(--surface-2); }
+.step { font-size: 11px; color: var(--muted); padding: 0 6px; white-space: nowrap; }
+@keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.feedback { font-size: 14px; border-radius: 8px; padding: 8px 10px; }
+.feedback.good { background: var(--xanh-soft); color: var(--xanh); }
+.feedback.bad { background: var(--do-soft); color: var(--do); }
+.feedback.info { background: var(--surface); border: 1px solid var(--border); }
+.other-units { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.kw-text { line-height: 2.1; font-size: 15px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.tok { background: none; border: 0; padding: 1px 2px; border-radius: 4px; cursor: pointer; }
+.tok:hover { background: var(--surface-2); }
+.tok.sel { background: var(--hl-em); }
+.tok.kw { box-shadow: inset 0 -2px 0 var(--do); }
+.tok.kw.sel { background: var(--hl-em); }
+.tok.kw.miss { background: var(--hl-kw); }
+.tok.so { background: var(--hl-so); }
+.kw-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.kw-legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.kw-legend .a::before { background: var(--hl-em); } .kw-legend .b::before { background: var(--hl-kw); } .kw-legend .c::before { background: var(--hl-so); }
+.kwlist { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 13px; }
+.kwlist b { color: var(--do); }
+.tplan { display: grid; gap: 8px; font-size: 13px; }
+.tplan .r { display: grid; grid-template-columns: 92px minmax(0, 1fr) 72px; gap: 8px; align-items: center; }
+.bars { display: grid; gap: 3px; }
+.bars i { display: block; height: 7px; border-radius: 4px; }
+.bars .de { background: var(--primary); opacity: .55; }
+.bars .tt { background: var(--do); }
+.bars .tt.okk { background: var(--xanh); }
+.tplan-leg { display: flex; gap: 14px; font-size: 12px; color: var(--muted); }
+.tplan-leg span::before { content: ""; display: inline-block; width: 14px; height: 7px; border-radius: 4px; margin-right: 5px; vertical-align: 1px; }
+.tplan-leg .a::before { background: var(--primary); opacity: .55; } .tplan-leg .b::before { background: var(--do); }
+ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4px; }
+
+/* hộp thoại */
+.overlay { position: fixed; inset: 0; background: rgba(10, 15, 25, .5); display: flex; align-items: flex-start; justify-content: center; padding: max(24px, env(safe-area-inset-top, 0px)) 16px 24px; overflow-y: auto; z-index: 30; }
+.dialog { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); width: min(640px, 100%); padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.dialog h2 { font-size: 20px; }
+.dialog .why-item { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; }
+.dialog .why-q { font-size: 14px; }
+.dialog .foot { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.remind { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.remind li { display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 10px; align-items: start; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.remind li .dot { margin-top: 5px; }
+.check { display: flex; gap: 10px; align-items: center; font-weight: 600; padding: 10px 12px; border: 1.5px solid var(--primary); border-radius: 10px; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--primary); }
+.goal { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.goal input { width: 80px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; background: var(--surface); }
+.compo { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+#toast { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 10px; font-size: 14px; z-index: 40; max-width: calc(100% - 32px); }
+
+@media (max-width: 900px) {
+  .tabs { display: flex; }
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .split[data-tab="sotay"] .pane-list, .split[data-tab="cau"] .pane-book { display: none; }
+  .book { position: static; padding-left: 46px; background-image: linear-gradient(90deg, transparent 30px, var(--margin) 30px, var(--margin) 32px, transparent 32px), repeating-linear-gradient(180deg, transparent 0 31px, var(--rule) 31px 32px); }
+  .opts { grid-template-columns: minmax(0, 1fr); }
+  .head h1 { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="mock gutter"><div class="wrap">
+  <b>Trang mẫu, dữ liệu giả</b><span class="muted">Bấm thử mọi chỗ. Xem thêm màn hình khác:</span>
+  <button class="linkbtn" data-act="open-why">Sau khi nộp bài: "Em sai vì sao?"</button>
+  <button class="linkbtn" data-act="open-remind">Trước khi làm đề: "Điều cần nhớ"</button>
+  <span class="sp"></span>
+  <button class="linkbtn" data-act="reset">Đặt lại dữ liệu mẫu</button>
+</div></div>
+
+<header class="top gutter"><div class="wrap">
+  <div class="brand"><img alt="" src="data:image/png;base64,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">Luyện đề Vật lý</div>
+  <nav class="nav" aria-label="Mục chính">
+    <a href="#trang-chu" data-act="nav">Trang chủ</a><a href="#luyen-tap" data-act="nav">Luyện tập</a>
+    <a href="#so-tay" class="on" aria-current="page">Sổ tay</a><a href="#lich-su" data-act="nav">Lịch sử</a><a href="#xep-hang" data-act="nav">Xếp hạng</a>
+  </nav>
+</div></header>
+
+<section class="head gutter"><div class="wrap">
+  <div>
+    <h1>Sổ tay của em</h1>
+    <p class="muted" id="headMeta"></p>
+  </div>
+  <div class="fixbar">
+    <button class="btn btn-primary" data-act="open-fix" data-mau="ON_NHANH">Ôn trước giờ kiểm tra <small>5 câu · 7 phút</small></button>
+    <button class="btn" data-act="open-fix" data-mau="MUOI_CAU">Đề khắc phục <small>10 câu · 15 phút</small></button>
+  </div>
+</div></section>
+
+<main class="gutter"><div class="wrap">
+  <div class="tabs" role="tablist" aria-label="Chọn nửa màn hình">
+    <button role="tab" id="tabBook" aria-selected="true" data-act="tab" data-tab="sotay">Sổ tay</button>
+    <button role="tab" id="tabList" aria-selected="false" data-act="tab" data-tab="cau">Câu đã sai <span id="tabCount"></span></button>
+  </div>
+  <div class="split" id="split" data-tab="sotay">
+    <section class="pane pane-list" aria-labelledby="listTitle">
+      <div class="pane-title"><h2 id="listTitle">Câu đã sai</h2><span class="muted num" id="listCount"></span></div>
+      <div class="filters">
+        <select id="fLoai" aria-label="Lọc theo loại lỗi"></select>
+        <select id="fDe" aria-label="Lọc theo đề"></select>
+        <select id="fMau" aria-label="Lọc theo mức độ">
+          <option value="">Mọi mức độ</option><option value="do">Đỏ: chưa làm đúng lại</option><option value="vang">Vàng: đang tiến bộ</option><option value="xanh">Xanh: đã khắc phục</option>
+        </select>
+        <input id="fQ" type="search" placeholder="Tìm trong câu hỏi…" aria-label="Tìm trong câu hỏi">
+      </div>
+      <div id="activeFilter"></div>
+      <div id="list"></div>
+    </section>
+    <aside class="pane pane-book" aria-labelledby="bookTitle">
+      <div class="book" id="book"></div>
+    </aside>
+  </div>
+</div></main>
+
+<div class="overlay" id="modal" hidden><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle" id="dialog"></div></div>
+<div id="toast" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const SUP = { '-': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
+  const pow10 = (n) => '10' + String(n).split('').map((c) => SUP[c]).join('');
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem('mauSoTay.' + k)); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem('mauSoTay.' + k, JSON.stringify(v)); } catch (e) { /* bỏ qua */ } }
+  };
+
+  /* ---------- loại lỗi ---------- */
+  const LOAI = {
+    CONG_THUC: { ten: 'Nhớ nhầm công thức', nhom: 'ngoo', mau: 'var(--c-ct)', nhac: 'Trước khi thay số, đọc lại tên gợi nhớ của công thức: con lắc đơn T = 2π√(l/g), "Lờ trên, Gờ dưới".' },
+    DOC_DE: { ten: 'Đọc sai đề / bỏ sót dữ kiện', nhom: 'ngoo', mau: 'var(--c-dd)', nhac: 'Gạch chân từ khóa trước khi làm: SAI, không, ít nhất, nửa, làm tròn, đơn vị kết quả.' },
+    TINH_TOAN: { ten: 'Tính toán / quên đổi đơn vị', nhom: 'ngoo', mau: 'var(--c-tt)', nhac: 'Đổi mọi dữ kiện về đơn vị chuẩn (m, kg, s, Pa, J) trước khi thay số; đọc đơn vị đáp án đề yêu cầu.' },
+    SOT: { ten: 'Sót ý / sót câu / quên không làm', nhom: 'ngoo', mau: 'var(--c-sot)', nhac: 'Chia giờ: Phần I 15′, Phần II 15′, Phần III 12′, chừa 8′ kiểm tra lại. Không để trống câu nào.' },
+    HONG_KT: { ten: 'Chưa biết làm', nhom: 'hong', mau: 'var(--c-hkt)' },
+    DOAN_MO: { ten: 'Đoán mò', nhom: 'hong', mau: 'var(--c-hkt)' },
+    CHUA_RO: { ten: 'Chưa phân loại', nhom: 'chuaro', mau: 'var(--c-cr)' }
+  };
+  const NGOO = ['CONG_THUC', 'DOC_DE', 'TINH_TOAN', 'SOT'];
+  const PICKABLE = ['CONG_THUC', 'DOC_DE', 'TINH_TOAN', 'SOT', 'HONG_KT', 'DOAN_MO'];
+  const MAU_TEN = { do: 'Đỏ', vang: 'Vàng', xanh: 'Xanh' };
+
+  /* ---------- dữ liệu giả ---------- */
+  const DE = {
+    E1: { ten: 'Đề ôn tập tổng hợp số 1', ngay: '12/11', phut: 50, congBo: true, t: { I: 27, II: 18, III: 5, kt: 0 } },
+    E2: { ten: 'Đề luyện số 3', ngay: '22/11', phut: 50, congBo: false },
+    E3: { ten: 'Luyện tập · Dao động', ngay: '24/11', phut: 15, congBo: true, luyen: true }
+  };
+  const SEED = [
+    { id: 1, de: 'E1', cau: 25, phan: 'III', chuong: 'Sóng', bai: 'Sóng và sự truyền sóng', md: 'VD', mau: 'do', lan: 2,
+      q: 'Một sóng cơ có tần số 50 Hz lan truyền trên mặt nước với bước sóng 4 cm. Tốc độ truyền sóng bằng bao nhiêu m/s?',
+      em: '200', dung: '2', lg: 'v = λf = 0,04 m × 50 Hz = 2 m/s.',
+      loi: { ma: 'TINH_TOAN', y: 'DON_VI', nguon: 'MAY', hoi: false }, unit: { dl: 'chieuDai', em: 'cm', dung: 'm', lech: 2 } },
+    { id: 2, de: 'E1', cau: 27, phan: 'III', chuong: 'Khí lí tưởng', bai: 'Định luật Boyle', md: 'TH', mau: 'do', lan: 1,
+      q: 'Nén đẳng nhiệt một lượng khí từ 6 lít xuống 4 lít. Áp suất ban đầu là 100 kPa. Áp suất sau khi nén bằng bao nhiêu kPa?',
+      em: '150000', dung: '150', lg: 'p₁V₁ = p₂V₂ ⇒ p₂ = 100 × 6 / 4 = 150 kPa.',
+      loi: { ma: 'TINH_TOAN', y: 'DON_VI', nguon: 'MAY', hoi: false }, unit: { dl: 'apSuat', em: 'Pa', dung: 'kPa', lech: 3 } },
+    { id: 3, de: 'E2', cau: 26, phan: 'III', chuong: 'Từ trường', bai: 'Lực từ tác dụng lên dây dẫn', md: 'VD', mau: 'do', lan: 1,
+      q: 'Một đoạn dây dài 20 cm mang dòng điện 5 A đặt vuông góc với các đường sức của một từ trường đều có B = 0,04 T. Độ lớn lực từ tác dụng lên đoạn dây bằng bao nhiêu N?',
+      em: '4', dung: '0,04', lg: 'F = BIl = 0,04 × 5 × 0,2 = 0,04 N.',
+      loi: { ma: 'TINH_TOAN', y: 'DON_VI', nguon: 'HS', hoi: false }, unit: { dl: 'chieuDai', em: 'cm', dung: 'm', lech: null } },
+    { id: 4, de: 'E1', cau: 20, phan: 'II', chuong: 'Sóng', bai: 'Sóng dừng', md: 'VD', mau: 'do', lan: 1,
+      q: 'Trên một sợi dây dài 1,2 m hai đầu cố định đang có sóng dừng với 4 bụng sóng.',
+      ds: [['a', 'Bước sóng bằng 0,6 m.', 'Đ', 'Đ'], ['b', 'Hai đầu dây là hai nút sóng.', 'Đ', 'Đ'], ['c', 'Trên dây có 4 nút sóng (kể cả hai đầu).', 'Đ', 'S'], ['d', 'Hai điểm bụng liền kề dao động ngược pha.', 'Đ', 'Đ']],
+      lg: 'λ/2 = 1,2/4 = 0,3 m ⇒ λ = 0,6 m. Có 4 bụng thì có 5 nút kể cả hai đầu, nên ý c sai.',
+      loi: { ma: 'SOT', nguon: 'MAY', hoi: true } },
+    { id: 5, de: 'E1', cau: 9, phan: 'I', chuong: 'Điện trường', bai: 'Cường độ điện trường', md: 'TH', mau: 'vang', lan: 1,
+      q: 'Đơn vị của cường độ điện trường là', pa: { A: 'V/m', B: 'V.m', C: 'C/m', D: 'N.m' }, em: '', dung: 'A',
+      lg: 'E = U/d nên đơn vị là V/m (cũng bằng N/C).', loi: { ma: 'SOT', nguon: 'MAY', hoi: false } },
+    { id: 6, de: 'E1', cau: 4, phan: 'I', chuong: 'Dao động', bai: 'Con lắc đơn', md: 'TH', mau: 'vang', lan: 1,
+      q: 'Một con lắc đơn có chiều dài dây 1 m dao động nhỏ tại nơi có g = 9,8 m/s². Chu kì dao động của con lắc xấp xỉ bằng',
+      pa: { A: '0,5 s', B: '1,0 s', C: '2,0 s', D: '3,1 s' }, em: 'A', dung: 'C',
+      lg: 'T = 2π√(l/g) = 2π√(1/9,8) ≈ 2,0 s. Đáp án A là kết quả khi đảo ngược l và g.', loi: { ma: 'CONG_THUC', nguon: 'HS', hoi: false } },
+    { id: 7, de: 'E2', cau: 3, phan: 'I', chuong: 'Dao động', bai: 'Dao động tắt dần', md: 'NB', mau: 'do', lan: 1,
+      q: 'Phát biểu nào sau đây là SAI khi nói về dao động tắt dần?',
+      pa: { A: 'Biên độ giảm dần theo thời gian.', B: 'Cơ năng giảm dần theo thời gian.', C: 'Lực cản càng lớn thì dao động tắt càng nhanh.', D: 'Biên độ không đổi theo thời gian.' }, em: 'A', dung: 'D',
+      lg: 'Dao động tắt dần có biên độ giảm dần, nên D sai.', loi: { ma: 'DOC_DE', nguon: 'HS', hoi: false } },
+    { id: 8, de: 'E3', cau: 2, phan: 'I', chuong: 'Dao động', bai: 'Dao động điều hòa', md: 'NB', mau: 'xanh', lan: 1,
+      q: 'Một vật dao động điều hòa với biên độ 5 cm. Quãng đường vật đi được trong nửa chu kì là',
+      pa: { A: '5 cm', B: '10 cm', C: '20 cm', D: '2,5 cm' }, em: 'C', dung: 'B',
+      lg: 'Trong nửa chu kì vật đi được 2A = 10 cm (20 cm là quãng đường trong cả chu kì).', loi: { ma: 'DOC_DE', nguon: 'HS', hoi: false } },
+    { id: 9, de: 'E1', cau: 15, phan: 'I', chuong: 'Vật lí hạt nhân', bai: 'Năng lượng liên kết', md: 'TH', mau: 'do', lan: 1,
+      q: 'Đại lượng đặc trưng cho mức độ bền vững của hạt nhân là',
+      pa: { A: 'năng lượng liên kết.', B: 'năng lượng liên kết riêng.', C: 'số khối.', D: 'độ hụt khối.' }, em: 'A', dung: 'B',
+      lg: 'Năng lượng liên kết riêng càng lớn thì hạt nhân càng bền.', loi: { ma: 'HONG_KT', nguon: 'HS', hoi: false } },
+    { id: 10, de: 'E2', cau: 7, phan: 'I', chuong: 'Từ trường', bai: 'Cảm ứng từ', md: 'NB', mau: 'do', lan: 1,
+      q: 'Trong hệ SI, đơn vị của cảm ứng từ là', pa: { A: 'Wb', B: 'T', C: 'H', D: 'V' }, em: 'C', dung: 'B',
+      lg: 'Cảm ứng từ đo bằng tesla (T).', loi: { ma: 'DOAN_MO', nguon: 'HS', hoi: false } },
+    { id: 11, de: 'E2', cau: 11, phan: 'I', chuong: 'Khí lí tưởng', bai: 'Định luật Charles', md: 'TH', mau: 'do', lan: 1,
+      q: 'Trong quá trình đẳng tích của một lượng khí xác định, áp suất tỉ lệ thuận với',
+      pa: { A: 'thể tích.', B: 'nhiệt độ tuyệt đối.', C: 'nhiệt độ Celsius.', D: 'khối lượng riêng.' }, em: 'C', dung: 'B',
+      lg: 'Quá trình đẳng tích: p/T = hằng số, với T là nhiệt độ tuyệt đối.', loi: { ma: 'CHUA_RO', nguon: 'MAY', hoi: false } },
+    { id: 12, de: 'E1', cau: 23, phan: 'III', chuong: 'Vật lí nhiệt', bai: 'Định luật I nhiệt động lực học', md: 'TH', mau: 'do', lan: 1,
+      q: 'Một khối khí nhận nhiệt lượng 300 J và thực hiện công 120 J lên môi trường. Độ biến thiên nội năng của khối khí bằng bao nhiêu J?',
+      em: '-180', dung: '180', lg: 'ΔU = Q + A = 300 + (−120) = 180 J.',
+      loi: { ma: 'TINH_TOAN', y: 'BAM_MAY', nguon: 'MAY', hoi: true }, nguocDau: true }
+  ];
+  const CONG_THUC = {
+    'Con lắc đơn': { ten: 'Chu kì con lắc đơn', ct: 'T = 2π √( l / g )', nho: '"Lờ trên, Gờ dưới"', giai: 'Dây càng dài thì chu kì càng lớn, nên l nằm trên tử số.',
+      phamVi: 'Dao động nhỏ (góc lệch không quá 10°), dây nhẹ không dãn, bỏ qua sức cản.', dauHieu: 'Đề nói "con lắc đơn", "dao động nhỏ", cho chiều dài dây l và g, hỏi chu kì hoặc tần số.' },
+    'Sóng và sự truyền sóng': { ten: 'Tốc độ truyền sóng', ct: 'v = λ f = λ / T', nho: '"Vờ bằng Lam-đa nhân Phờ"', giai: 'Một chu kì sóng đi được đúng một bước sóng.',
+      phamVi: 'Mọi sóng cơ và sóng điện từ trong môi trường đồng nhất.', dauHieu: 'Đề cho hai trong ba đại lượng v, λ, f (hoặc T).' }
+  };
+  const DL = {
+    chieuDai: { ten: 'Chiều dài', chuan: 'm', thang: [['km', 3], ['hm', 2], ['dam', 1], ['m', 0], ['dm', -1], ['cm', -2], ['mm', -3], ['µm', -6], ['nm', -9]] },
+    dienTich: { ten: 'Diện tích', chuan: 'm²', thang: [['km²', 6], ['m²', 0], ['dm²', -2], ['cm²', -4], ['mm²', -6]] },
+    theTich: { ten: 'Thể tích', chuan: 'm³', thang: [['m³', 0], ['dm³ (lít)', -3], ['cm³ (mL)', -6], ['mm³', -9]] },
+    khoiLuong: { ten: 'Khối lượng', chuan: 'kg', thang: [['tấn', 3], ['kg', 0], ['g', -3], ['mg', -6]], khac: ['1 u ≈ 1,66·10⁻²⁷ kg'] },
+    thoiGian: { ten: 'Thời gian', chuan: 's', thang: [['s', 0], ['ms', -3], ['µs', -6], ['ns', -9]], khac: ['1 phút = 60 s', '1 h = 3 600 s', '1 ngày = 86 400 s'] },
+    apSuat: { ten: 'Áp suất', chuan: 'Pa', thang: [['MPa', 6], ['kPa', 3], ['hPa', 2], ['Pa', 0]], khac: ['1 atm ≈ 1,013·10⁵ Pa', '1 bar = 10⁵ Pa', '1 mmHg ≈ 133,3 Pa'] },
+    nangLuong: { ten: 'Năng lượng', chuan: 'J', thang: [['MJ', 6], ['kJ', 3], ['J', 0], ['mJ', -3]], khac: ['1 eV = 1,6·10⁻¹⁹ J', '1 MeV = 1,6·10⁻¹³ J', '1 kWh = 3,6·10⁶ J', '1 cal ≈ 4,186 J'] },
+    dienTichQ: { ten: 'Điện tích', chuan: 'C', thang: [['C', 0], ['mC', -3], ['µC', -6], ['nC', -9], ['pC', -12]], khac: ['e = 1,6·10⁻¹⁹ C'] },
+    tanSo: { ten: 'Tần số', chuan: 'Hz', thang: [['GHz', 9], ['MHz', 6], ['kHz', 3], ['Hz', 0]] },
+    camUngTu: { ten: 'Cảm ứng từ', chuan: 'T', thang: [['T', 0], ['mT', -3], ['µT', -6]], khac: ['1 G (gauss) = 10⁻⁴ T'] },
+    nhietDo: { ten: 'Nhiệt độ', chuan: 'K', nhiet: true }
+  };
+  const TU_KHOA = ['không', 'sai', 'chỉ', 'luôn', 'ít nhất', 'nhiều nhất', 'tối đa', 'tối thiểu', 'bỏ qua', 'ban đầu', 'từ trạng thái nghỉ', 'ngay sau', 'ngay trước', 'độ lớn', 'gần nhất', 'làm tròn', 'nửa', 'vuông góc', 'đẳng nhiệt', 'đẳng tích', 'nhỏ'];
+  const KW_GIAI = [
+    ['SAI / KHÔNG đúng', 'Đề hỏi phát biểu sai: tìm câu sai, không phải câu đúng.'],
+    ['nửa / một phần tư', 'Nửa chu kì, nửa bước sóng dễ bị đọc thành cả chu kì, cả bước sóng.'],
+    ['ít nhất / tối đa / tối thiểu', 'Đề hỏi giá trị biên, thường phải xét điều kiện rồi mới tính.'],
+    ['làm tròn đến …', 'Đáp án Phần III phải làm tròn đúng chữ số đề yêu cầu.'],
+    ['bao nhiêu kPa / cm/s / MeV', 'Đơn vị của đáp án có thể khác đơn vị của dữ kiện.'],
+    ['bỏ qua / lấy g = …', 'Điều kiện được phép bỏ qua và giá trị bắt buộc phải dùng.'],
+    ['đẳng nhiệt / đẳng tích / vuông góc', 'Một từ quyết định chọn công thức nào.']
+  ];
+
+  /* ---------- trạng thái ---------- */
+  let items, notes, gnote;
+  const ui = { filter: { loai: '', de: '', mau: '', q: '', from: '' }, open: new Set([1]), fix: new Set(), tools: {}, whyDraft: {} };
+  function load() {
+    items = JSON.parse(JSON.stringify(SEED));
+    const saved = store.get('loi') || {};
+    items.forEach((it) => { if (saved[it.id]) it.loi = saved[it.id]; });
+    notes = store.get('notes') || { 6: 'Nhớ: l ở trên, g ở dưới dấu căn.' };
+    gnote = store.get('gnote');
+    if (gnote == null) gnote = 'Đọc câu hỏi 2 lần, gạch đơn vị đáp án.\nPhần III: đổi cm → m trước khi thay số.';
+  }
+  const saveLoi = () => { const o = {}; items.forEach((it) => { o[it.id] = it.loi; }); store.set('loi', o); };
+
+  /* ---------- tính sổ tay (đúng quy tắc §4 của đặc tả) ---------- */
+  const nhomOf = (it) => LOAI[it.loi.ma].nhom;
+  function typeSummary(ma) {
+    const its = items.filter((it) => it.loi.ma === ma);
+    const red = its.filter((it) => it.mau === 'do');
+    const redExams = new Set(red.map((it) => it.de));
+    let mau = 'xanh';
+    if (red.length >= 3 && redExams.size >= 2) mau = 'do';
+    else if (its.some((it) => it.mau !== 'xanh')) mau = 'vang';
+    return { ma, its, n: its.length, mau, lapLai: mau === 'do', con: its.filter((it) => it.mau !== 'xanh').length };
+  }
+  const sevRank = { do: 0, vang: 1, xanh: 2 };
+  function ngooSorted() {
+    return NGOO.map(typeSummary).filter((s) => s.n).sort((a, b) => (sevRank[a.mau] - sevRank[b.mau]) || (b.n - a.n));
+  }
+
+  /* ---------- công cụ ---------- */
+  function formulaCard(bai) {
+    const f = CONG_THUC[bai];
+    if (!f) return '<div class="feedback info">Thầy chưa nhập công thức cho bài này. Em ghi công thức đúng vào ô ghi chú bên dưới để nhớ.</div>';
+    return `<div class="fcard"><div class="muted" style="font-size:12px">${esc(bai)} · ${esc(f.ten)}</div>
+      <div class="nick">${esc(f.nho)}</div><div class="ct">${esc(f.ct)}</div><div style="font-size:13px">${esc(f.giai)}</div>
+      <dl><dt>Phạm vi</dt><dd>${esc(f.phamVi)}</dd><dt>Dấu hiệu</dt><dd>${esc(f.dauHieu)}</dd></dl></div>`;
+  }
+
+  function unitTool(key, preset) {
+    const st = ui.tools[key] || (ui.tools[key] = { dl: preset ? preset.dl : 'chieuDai', pick: null, wrong: null, from: null, to: null });
+    const d = DL[st.dl];
+    const opts = Object.keys(DL).map((k) => `<option value="${k}"${k === st.dl ? ' selected' : ''}>${esc(DL[k].ten)}</option>`).join('');
+    let h = `<label style="font-size:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">Đại lượng em đổi sai:
+      <select data-act="unit-dl" data-tool="${key}" style="border:1px solid var(--border);border-radius:8px;padding:4px 8px;background:var(--surface)">${opts}</select></label>`;
+    if (d.nhiet) {
+      return h + `<div class="feedback info">Nhiệt độ không đổi bằng cách nhân 10ⁿ mà bằng phép cộng: <b>T (K) = t (°C) + 273</b>. Ví dụ 27 °C = 300 K. Hiệu nhiệt độ thì như nhau: Δt = 10 °C ứng với ΔT = 10 K.</div>`;
+    }
+    const exp = Object.fromEntries(d.thang);
+    const usePreset = preset && preset.dl === st.dl;
+    const rungs = d.thang.map(([u, e], i) => {
+      let cls = 'rung';
+      if (u === d.chuan) cls += ' chuan';
+      if (usePreset && u === preset.em) cls += ' em';
+      if (usePreset && st.pick === u) cls += ' ok';
+      if (usePreset && st.wrong === u) cls += ' wrong';
+      if (!usePreset && (st.from === u || st.to === u)) cls += ' from';
+      const step = i < d.thang.length - 1 ? `<span class="step">×${pow10(e - d.thang[i + 1][1])}</span>` : '';
+      return `<button class="${cls}" data-act="unit-pick" data-tool="${key}" data-u="${esc(u)}">${esc(u)}</button>${step}`;
+    }).join('');
+    h += `<div class="ladder-wrap"><div class="ladder" role="group" aria-label="Thang đơn vị ${esc(d.ten)}">${rungs}</div></div>`;
+    h += `<div class="muted" style="font-size:12px">Đi sang phải một bậc thì nhân với số ghi giữa hai bậc. Đơn vị chuẩn SI: <b>${esc(d.chuan)}</b> (khung đậm).</div>`;
+    if (d.khac) h += `<div class="other-units"><span>Đơn vị khác:</span>${d.khac.map((x) => `<span>${esc(x)}</span>`).join('')}</div>`;
+    if (usePreset) {
+      if (preset.lech) h += `<div class="feedback bad">Đáp án của em lệch đúng ${pow10(preset.lech)} lần so với đáp án đúng.</div>`;
+      if (st.pick) {
+        const n = exp[preset.em] - exp[preset.dung];
+        h += `<div class="feedback good">Đúng rồi. 1 ${esc(preset.em)} = ${pow10(n)} ${esc(preset.dung)}, nên số đo theo ${esc(preset.em)} phải nhân với ${pow10(n)} để ra ${esc(preset.dung)}.</div>`;
+      } else {
+        h += `<div class="feedback info">Em đã dùng <b>${esc(preset.em)}</b>. Bấm vào đơn vị đúng mà dữ kiện này phải đổi sang.</div>`;
+      }
+    } else if (st.from && st.to) {
+      const n = exp[st.from] - exp[st.to];
+      h += `<div class="feedback good">1 ${esc(st.from)} = ${pow10(n)} ${esc(st.to)}</div>`;
+    } else {
+      h += `<div class="feedback info">${st.from ? `Đã chọn ${esc(st.from)}. Bấm đơn vị muốn đổi sang.` : 'Bấm hai đơn vị để xem cách đổi.'}</div>`;
+    }
+    return h;
+  }
+
+  function tokenize(text) {
+    const toks = text.split(/\s+/).filter(Boolean).map((raw) => ({ raw, w: raw.toLowerCase().replace(/[.,;:?!()"“”]/g, '') }));
+    const kw = new Array(toks.length).fill(false);
+    TU_KHOA.forEach((k) => {
+      const parts = k.split(' ');
+      for (let i = 0; i + parts.length <= toks.length; i++) {
+        if (parts.every((p, j) => toks[i + j].w === p)) for (let j = 0; j < parts.length; j++) kw[i + j] = true;
+      }
+    });
+    toks.forEach((t, i) => { t.kw = kw[i]; t.so = /\d/.test(t.w); });
+    return toks;
+  }
+  function kwTool(key, text) {
+    const st = ui.tools[key] || (ui.tools[key] = { sel: [], checked: false });
+    const toks = tokenize(text);
+    const html = toks.map((t, i) => {
+      let c = 'tok';
+      const sel = st.sel.includes(i);
+      if (sel) c += ' sel';
+      if (st.checked && t.kw) c += sel ? ' kw' : ' kw miss';
+      if (st.checked && t.so && !sel) c += ' so';
+      return `<button class="${c}" data-act="kw-tok" data-tool="${key}" data-i="${i}" aria-pressed="${sel}">${esc(t.raw)}</button>`;
+    }).join(' ');
+    let res = '';
+    if (st.checked) {
+      const kwIdx = toks.map((t, i) => (t.kw ? i : -1)).filter((i) => i >= 0);
+      const got = kwIdx.filter((i) => st.sel.includes(i)).length;
+      const miss = kwIdx.filter((i) => !st.sel.includes(i)).map((i) => toks[i].raw.replace(/[.,;:?!]/g, ''));
+      res = `<div class="feedback ${miss.length ? 'bad' : 'good'}">Em gạch được ${got}/${kwIdx.length} từ khóa.${miss.length ? ' Bỏ sót: ' + miss.map((m) => '“' + esc(m) + '”').join(', ') + '.' : ' Tốt lắm!'} Dữ kiện số được tô xanh.</div>`;
+    }
+    return `<div class="muted" style="font-size:13px">Chạm vào những từ em thấy quan trọng, rồi bấm So sánh.</div>
+      <div class="kw-text">${html}</div>
+      <div class="actions"><button class="btn btn-primary" data-act="kw-check" data-tool="${key}">So sánh</button><button class="btn" data-act="kw-reset" data-tool="${key}">Làm lại</button></div>
+      ${res}<div class="kw-legend"><span class="a">Em gạch</span><span class="b">Từ khóa em bỏ sót</span><span class="c">Dữ kiện số</span></div>`;
+  }
+  function kwExplain() {
+    return `<ul class="kwlist">${KW_GIAI.map(([k, g]) => `<li><b>${esc(k)}</b>: ${esc(g)}</li>`).join('')}</ul>`;
+  }
+
+  function timePlan(deId) {
+    const de = DE[deId] || DE.E1;
+    const k = de.phut / 50;
+    const rows = [['Phần I', 15 * k, de.t && de.t.I], ['Phần II', 15 * k, de.t && de.t.II], ['Phần III', 12 * k, de.t && de.t.III], ['Kiểm tra lại', 8 * k, de.t && de.t.kt]];
+    const max = Math.max(...rows.map((r) => Math.max(r[1], r[2] || 0)));
+    const f = (x) => (Math.round(x * 10) / 10).toString().replace('.', ',');
+    const body = rows.map(([ten, de_, tt]) => {
+      const over = tt != null && tt > de_ + 0.5;
+      return `<div class="r"><span>${ten}</span><div class="bars"><i class="de" style="width:${(de_ / max) * 100}%"></i>${tt != null ? `<i class="tt ${over ? '' : 'okk'}" style="width:${Math.max(tt, 0.4) / max * 100}%"></i>` : ''}</div>
+        <span class="num" style="text-align:right">${f(de_)}′${tt != null ? ` / <b style="color:${over ? 'var(--do)' : 'var(--xanh)'}">${f(tt)}′</b>` : ''}</span></div>`;
+    }).join('');
+    return `<div class="muted" style="font-size:13px">Đề ${de.phut} phút${de.t ? ' · Bài "' + esc(de.ten) + '" của em' : ''}</div>
+      <div class="tplan">${body}</div>
+      <div class="tplan-leg"><span class="a">Đề xuất</span>${de.t ? '<span class="b">Em đã dùng</span>' : ''}</div>
+      ${de.t ? '<div class="feedback bad">Em dành 27 phút cho Phần I nên Phần III chỉ còn 5 phút và không còn thời gian kiểm tra lại.</div>' : ''}
+      <ul class="tips"><li>Câu Phần I nào quá 1 phút thì đánh dấu, làm sau.</li><li>Chừa ${f(8 * k)} phút cuối để dò lại cả bài, nhất là từng ý Phần II.</li><li>Trước khi nộp, mở danh sách câu và kiểm tra không còn câu nào trống.</li></ul>`;
+  }
+
+  function itemTool(it) {
+    const m = it.loi.ma;
+    if (m === 'CONG_THUC') return `<div class="tool"><h4>Thẻ công thức</h4>${formulaCard(it.bai)}</div>`;
+    if (m === 'DOC_DE') return `<div class="tool"><h4>Tập gạch từ khóa</h4>${kwTool('kw-' + it.id, it.q)}</div>`;
+    if (m === 'TINH_TOAN' && it.loi.y === 'BAM_MAY') {
+      return `<div class="tool"><h4>Kiểm tra phép tính</h4>${DE[it.de].congBo && it.nguocDau ? '<div class="feedback bad">Đáp án của em ngược dấu với đáp án đúng.</div>' : ''}
+        <ul class="tips"><li>Viết quy ước dấu trước khi thay số (khí thực hiện công thì A &lt; 0).</li><li>Ước lượng bậc độ lớn trước khi bấm máy.</li><li>Bấm máy lại lần hai theo thứ tự khác.</li></ul>
+        <div class="actions"><button class="chip" data-act="set-y" data-id="${it.id}" data-y="DON_VI">Thật ra em quên đổi đơn vị</button></div></div>`;
+    }
+    if (m === 'TINH_TOAN') {
+      const preset = it.unit || { dl: 'chieuDai', em: 'cm', dung: 'm', lech: null };
+      const p = Object.assign({}, preset, { lech: DE[it.de].congBo ? preset.lech : null });
+      return `<div class="tool"><h4>Chọn lại đơn vị đúng</h4>${unitTool('u-' + it.id, p)}
+        ${DE[it.de].congBo ? '' : '<div class="muted" style="font-size:12px">Đề chưa công bố lời giải nên máy chưa so với đáp án đúng.</div>'}
+        <div class="actions"><button class="chip" data-act="set-y" data-id="${it.id}" data-y="BAM_MAY">Thật ra em bấm máy nhầm</button></div></div>`;
+    }
+    if (m === 'SOT') return `<div class="tool"><h4>Chia thời gian từng phần</h4>${timePlan(it.de)}</div>`;
+    if (m === 'HONG_KT' || m === 'DOAN_MO') {
+      return `<div class="tool"><h4>${m === 'DOAN_MO' ? 'Đoán mò được tính là chưa biết làm' : 'Học lại phần này'}</h4>
+        <div style="font-size:14px">Câu này được ưu tiên đưa vào đề khắc phục. Đọc lời giải rồi luyện thêm câu cùng bài "${esc(it.bai)}".</div>
+        <div class="actions"><button class="btn" data-act="toast" data-msg="Trang mẫu: mở Đề nhanh 10 phút theo bài ${esc(it.bai)}">Luyện bài này</button></div></div>`;
+    }
+    return '<div class="tool"><div style="font-size:14px">Chọn loại lỗi ở trên để nhận cách sửa phù hợp.</div></div>';
+  }
+
+  /* ---------- nửa phải ---------- */
+  function renderBook() {
+    const total = items.length;
+    const segs = [...NGOO.map((ma) => [ma, LOAI[ma].ten, LOAI[ma].mau, items.filter((i) => i.loi.ma === ma).length]),
+      ['HONG', 'Hổng kiến thức', 'var(--c-hkt)', items.filter((i) => nhomOf(i) === 'hong').length],
+      ['CHUA_RO', 'Chưa phân loại', 'var(--c-cr)', items.filter((i) => i.loi.ma === 'CHUA_RO').length]].filter((s) => s[3]);
+    const pct = (n) => Math.round((n / total) * 100);
+    let h = `<div class="book-head"><h2 id="bookTitle">Sổ tay</h2><div class="legend-sev"><span><i class="dot do"></i>Lặp lại</span><span><i class="dot vang"></i>Đang mắc</span><span><i class="dot xanh"></i>Đã khắc phục</span></div></div>`;
+    h += `<div class="ratio" role="img" aria-label="Tỉ lệ loại lỗi">${segs.map((s) => `<i style="width:${(s[3] / total) * 100}%;background:${s[2]}" title="${esc(s[1])}: ${s[3]} câu"></i>`).join('')}</div>`;
+    h += `<div class="ratio-legend">${segs.map((s) => `<span><i class="sw" style="background:${s[2]}"></i>${esc(s[1])} <b class="num">${pct(s[3])}%</b></span>`).join('')}</div>`;
+
+    const ng = ngooSorted();
+    h += `<div class="sec"><div class="sec-h"><h3>Sai ngoo</h3><span class="muted" style="font-size:13px">sửa được ngay bằng thói quen</span></div>`;
+    h += ng.length ? ng.map((s) => {
+      const L = LOAI[s.ma];
+      const open = ui.fix.has(s.ma);
+      return `<div class="err"><div class="err-line"><i class="dot ${s.mau}" title="${MAU_TEN[s.mau]}"></i>
+        <button class="err-name" data-act="filter-type" data-ma="${s.ma}" title="Xem các câu thuộc lỗi này">${esc(L.ten)}</button>
+        <span class="err-meta">${s.lapLai ? '<span class="rep">Lặp lại</span>' : ''}<span class="num"><b>${s.n}</b> câu · ${pct(s.n)}%</span></span></div>
+        <div class="err-bar"><i style="width:${pct(s.n)}%;background:${L.mau}"></i></div>
+        <button class="fix-toggle" data-act="toggle-fix" data-ma="${s.ma}" aria-expanded="${open}">${open ? 'Thu gọn ▾' : 'Cách sửa ▸'}</button>
+        ${open ? `<div class="fix-panel">${bookFix(s.ma)}</div>` : ''}</div>`;
+    }).join('') : '<div class="muted">Chưa có lỗi nào thuộc nhóm này.</div>';
+    h += '</div>';
+
+    const hk = items.filter((i) => nhomOf(i) !== 'ngoo');
+    const byCh = {};
+    hk.forEach((it) => { (byCh[it.chuong] = byCh[it.chuong] || []).push(it); });
+    const doanMo = hk.filter((i) => i.loi.ma === 'DOAN_MO').length;
+    const chuaRo = hk.filter((i) => i.loi.ma === 'CHUA_RO').length;
+    h += `<details class="hkt sec"${ui.hktOpen ? ' open' : ''} id="hkt"><summary><h3>Hổng kiến thức</h3><span class="more"><span class="closed">${hk.length} câu · Xem bản đồ ▸</span><span class="opened">Thu gọn ▾</span></span></summary>
+      <div class="hkt-sum">Gồm câu chưa biết làm, ${doanMo} câu đoán mò${chuaRo ? ` và ${chuaRo} câu chưa phân loại` : ''}.</div>
+      <div class="map">${Object.keys(byCh).sort((a, b) => byCh[b].length - byCh[a].length).map((ch) => {
+        const its = byCh[ch];
+        const red = its.filter((i) => i.mau === 'do').length;
+        const mau = red >= 2 ? 'do' : its.some((i) => i.mau !== 'xanh') ? 'vang' : 'xanh';
+        const byBai = {};
+        its.forEach((i) => { byBai[i.bai] = (byBai[i.bai] || 0) + 1; });
+        return `<div class="map-ch"><div class="map-ch-h"><i class="dot ${mau}"></i><span>${esc(ch)}</span><span class="num">${its.length} câu</span></div>
+          <div class="map-bai">${Object.keys(byBai).map((b) => `<div><span>${esc(b)}</span><span class="num">${byBai[b]}</span></div>`).join('')}</div></div>`;
+      }).join('')}</div>${chuaRo ? `<button class="fix-toggle" style="margin-left:0" data-act="filter-type" data-ma="CHUA_RO">Phân loại ${chuaRo} câu còn lại ▸</button>` : ''}</details>`;
+
+    h += `<div class="sec"><div class="sec-h"><h3>Ghi chú của em</h3><span class="saved" id="gsaved"></span></div>
+      <textarea class="notes" id="gnote" aria-label="Ghi chú của em" placeholder="Viết điều em muốn nhớ trước mỗi bài kiểm tra…">${esc(gnote)}</textarea></div>`;
+    $('#book').innerHTML = h;
+    $('#hkt').addEventListener('toggle', (e) => { ui.hktOpen = e.target.open; });
+  }
+  function bookFix(ma) {
+    if (ma === 'CONG_THUC') {
+      const bais = [...new Set(items.filter((i) => i.loi.ma === ma).map((i) => i.bai))];
+      return `<div class="tool">${bais.map(formulaCard).join('')}</div>`;
+    }
+    if (ma === 'DOC_DE') {
+      const last = items.filter((i) => i.loi.ma === ma && i.mau !== 'xanh')[0] || items.find((i) => i.loi.ma === ma);
+      return `<div class="tool"><h4>Từ khóa dễ đọc sai</h4>${kwExplain()}<h4>Luyện gạch từ khóa (câu ${last.cau}, ${esc(DE[last.de].ten)})</h4>${kwTool('kw-book', last.q)}</div>`;
+    }
+    if (ma === 'TINH_TOAN') {
+      return `<div class="tool"><h4>Thang đổi đơn vị</h4>${unitTool('u-book', null)}<h4>Khi bấm máy</h4>
+        <ul class="tips"><li>Đổi hết về đơn vị chuẩn trước khi thay số.</li><li>Ước lượng bậc độ lớn: tốc độ sóng nước cỡ vài m/s, không phải vài trăm.</li><li>Viết quy ước dấu (Q, A) trước khi tính.</li></ul></div>`;
+    }
+    if (ma === 'SOT') return `<div class="tool">${timePlan('E1')}</div>`;
+    return '';
+  }
+
+  /* ---------- nửa trái ---------- */
+  function passes(it) {
+    const f = ui.filter;
+    if (f.loai === 'HONG' && nhomOf(it) !== 'hong') return false;
+    if (f.loai && f.loai !== 'HONG' && it.loi.ma !== f.loai) return false;
+    if (f.de && it.de !== f.de) return false;
+    if (f.mau && it.mau !== f.mau) return false;
+    if (f.q && !(it.q + ' ' + it.bai + ' ' + it.chuong).toLowerCase().includes(f.q.toLowerCase())) return false;
+    return true;
+  }
+  function tagHtml(it) {
+    const L = LOAI[it.loi.ma];
+    const guess = it.loi.nguon === 'MAY' && it.loi.hoi;
+    const y = it.loi.ma === 'TINH_TOAN' ? (it.loi.y === 'BAM_MAY' ? ' · bấm máy' : ' · đơn vị') : '';
+    return `<span class="tag solid${guess ? ' guess' : ''}" title="${guess ? 'Máy đoán, cần em xác nhận' : it.loi.nguon === 'MAY' ? 'Máy nhận ra' : 'Em chọn'}"><i class="sw" style="background:${L.mau}"></i>${esc(L.ten)}${y}${guess ? ' ?' : ''}</span>`;
+  }
+  function renderList() {
+    const f = ui.filter;
+    const all = items.filter(passes);
+    const ng = ngooSorted().map((s) => s.ma);
+    const order = (it) => (nhomOf(it) === 'ngoo' ? ng.indexOf(it.loi.ma) * 10 + sevRank[it.mau] : 100 + sevRank[it.mau]);
+    all.sort((a, b) => order(a) - order(b) || b.id - a.id);
+    $('#listCount').textContent = `${all.length}/${items.length} câu`;
+    $('#tabCount').textContent = `(${items.length})`;
+    $('#activeFilter').innerHTML = f.from ? `<div class="active-filter"><span class="muted">Đang xem:</span><button class="pill" data-act="clear-filter">${esc(f.from)} ✕</button></div>` : '';
+    if (!all.length) { $('#list').innerHTML = '<div class="empty">Không có câu nào khớp bộ lọc.</div>'; return; }
+    const groups = [['Sai ngoo', all.filter((i) => nhomOf(i) === 'ngoo')], ['Hổng kiến thức và chưa phân loại', all.filter((i) => nhomOf(i) !== 'ngoo')]];
+    $('#list').innerHTML = groups.filter((g) => g[1].length).map(([ten, its]) => `<div class="group-label">${ten}</div><div class="list">${its.map(itemHtml).join('')}</div>`).join('');
+  }
+  function itemHtml(it) {
+    const de = DE[it.de];
+    const open = ui.open.has(it.id);
+    return `<div class="item${open ? ' open' : ''}${it.mau === 'xanh' ? ' xanh-done' : ''}">
+      <button class="row" data-act="toggle-item" data-id="${it.id}" aria-expanded="${open}">
+        <i class="dot ${it.mau}" title="${MAU_TEN[it.mau]}"></i>
+        <span class="row-main"><span class="row-title">Câu ${it.cau} · Phần ${it.phan}</span> ${tagHtml(it)}
+          <span class="row-sub" style="display:block">${esc(de.ten)} · ${de.ngay} · ${esc(it.bai)}</span></span>
+        <span class="row-side">${it.lan > 1 ? `<span class="count">sai ${it.lan} lần</span>` : ''}${it.mau === 'xanh' ? '<span class="tag" style="color:var(--xanh)">Đã khắc phục</span>' : ''}<span class="chev" aria-hidden="true">▸</span></span>
+      </button>${open ? detailHtml(it) : ''}</div>`;
+  }
+  function detailHtml(it) {
+    const de = DE[it.de];
+    const pub = de.congBo;
+    let body = `<div class="q"><span class="muted" style="font-size:13px">${esc(it.chuong)} · ${esc(it.bai)} · Mức độ ${it.md}</span><br>${esc(it.q)}`;
+    if (it.pa) {
+      body += `<div class="opts">${Object.keys(it.pa).map((k) => {
+        const isEm = it.em === k, isDung = pub && it.dung === k;
+        return `<div class="opt${isEm ? ' em' : ''}${isDung ? ' dung' : ''}"><b>${k}.</b> ${esc(it.pa[k])}${isEm ? '<span class="lab" style="color:var(--do)">EM CHỌN</span>' : ''}${isDung ? '<span class="lab" style="color:var(--xanh)">ĐÁP ÁN</span>' : ''}</div>`;
+      }).join('')}</div>${it.em === '' ? '<div class="ans" style="margin-top:6px"><span class="bad">Em bỏ trống câu này.</span></div>' : ''}`;
+    } else if (it.ds) {
+      body += `<div class="opts" style="grid-template-columns:minmax(0,1fr)">${it.ds.map(([k, t, em, dung]) => {
+        const wrong = pub && em !== dung;
+        return `<div class="opt${wrong ? ' em' : ''}"><b>${k})</b> ${esc(t)} <span class="lab">Em: ${em}${pub ? ` · Đáp án: ${dung}` : ''}</span></div>`;
+      }).join('')}</div>`;
+    } else {
+      body += `<div class="ans" style="margin-top:6px"><span>Em trả lời: <span class="bad num">${esc(it.em)}</span></span>${pub ? `<span>Đáp án: <span class="good num">${esc(it.dung)}</span></span>` : ''}</div>`;
+    }
+    body += '</div>';
+    body += pub ? `<details class="sol"><summary>Xem lời giải</summary><div>${esc(it.lg)}</div></details>`
+      : '<div class="lock">Đáp án và lời giải sẽ hiện khi đề đóng và thầy công bố lời giải.</div>';
+    const src = it.loi.nguon === 'HS' ? 'Em đã chọn loại lỗi này.' : it.loi.hoi ? 'Máy đoán loại lỗi này nhưng chưa chắc. Em xác nhận hoặc chọn lại nhé.' : it.loi.ma === 'CHUA_RO' ? 'Máy chưa đoán được. Em chọn giúp loại lỗi.' : 'Máy nhận ra loại lỗi này. Em vẫn đổi được nếu thấy chưa đúng.';
+    body += `<div><div class="blk-title">Em sai vì sao?</div><div class="chips">${PICKABLE.map((ma) =>
+      `<button class="chip${it.loi.ma === ma ? ' on' : ''}${it.loi.ma === ma && it.loi.hoi ? ' ask' : ''}" data-act="set-loai" data-id="${it.id}" data-ma="${ma}" aria-pressed="${it.loi.ma === ma}"><i class="sw" style="background:${LOAI[ma].mau}"></i>${esc(LOAI[ma].ten)}</button>`).join('')}</div>
+      <div class="src">${src}</div></div>`;
+    body += itemTool(it);
+    body += `<div><div class="blk-title">Ghi chú cho câu này</div><textarea class="note-in" data-note="${it.id}" rows="2" placeholder="Em rút ra điều gì?">${esc(notes[it.id] || '')}</textarea></div>`;
+    const canRedo = pub;
+    body += `<div class="actions"><button class="btn" data-act="toast" data-msg="Trang mẫu: mở bài 1 câu để làm lại" ${canRedo ? '' : 'disabled title="Làm lại được khi đề công bố lời giải"'}>Làm lại câu này</button></div>`;
+    return `<div class="detail">${body}</div>`;
+  }
+
+  function renderFilters() {
+    const f = ui.filter;
+    $('#fLoai').innerHTML = `<option value="">Mọi loại lỗi</option>${NGOO.map((m) => `<option value="${m}">${esc(LOAI[m].ten)}</option>`).join('')}<option value="HONG">Hổng kiến thức</option><option value="CHUA_RO">Chưa phân loại</option>`;
+    $('#fLoai').value = f.loai;
+    $('#fDe').innerHTML = `<option value="">Mọi đề</option>${Object.keys(DE).map((k) => `<option value="${k}">${esc(DE[k].ten)}</option>`).join('')}`;
+    $('#fDe').value = f.de;
+  }
+  function renderHead() {
+    const red = items.filter((i) => i.mau === 'do').length;
+    const rep = ngooSorted().filter((s) => s.lapLai).length;
+    $('#headMeta').textContent = `${items.length} câu đã sai · ${red} câu chưa làm đúng lại · ${rep} lỗi đang lặp lại · cập nhật 26/11`;
+  }
+  function render() { renderHead(); renderBook(); renderList(); }
+
+  /* ---------- hộp thoại ---------- */
+  function openModal(html) { $('#dialog').innerHTML = html; $('#modal').hidden = false; const b = $('#dialog button, #dialog input'); if (b) b.focus(); }
+  function closeModal() { $('#modal').hidden = true; }
+  function whyModal() {
+    const its = items.filter((i) => i.de === 'E2');
+    ui.whyDraft = {};
+    its.forEach((i) => { ui.whyDraft[i.id] = i.loi.nguon === 'HS' ? i.loi.ma : (i.loi.hoi || i.loi.ma === 'CHUA_RO' ? '' : i.loi.ma); });
+    openModal(`<h2 id="modalTitle">Em sai vì sao?</h2>
+      <div class="muted" style="font-size:14px">${esc(DE.E2.ten)} · ${its.length} câu sai. Chọn lý do cho từng câu để sổ tay nhắc đúng lỗi của em. Có thể bỏ qua và chọn sau trong Sổ tay.</div>
+      <div id="whyList">${whyList(its)}</div>
+      <div class="foot"><button class="btn" data-act="close-modal">Bỏ qua</button><button class="btn btn-primary" data-act="why-save">Lưu</button></div>`);
+  }
+  function whyList(its) {
+    return its.map((it) => `<div class="why-item"><div class="why-q"><b>Câu ${it.cau}.</b> ${esc(it.q.length > 110 ? it.q.slice(0, 110) + '…' : it.q)}</div>
+      <div class="chips">${PICKABLE.map((ma) => `<button class="chip${ui.whyDraft[it.id] === ma ? ' on' : ''}" data-act="why-pick" data-id="${it.id}" data-ma="${ma}" aria-pressed="${ui.whyDraft[it.id] === ma}"><i class="sw" style="background:${LOAI[ma].mau}"></i>${esc(LOAI[ma].ten)}</button>`).join('')}</div></div>`).join('');
+  }
+  function remindModal() {
+    const top = ngooSorted().filter((s) => s.mau !== 'xanh').slice(0, 3);
+    openModal(`<h2 id="modalTitle">${esc('Đề luyện số 4')} · 50 phút</h2>
+      <div class="goal"><label for="goal">Mục tiêu điểm của em</label><input id="goal" type="number" min="0" max="10" step="0.25" value="8"></div>
+      <div><div class="blk-title">Điều cần nhớ, lấy từ sổ tay của em</div><ul class="remind">
+        ${top.map((s) => `<li><i class="dot ${s.mau}"></i><span><b>${esc(LOAI[s.ma].ten)}${s.lapLai ? ' (lặp lại)' : ''}.</b> ${esc(LOAI[s.ma].nhac)}</span></li>`).join('')}
+        ${gnote.trim() ? `<li><i class="dot" style="background:var(--primary)"></i><span><b>Ghi chú của em.</b> ${esc(gnote.trim()).replace(/\n/g, ' · ')}</span></li>` : ''}
+      </ul></div>
+      <label class="check"><input type="checkbox" id="readOk"> Em đã đọc và sẽ chú ý những điều trên</label>
+      <div class="foot"><button class="btn" data-act="close-modal">Quay lại</button><button class="btn btn-primary" id="startBtn" disabled data-act="toast" data-msg="Trang mẫu: bắt đầu làm bài">Bắt đầu làm bài</button></div>`);
+    $('#readOk').addEventListener('change', (e) => { $('#startBtn').disabled = !e.target.checked; });
+  }
+  function fixModal(mau) {
+    const top = ngooSorted()[0];
+    const goc = items.filter((i) => i.mau !== 'xanh' && DE[i.de].congBo);
+    if (mau === 'ON_NHANH') {
+      const g = goc.filter((i) => i.loi.ma === top.ma).slice(0, 2);
+      openModal(`<h2 id="modalTitle">Ôn trước giờ kiểm tra</h2><div class="muted" style="font-size:14px">5 câu · 7 phút · nhắm vào lỗi <b>${esc(LOAI[top.ma].ten)}</b></div>
+        <ul class="compo">${g.map((i) => `<li>Làm lại câu ${i.cau} (${esc(DE[i.de].ten)})</li>`).join('')}<li>${5 - g.length} câu tương tự Phần III cùng bài, lấy từ ngân hàng luyện tập</li></ul>
+        <div class="lock">Câu của đề chưa công bố lời giải không được đưa vào. Kết quả không tính bảng xếp hạng.</div>
+        <div class="foot"><button class="btn" data-act="close-modal">Đóng</button><button class="btn btn-primary" data-act="toast" data-msg="Trang mẫu: bắt đầu đề ôn">Bắt đầu</button></div>`);
+    } else {
+      const g = goc.sort((a, b) => (['HONG_KT', 'DOAN_MO'].includes(b.loi.ma) - ['HONG_KT', 'DOAN_MO'].includes(a.loi.ma))).slice(0, 4);
+      openModal(`<h2 id="modalTitle">Đề khắc phục</h2><div class="muted" style="font-size:14px">10 câu · 15 phút</div>
+        <ul class="compo">${g.map((i) => `<li>Làm lại câu ${i.cau} · ${esc(LOAI[i.loi.ma].ten)} · ${esc(i.bai)}</li>`).join('')}<li>${10 - g.length} câu tương tự: cùng bài, cùng mức độ với các câu trên</li></ul>
+        <div class="lock">Làm đúng câu tương tự thì câu gốc chuyển màu: đỏ → vàng → xanh (đúng 2 lần ở 2 ngày khác nhau).</div>
+        <div class="foot"><button class="btn" data-act="close-modal">Đóng</button><button class="btn btn-primary" data-act="toast" data-msg="Trang mẫu: bắt đầu đề khắc phục">Bắt đầu</button></div>`);
+    }
+  }
+  let tt;
+  function toast(m) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 2200); }
+
+  /* ---------- sự kiện ---------- */
+  function setTab(tab) {
+    $('#split').dataset.tab = tab;
+    $('#tabBook').setAttribute('aria-selected', tab === 'sotay');
+    $('#tabList').setAttribute('aria-selected', tab === 'cau');
+  }
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-act]');
+    if (!el) { if (e.target.id === 'modal') closeModal(); return; }
+    const a = el.dataset.act, id = Number(el.dataset.id);
+    const it = items.find((x) => x.id === id);
+    switch (a) {
+      case 'nav': e.preventDefault(); toast('Trang mẫu chỉ có mục Sổ tay'); break;
+      case 'tab': setTab(el.dataset.tab); break;
+      case 'toggle-item': ui.open.has(id) ? ui.open.delete(id) : ui.open.add(id); renderList(); break;
+      case 'set-loai':
+        it.loi = { ma: el.dataset.ma, y: el.dataset.ma === 'TINH_TOAN' ? (it.loi.y || 'DON_VI') : undefined, nguon: 'HS', hoi: false };
+        saveLoi(); render(); break;
+      case 'set-y': it.loi = Object.assign({}, it.loi, { y: el.dataset.y, nguon: 'HS', hoi: false }); saveLoi(); render(); break;
+      case 'filter-type': {
+        const ma = el.dataset.ma;
+        ui.filter = { loai: ma, de: '', mau: '', q: '', from: LOAI[ma].ten };
+        renderFilters(); renderList(); setTab('cau');
+        if (window.matchMedia('(min-width: 901px)').matches) $('#listTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      }
+      case 'clear-filter': ui.filter = { loai: '', de: '', mau: '', q: '', from: '' }; $('#fQ').value = ''; $('#fMau').value = ''; renderFilters(); renderList(); break;
+      case 'toggle-fix': { const ma = el.dataset.ma; ui.fix.has(ma) ? ui.fix.delete(ma) : ui.fix.add(ma); renderBook(); break; }
+      case 'unit-pick': {
+        const key = el.dataset.tool, u = el.dataset.u, st = ui.tools[key];
+        const preset = key === 'u-book' ? null : (items.find((x) => 'u-' + x.id === key) || {}).unit;
+        if (preset && preset.dl === st.dl) {
+          if (u === preset.dung) { st.pick = u; st.wrong = null; } else if (u !== preset.em) { st.wrong = u; st.pick = null; }
+        } else if (!st.from || st.to) { st.from = u; st.to = null; } else { st.to = u; }
+        key === 'u-book' ? renderBook() : renderList();
+        break;
+      }
+      case 'kw-tok': {
+        const st = ui.tools[el.dataset.tool], i = Number(el.dataset.i);
+        st.sel = st.sel.includes(i) ? st.sel.filter((x) => x !== i) : st.sel.concat(i);
+        el.dataset.tool === 'kw-book' ? renderBook() : renderList(); break;
+      }
+      case 'kw-check': ui.tools[el.dataset.tool].checked = true; el.dataset.tool === 'kw-book' ? renderBook() : renderList(); break;
+      case 'kw-reset': ui.tools[el.dataset.tool] = { sel: [], checked: false }; el.dataset.tool === 'kw-book' ? renderBook() : renderList(); break;
+      case 'open-why': whyModal(); break;
+      case 'open-remind': remindModal(); break;
+      case 'open-fix': fixModal(el.dataset.mau); break;
+      case 'close-modal': closeModal(); break;
+      case 'why-pick': ui.whyDraft[id] = el.dataset.ma; $('#whyList').innerHTML = whyList(items.filter((i) => i.de === 'E2')); break;
+      case 'why-save':
+        Object.keys(ui.whyDraft).forEach((k) => {
+          const x = items.find((i) => i.id === Number(k));
+          const ma = ui.whyDraft[k];
+          if (ma && (x.loi.ma !== ma || x.loi.nguon !== 'HS')) x.loi = { ma, y: ma === 'TINH_TOAN' ? (x.loi.y || 'DON_VI') : undefined, nguon: 'HS', hoi: false };
+        });
+        saveLoi(); closeModal(); render(); toast('Đã lưu vào sổ tay'); break;
+      case 'reset':
+        try { ['loi', 'notes', 'gnote'].forEach((k) => localStorage.removeItem('mauSoTay.' + k)); } catch (err) { /* bỏ qua */ }
+        ui.tools = {}; ui.fix.clear(); ui.open = new Set([1]); ui.filter = { loai: '', de: '', mau: '', q: '', from: '' };
+        load(); renderFilters(); render(); toast('Đã đặt lại dữ liệu mẫu'); break;
+      case 'toast': if (!el.disabled) toast(el.dataset.msg); break;
+    }
+  });
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.dataset.act === 'unit-dl') { ui.tools[t.dataset.tool] = { dl: t.value, pick: null, wrong: null, from: null, to: null }; t.dataset.tool === 'u-book' ? renderBook() : renderList(); return; }
+    if (t.id === 'fLoai' || t.id === 'fDe' || t.id === 'fMau') {
+      ui.filter.loai = $('#fLoai').value; ui.filter.de = $('#fDe').value; ui.filter.mau = $('#fMau').value; ui.filter.from = '';
+      renderList();
+    }
+  });
+  let nt;
+  document.addEventListener('input', (e) => {
+    const t = e.target;
+    if (t.id === 'fQ') { ui.filter.q = t.value; ui.filter.from = ''; renderList(); return; }
+    if (t.id === 'gnote') {
+      gnote = t.value; $('#gsaved').textContent = 'Đang lưu…'; clearTimeout(nt);
+      nt = setTimeout(() => { store.set('gnote', gnote); const s = $('#gsaved'); if (s) s.textContent = 'Đã lưu'; }, 800);
+      return;
+    }
+    if (t.dataset.note) { notes[t.dataset.note] = t.value.slice(0, 500); store.set('notes', notes); }
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
+
+  load(); renderFilters(); render();
+})();
+</script>
