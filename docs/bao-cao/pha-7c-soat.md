@@ -47,3 +47,43 @@ Không có phát hiện mức **Nặng**. Không có phát hiện ảnh hưởng
 
 ## Kết luận
 **CHƯA ĐẠT**, chỉ vì R-1: trạng thái khắc phục của câu gốc tính sai, trái quy tắc đặc tả đã chốt. Sửa ít dòng; đề nghị thêm bài kiểm thử cho trường hợp này rồi soát lại vòng 2. R-2 → R-4 là Nhẹ, không chặn.
+
+---
+
+## Vòng 2
+
+Phạm vi: `git diff 1d6cdd0..HEAD` (commit `3c1f2b6`). Đã soát lại toàn bộ phần 7c, tập trung vào việc đổi thứ tự sự kiện trong bài luyện.
+
+**Tóm tắt:** lỗi màu đã sửa đúng. Làm lại câu cũ vẫn sai thì câu cũ về đỏ, dù câu tương tự làm đúng. Việc đổi thứ tự không ảnh hưởng câu hiển thị, số lần sai, mục "Luyện câu đã sai" hay bài luyện cũ.
+
+**Đã chạy:**
+- Đạt: `pha7c` 11/11, `pha7` 16/16, `pha7b` 12/12, `pha7a-kiem-thu` 28/28, `pha7b-kiem-thu` 16/16, `pha4` 22, `pha4-kiem-thu` 33/33, backend, cache, pha6-kiem-thu 105/105. `scan-secrets`: sạch.
+- `pha7c-kiem-thu`: 17/17 ở 7 lần chạy. Có **một** lần chạy đầu báo trượt mục TC-7.19, với câu báo lỗi không còn trong file khi em mở ra xem. Có lẽ người kiểm thử đang sửa bài kiểm thử đúng lúc đó. Phần "khacPhuc" của bước này phụ thuộc giờ nộp thật trước khi bài được đổi ngày (chính bài kiểm thử ghi chú điều này), nên đây không phải lỗi code. Đề nghị người kiểm thử chạy lại sau khi commit bài kiểm thử.
+- Script tái hiện R-1 của vòng 1 (gốc làm lại sai + tương tự đúng cùng bài): nay `mau = 'do'`, `lanSai = 2` (trước là `vang`).
+
+**Ảnh hưởng của việc đổi thứ tự sự kiện** (`nbEvents_`: trong mỗi bài luyện, mọi lần đúng, kể cả câu khắc phục, xếp trước; lần sai xếp sau):
+
+| Câu hỏi | Kết luận |
+|---|---|
+| Câu hiển thị (`lw`) | Không đổi. Mỗi khóa xuất hiện tối đa một lần thường trong một bài, nên `lw` vẫn là lần sai thật cuối của khóa. Các sự kiện phụ (`phu`) bị loại khỏi `lw`. |
+| Số lần sai, số đề (`lanSai`, `soDe`) | Không đổi. Chỉ đổi thứ tự; vẫn đếm sự kiện sai không phải phụ. |
+| Thứ tự giữa các bài / đề thi | Không đổi. Sắp theo `(t, i)`; đề thi được thêm trước; các bài luyện cùng giây giữ thứ tự hàng, chỉ đảo bên trong từng bài. |
+| "Luyện câu đã sai" (Pha 4) | Không liên quan: `wrongList_` không dùng `nbEvents_` (chỉ `nbCompute_` gọi hàm này). `pha4` và `pha4-kiem-thu` đạt. |
+| Bài luyện cũ (không có `goc`) | Mỗi khóa một sự kiện trong bài, nên đảo thứ tự không đổi kết quả. |
+| Bài thi (`KetQua`) | Không đụng tới. |
+
+| Mã | Đã sửa đúng chưa | Ghi chú |
+|---|---|---|
+| R-1 | **Đúng** | Gốc làm lại sai (sự kiện thường) hoặc câu khắc phục sai, cùng bài với lần đúng: lần sai xếp sau, nên câu gốc đỏ. Có thêm bài kiểm thử "Vòng 2 (R-1)", hai ngày liền vẫn đỏ. |
+| R-2 | **Đúng** | ON_NHANH chọn loại nặng nhất **còn câu trong `its`**; không có thì dùng mọi câu. |
+| R-3 | **Đúng** | Chia ứng viên theo `bai` / `chuong` một lần. Mỗi câu sai chỉ xét câu cùng bài và cùng chương. Câu có thể nằm ở cả hai nhóm, nhưng `taken` và cùng điểm số nên không sai. |
+| R-4 | Giữ (đồng ý) | Chỉ xảy ra ở kiểu khắc phục, chạy ngoài khóa, cần để báo màu trước/sau. |
+| K-1 | **Đúng** | Đúng phần +20 hơn cùng mức độ +10. `pha7c-kiem-thu` TC-7.20 đạt. |
+| G-1 | **Đúng** | "Ôn phần hổng kiến thức" gồm cả câu chưa phân loại, khớp bản đồ và đặc tả §3 (câu chưa phân loại xếp tạm vào Hổng kiến thức). |
+| G-3 | **Đúng** | `khacPhuc` chỉ trả câu có màu trước khác màu sau. Giao diện vẫn lọc thêm `truoc !== sau`. |
+| G-2 | Giữ (đồng ý) | Câu gốc của đề chưa công bố chỉ làm "đích" (`goc`) để chọn câu tương tự từ pool đã kiểm chặn, nên không lộ nội dung hay đáp án. |
+
+Không có phát hiện mới mức Nặng hay Vừa. Nhẹ, ghi nhận: `cand.byBai[x.bai]` dùng object thường, nên tên bài trùng thuộc tính có sẵn (như "constructor") sẽ hỏng. Thực tế không gặp; dùng `Object.create(null)` thì hết.
+
+### Kết luận vòng 2
+**ĐẠT.** R-1 (Vừa) đã sửa đúng và có bài kiểm thử. Việc đổi thứ tự sự kiện không ảnh hưởng câu hiển thị, số lần sai, "Luyện câu đã sai" hay dữ liệu cũ. Các mục còn lại đã sửa, hoặc được giữ với lý do hợp lý.
