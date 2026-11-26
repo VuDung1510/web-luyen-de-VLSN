@@ -3295,11 +3295,15 @@ function apiNotebookNote_(req) {
     if (!nb.items.some(function (x) { return x.key === key; })) throw new Error('Câu này không có trong sổ tay của em.');
   }
   var text = String(req.text == null ? '' : req.text).replace(/\r\n?/g, '\n').slice(0, NB_NOTE_MAX);
-  withLock_(function () { nbWriteRows_(st, [{ key: key, fields: { ghiChu: text } }]); });
-  // Vòng 2 (R-3): ghi chú không đổi màu/loại lỗi → sửa luôn bản đệm, không bắt tính lại cả sổ tay
-  nbPatchCache_(st, function (nb) {
-    if (key === NB_CHUNG) nb.ghiChuChung = text;
-    else nb.items.forEach(function (x) { if (x.key === key) x.coGhiChu = !!str_(text); });
+  withLock_(function () {
+    nbWriteRows_(st, [{ key: key, fields: { ghiChu: text } }]);
+    // Vòng 2 (R-3): ghi chú không đổi màu/loại lỗi → sửa luôn bản đệm, không bắt tính lại cả sổ tay.
+    // Vòng 3 (V2-3): vá trong khóa, đọc lại bản đệm mới nhất, để hai lần lưu cùng lúc không đè bản vá của nhau.
+    delete MEMO_['__nb_' + st.id];
+    nbPatchCache_(st, function (nb) {
+      if (key === NB_CHUNG) nb.ghiChuChung = text;
+      else nb.items.forEach(function (x) { if (x.key === key) x.coGhiChu = !!str_(text); });
+    });
   });
   return { ok: true, text: text };
 }

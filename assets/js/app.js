@@ -1042,7 +1042,16 @@
       const tok = App.cacheToken();
       const d = await api('notebook');
       App.cacheSet('notebook', d, tok);
-      if (App.currentView() === my && document.getElementById('nbList')) { nb.data = d; delete nb.saving[key]; nbRenderBook(); nbRenderList(); nbMeta(); }
+      if (App.currentView() === my && document.getElementById('nbList')) {
+        // Vòng 3 (V2-1): giữ ghi chú đang có ở máy (có thể chưa lưu xong) thay vì bản máy chủ vừa trả
+        if (nb.data) {
+          d.ghiChuChung = nb.data.ghiChuChung;
+          const local = {};
+          nb.data.items.forEach((x) => { local[x.key] = x.coGhiChu; });
+          d.items.forEach((x) => { if (x.key in local) x.coGhiChu = local[x.key]; });
+        }
+        nb.data = d; delete nb.saving[key]; nbRenderBook(); nbRenderList(); nbMeta();
+      }
     } catch (e) { toast(e.message, 'err'); }
     delete nb.saving[key];
   }
@@ -1053,7 +1062,7 @@
 
   /* Vòng 2 (R-2): chữ đang gõ ghi ngay vào trạng thái (vẽ lại không mất chữ, không mất con trỏ); lưu lên máy chủ sau 1,2 s;
      rời trang / đổi màn / ẩn tab thì gửi ngay các ghi chú còn chờ. */
-  const nbNoteTimers = {}, nbNotePending = {};
+  const nbNoteTimers = {}, nbNotePending = {}, nbNoteInflight = {};
   function nbSetLocalNote(key, text) {
     if (key === '_CHUNG') { if (nb.data) nb.data.ghiChuChung = text; return; }
     if (nb.detail[key]) nb.detail[key].ghiChu = text;
@@ -1067,8 +1076,12 @@
     clearTimeout(nbNoteTimers[key]);
     delete nbNoteTimers[key];
     if (!(key in nbNotePending)) return;
+    // Vòng 3 (V2-2): đang gửi bản trước thì chờ nó xong rồi gửi bản mới (không để bản cũ ghi sau bản mới).
+    // Riêng lúc rời trang (keepalive) thì gửi luôn.
+    if (nbNoteInflight[key] && !keepalive) return;
     const text = nbNotePending[key];
     delete nbNotePending[key];
+    nbNoteInflight[key] = true;
     try {
       await api('notebookNote', { key, text }, { keepalive });
       // R-3: không bỏ bản lưu sổ tay, chỉ cập nhật nó
@@ -1080,7 +1093,11 @@
       const st = nbStatusEl(key);
       if (st) st.textContent = 'Chưa lưu được';
       if (!keepalive) toast(e.message, 'err');
+      delete nbNoteInflight[key];
+      return;
     }
+    delete nbNoteInflight[key];
+    if (key in nbNotePending && !nbNoteTimers[key]) nbSendNote(key, false);
   }
   function nbQueueNote(key, text) {
     nbSetLocalNote(key, text);

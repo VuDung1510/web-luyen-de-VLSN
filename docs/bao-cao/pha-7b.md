@@ -54,3 +54,9 @@ Không có việc mới (dán Code.gs một lần sau 7c). Nên nhập dần tra
 | K-2 (Nhẹ) chọn sai cặp đơn vị vẫn báo xanh | Khi đã biết đáp án lệch 10ⁿ, cặp đơn vị phải lệch đúng 10ⁿ; sai thì báo đỏ, không lưu. |
 
 Kiểm thử vòng 2: `pha7b` 11/11 (thêm 2 ca), `pha7b-kiem-thu` 16/16, `pha7b-kiem-thu.e2e.js all` ĐẠT (mọi TC), `pha7`, `pha7a-kiem-thu` (máy chủ + e2e) ĐẠT, `tests/e2e.js` ĐẠT, test cũ đạt, `scan-secrets` sạch.
+
+## Người làm — Vòng 3 (soát vòng 2 CHƯA ĐẠT vì V2-1; kiểm thử vòng 2 ĐẠT)
+- V2-1 (Vừa): sau khi lưu loại lỗi, thay sổ tay mới nhưng **giữ ghi chú chung và dấu "có ghi chú" đang ở máy** (bản máy khách luôn mới nhất vì mỗi lần gõ đều cập nhật).
+- V2-2 (Nhẹ): mỗi ghi chú chỉ một lần gửi một lúc; gửi xong mà còn bản mới thì gửi tiếp (bản cũ không ghi sau bản mới). Lúc rời trang vẫn gửi ngay.
+- V2-3 (Nhẹ): máy chủ vá bản đệm ngay trong khóa ghi, đọc lại bản đệm mới nhất trước khi vá.
+- Kiểm thử: `pha7b` 11/11, `pha7b-kiem-thu` 16/16, `pha7b-kiem-thu.e2e.js all` 15/15 nhóm ĐẠT, `pha7`, `pha7a-kiem-thu`, backend, cache, `pha6-kiem-thu` đạt.
