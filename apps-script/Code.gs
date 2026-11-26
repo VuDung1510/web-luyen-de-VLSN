@@ -18,7 +18,7 @@
  * Máy chủ chỉ ĐỌC kho và thư mục hình của kho; câu được chọn được chép sang CauHoi, hình được chép sang thư mục web.
  */
 
-var APP_VERSION = '1.6.0';
+var APP_VERSION = '1.7.0';
 /** Tính năng máy chủ này hỗ trợ. Giao diện bật/tắt nút theo danh sách này (không so số phiên bản). */
 var FEATURES = ['changePin', 'goal', 'bootstrap', 'cache', 'bank', 'practice', 'notebook'];
 var TZ = 'Asia/Ho_Chi_Minh';
@@ -353,7 +353,10 @@ var ROUTES = {
   adminPracticeToggle: apiAdminPracticeToggle_,
   // Sổ tay cá nhân (Pha 7)
   notebook: apiNotebook_,
-  notebookItem: apiNotebookItem_
+  notebookItem: apiNotebookItem_,
+  notebookTag: apiNotebookTag_,
+  notebookNote: apiNotebookNote_,
+  notebookResult: apiNotebookResult_
 };
 
 /* =====================================================================
@@ -3065,7 +3068,7 @@ function nbCompute_(st) {
   if (MEMO_[mk]) return MEMO_[mk];
   var cache = scriptCache_(), ck = null;
   if (cache) {
-    var gens = ['DeThi', 'CauHoi', 'SoTay', 'LuyenTap'].map(function (n) { return readGen_(cache, n); });
+    var gens = ['DeThi', 'CauHoi', 'LuyenTap'].map(function (n) { return readGen_(cache, n); }); // Pha 7b: SoTay theo nbVer_ của từng học sinh
     var ver = nbVer_(st.id);
     if (ver && gens.every(Boolean)) ck = 'nb_' + st.id + '_' + ver + '_' + gens.join('_');
     if (ck) {
@@ -3124,10 +3127,11 @@ function nbCompute_(st) {
       key: x.key, nguon: src, loai: ev.l, phan: ev.p, chuong: chuong || 'Chưa rõ chương', bai: bai, mucDo: (q && q.mucDo) || ev.md || '',
       lanSai: wrongs.length, soDe: Object.keys(srcs).length, mau: mau, loi: loi, coGhiChu: !!(tag && str_(tag.ghiChu)),
       congBo: pub, daSua: r.daSua, go: !q,
-      _src: ev.src, _ref: { ex: ev.ex || '', q: ev.q || '', s: ev.s, k: ev.k, h: ev.h, a: ev.a, n: ev.n, t: ev.t }
+      _src: ev.src, _ref: { ex: ev.ex || '', q: ev.q || '', s: ev.s, k: ev.k, h: ev.h, a: ev.a, n: ev.n, t: ev.t, rid: ev.rid, luyen: ev.luyen ? 1 : 0 }
     };
   });
-  var out = { items: items, tongHop: nbSummary_(items), ghiChuChung: rows[NB_CHUNG] ? str_(rows[NB_CHUNG].ghiChu) : '', nhacNho: [] };
+  var tongHop = nbSummary_(items);
+  var out = { items: items, tongHop: tongHop, ghiChuChung: rows[NB_CHUNG] ? str_(rows[NB_CHUNG].ghiChu) : '', nhacNho: nbReminders_(tongHop) };
   if (ck) { try { cachePutChunked_(cache, ck, JSON.stringify(out), CACHE_SECONDS, CACHE_MAX_BYTES); } catch (e) { /* bỏ qua */ } }
   return (MEMO_[mk] = out);
 }
@@ -3163,6 +3167,135 @@ function nbSummary_(items) {
   };
 }
 
+/* ---------- Pha 7b: học sinh tự phân loại, ghi chú, lời nhắc ---------- */
+
+var NB_NOTE_MAX = 500;
+var NB_TAG_MAX = 40;
+var NB_Y = { TINH_TOAN: ['DON_VI', 'BAM_MAY'] };
+/** Lời nhắc ngắn cho hộp "Điều cần nhớ" trước khi làm đề (§7). */
+var NB_NHAC = {
+  CONG_THUC: 'Trước khi thay số, nhắc lại tên gợi nhớ và điều kiện dùng của công thức.',
+  DOC_DE: 'Gạch chân từ khóa trước khi làm: SAI, không, ít nhất, làm tròn, đơn vị của kết quả.',
+  TINH_TOAN: 'Đổi mọi dữ kiện về đơn vị chuẩn (m, kg, s, Pa, J) trước khi thay số; ước lượng kết quả trước khi bấm máy.',
+  SOT: 'Chia giờ cho từng phần, chừa vài phút cuối dò lại; không để trống câu nào, nhất là từng ý Phần II.'
+};
+/** Tối đa 3 loại "sai ngoo" còn đỏ/vàng, nặng nhất trước (tongHop.saiNgoo đã sắp). */
+function nbReminders_(t) {
+  return t.saiNgoo.filter(function (x) { return x.mau !== 'xanh'; }).slice(0, 3)
+    .map(function (x) { return { ma: x.ma, ten: x.ten, mau: x.mau, lapLai: x.lapLai, nhac: NB_NHAC[x.ma] }; });
+}
+
+function nbKeywords_() {
+  return str_(getSetting_('TU_KHOA_DOC_SAI')).split(';').map(function (x) { return str_(x).toLowerCase(); })
+    .filter(function (x, i, a) { return x && x.length <= 40 && a.indexOf(x) === i; }).slice(0, 60);
+}
+
+/** Thời gian của bài chứa lần sai: phút làm đề + giây làm xong từng phần (lần sửa đáp án cuối trong phần). */
+function nbTimes_(ref, exams) {
+  if (!ref || !ref.rid) return null;
+  var r = rowsWhere_(ref.luyen ? 'KetQuaLuyenTap' : 'KetQua', 'id', ref.rid)[0];
+  if (!r) return null;
+  var xong = {}, coT = false;
+  parseJson_(r.chiTiet, []).forEach(function (d) {
+    if (d.t == null || d.t === '') return;
+    coT = true;
+    var p = String(d.p || '');
+    xong[p] = Math.max(xong[p] || 0, num_(d.t));
+  });
+  var e = !ref.luyen && exams ? exams[r.examId] : null;
+  return { phut: e ? num_(e.thoiGian) : 0, daLam: num_(r.thoiGianGiay), xong: coT ? xong : null };
+}
+
+/** Ghi một hàng SoTay của học sinh (thêm mới hoặc sửa hàng có sẵn theo Mã HS + Khóa câu). Gọi trong withLock_. */
+function nbUpsert_(st, key, fields) {
+  var rows = readTable_('SoTay', { fresh: true }).filter(function (r) { return str_(r.studentId) === st.id && str_(r.key) === key; });
+  var obj = Object.assign({ capNhat: fmtDateTime_(new Date()) }, fields);
+  if (rows.length) updateRow_('SoTay', rows[0]._row, obj, 'key', key);
+  else appendRows_('SoTay', [Object.assign({ studentId: st.id, key: key, loai: '', nguon: '', chiTiet: '', ghiChu: '' }, obj)]);
+}
+
+/** Chi tiết lỗi học sinh gửi: chỉ giữ vài trường chữ ngắn (đại lượng, đơn vị…). */
+function nbCleanDetail_(c, y) {
+  var out = {};
+  if (y) out.y = y;
+  if (c && typeof c === 'object') ['dl', 'dvEm', 'dvDung'].forEach(function (k) {
+    var v = str_(c[k]);
+    if (v && v.length <= 30) out[k] = v;
+  });
+  return out;
+}
+
+/**
+ * Học sinh chọn loại lỗi cho các câu trong sổ tay: items [{key, ma, y?, chiTiet?}] (≤ 40).
+ * ma = '' → bỏ lựa chọn của em (quay về máy đoán). Từ chối khóa không có trong sổ tay của em.
+ */
+function apiNotebookTag_(req) {
+  var st = requireStudent_(req);
+  requireNotebookOn_();
+  var items = Array.isArray(req.items) ? req.items : [];
+  if (!items.length) return { n: 0 };
+  if (items.length > NB_TAG_MAX) throw new Error('Mỗi lần lưu tối đa ' + NB_TAG_MAX + ' câu.');
+  var nb = nbCompute_(st);
+  var have = {};
+  nb.items.forEach(function (x) { have[x.key] = 1; });
+  var clean = items.map(function (it) {
+    var key = str_(it && it.key), ma = str_(it && it.ma);
+    if (!have[key]) throw new Error('Câu này không có trong sổ tay của em.');
+    if (ma && (!NB_LOAI[ma] || ma === 'CHUA_RO')) throw new Error('Loại lỗi không hợp lệ.');
+    var y = ma && NB_Y[ma] && NB_Y[ma].indexOf(str_(it.y)) >= 0 ? str_(it.y) : '';
+    return { key: key, ma: ma, chiTiet: ma ? nbCleanDetail_(it.chiTiet, y) : {} };
+  });
+  withLock_(function () {
+    clean.forEach(function (c) {
+      nbUpsert_(st, c.key, { loai: c.ma, nguon: c.ma ? 'HS' : '', chiTiet: c.ma ? JSON.stringify(c.chiTiet) : '' });
+    });
+  });
+  nbVer_(st.id, true);
+  return { n: clean.length };
+}
+
+/** Ghi chú của học sinh cho một câu (key) hoặc ghi chú chung (key = "_CHUNG"); cắt 500 ký tự. */
+function apiNotebookNote_(req) {
+  var st = requireStudent_(req);
+  requireNotebookOn_();
+  var key = str_(req.key);
+  if (key !== NB_CHUNG) {
+    var nb = nbCompute_(st);
+    if (!nb.items.some(function (x) { return x.key === key; })) throw new Error('Câu này không có trong sổ tay của em.');
+  }
+  var text = String(req.text == null ? '' : req.text).replace(/\r\n?/g, '\n').slice(0, NB_NOTE_MAX);
+  withLock_(function () { nbUpsert_(st, key, { ghiChu: text }); });
+  nbVer_(st.id, true);
+  return { ok: true, text: text };
+}
+
+/**
+ * Các câu sai của MỘT bài làm (để hiện khung "Em sai vì sao?" sau khi nộp): [{stt, key, loai, phan, loi, lanSai, lapLai}].
+ * Không có nội dung câu (trang kết quả đã có). Chỉ bài của chính học sinh.
+ */
+function apiNotebookResult_(req) {
+  var st = requireStudent_(req);
+  requireNotebookOn_();
+  var id = str_(req.resultId);
+  var luyen = id.indexOf('LT') === 0;
+  var r = rowsWhere_(luyen ? 'KetQuaLuyenTap' : 'KetQua', 'id', id).filter(function (x) { return x.studentId === st.id; })[0];
+  if (!r) throw new Error('Không tìm thấy bài làm.');
+  var nb = nbCompute_(st);
+  var byKey = {};
+  nb.items.forEach(function (x) { byKey[x.key] = x; });
+  var lap = {};
+  nb.tongHop.saiNgoo.forEach(function (x) { if (x.lapLai) lap[x.ma] = 1; });
+  var out = [];
+  parseJson_(r.chiTiet, []).forEach(function (d) {
+    if (!(num_(d.sc) < num_(d.m) - 1e-9)) return;
+    var key = luyen ? (d.k || d.q) : (d.k || (r.examId + '#' + d.s));
+    var x = byKey[key];
+    if (!key || !x) return;
+    out.push({ stt: num_(d.s), key: key, loai: d.l, phan: d.p, loi: x.loi, lanSai: x.lanSai, lapLai: !!lap[x.loi.ma] });
+  });
+  return { resultId: id, items: out, daPhanLoai: out.length > 0 && out.every(function (x) { return x.loi.nguon === 'HS'; }) };
+}
+
 /** Bỏ trường nội bộ (_ref, _src) trước khi gửi cho học sinh. */
 function nbPublicItem_(x) {
   var o = {};
@@ -3175,7 +3308,7 @@ function apiNotebook_(req) {
   var st = requireStudent_(req);
   requireNotebookOn_();
   var nb = nbCompute_(st);
-  return { items: nb.items.map(nbPublicItem_), tongHop: nb.tongHop, ghiChuChung: nb.ghiChuChung, nhacNho: nb.nhacNho };
+  return { items: nb.items.map(nbPublicItem_), tongHop: nb.tongHop, ghiChuChung: nb.ghiChuChung, nhacNho: nb.nhacNho, tuKhoa: nbKeywords_() };
 }
 
 /** Công thức (trang CongThuc, đang bật) của bài chứa câu q: khớp tên bài, hoặc mã bài là tiền tố của mã câu kho. */
@@ -3219,12 +3352,13 @@ function apiNotebookItem_(req) {
       var tag = rows[x.key];
       var o = { key: x.key, loai: x.loai, phan: x.phan, answer: ref.a, nCorrect: ref.n == null ? null : ref.n, daSua: r.daSua,
         ghiChu: tag ? str_(tag.ghiChu) : '', chiTietLoi: tag ? (parseJson_(tag.chiTiet, {}) || {}) : {} };
-      if (!q) { o.go = true; o.noiDung = 'Câu đã bị gỡ khỏi đề hoặc ngân hàng.'; return o; }
+      if (!q) { o.go = true; o.noiDung = 'Câu đã bị gỡ khỏi đề hoặc ngân hàng.'; o.thoiGian = nbTimes_(ref, exams); return o; }
       o.noiDung = q.noiDung; o.hinhAnh = q.hinhAnh; o.A = q.A; o.B = q.B; o.C = q.C; o.D = q.D;
       o.chuong = str_(q.chuong); o.bai = str_(q.bai) || x.bai; o.mucDo = q.mucDo || x.mucDo;
       if (pub) { o.dapAn = q.dapAn; o.loiGiai = q.loiGiai; }
       else { o.an = true; o.anNote = NB_HIDDEN_NOTE; }
       o.congThuc = nbFormulas_(q, o.bai);
+      o.thoiGian = nbTimes_(ref, exams);
       return o;
     })
   };

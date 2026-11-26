@@ -395,10 +395,10 @@ t('Sheet cũ thiếu các cột mới của CauHoi: vẫn đọc được, ghi t
   assert.deepStrictEqual(header.slice(-5), oldLabels);
 });
 
-t('features có "bank"; APP_VERSION 1.6.0; CaiDat có KHO_CAU_HOI_ID, THU_MUC_HINH_KHO_ID (setup chạy lại an toàn)', () => {
+t('features có "bank"; APP_VERSION 1.7.0; CaiDat có KHO_CAU_HOI_ID, THU_MUC_HINH_KHO_ID (setup chạy lại an toàn)', () => {
   const p = ok(g.call('publicConfig'));
   assert(p.features.indexOf('bank') >= 0);
-  assert.strictEqual(p.version, '1.6.0');
+  assert.strictEqual(p.version, '1.7.0');
   const g2 = createContext({ quiet: true });
   g2.setup(); g2.setup();
   const keys = g2._sheets.CaiDat._data().map((r) => r[0]);

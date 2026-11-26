@@ -51,11 +51,11 @@ const byStt = (nb, eid, stt) => nb.items.find((x) => x.nguon.examId === eid && x
 
 console.log('Sổ tay cá nhân (Pha 7a) — máy chủ:');
 
-t('features có "notebook"; APP_VERSION 1.6.0; setup tạo SoTay, CongThuc và 2 khóa CaiDat (chạy lại an toàn); publicConfig.notebook mặc định bật', () => {
+t('features có "notebook"; APP_VERSION 1.7.0; setup tạo SoTay, CongThuc và 2 khóa CaiDat (chạy lại an toàn); publicConfig.notebook mặc định bật', () => {
   const w = world();
   const p = ok(w.g.call('publicConfig'));
   assert.ok(p.features.includes('notebook'));
-  assert.strictEqual(p.version, '1.6.0');
+  assert.strictEqual(p.version, '1.7.0');
   assert.strictEqual(p.notebook, true);
   w.g.setup();
   assert.deepStrictEqual(JSON.parse(JSON.stringify(w.g._sheets.SoTay._data()[0])), JSON.parse(JSON.stringify(w.g.SCHEMA.SoTay.map((d) => d[1]))));
