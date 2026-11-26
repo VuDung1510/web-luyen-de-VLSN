@@ -149,44 +149,44 @@ details.sol div { margin-top: 6px; font-size: 14px; }
     linear-gradient(90deg, transparent 38px, var(--margin) 38px, var(--margin) 40px, transparent 40px),
     repeating-linear-gradient(180deg, transparent 0 31px, var(--rule) 31px 32px);
   border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
-  padding: 18px 18px 22px 54px; position: sticky; top: 12px;
+  padding: 32px 18px 32px 54px; position: sticky; top: 12px;
+  line-height: 32px; /* mỗi dòng chữ = 1 dòng kẻ */
 }
-.book-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 10px; margin-bottom: 12px; }
-.book-head h2 { white-space: nowrap; }
-.book-head h2 { font-size: 20px; color: var(--primary); }
-.legend-sev { display: flex; gap: 10px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+/* Trong sổ: mọi dòng chữ cao 32px, khoảng cách giữa các khối là bội 32px; khối công cụ (chiều cao tự do) được JS bù cho tròn bội 32px. */
+.book .tool { line-height: 1.55; }
+.book-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; column-gap: 10px; }
+.book-head h2 { font-size: 20px; color: var(--primary); white-space: nowrap; }
+.legend-sev { display: flex; flex-wrap: wrap; column-gap: 10px; font-size: 12px; color: var(--muted); }
 .legend-sev span { display: inline-flex; align-items: center; gap: 4px; }
-.ratio { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.ratio-row { height: 32px; display: flex; align-items: center; }
+.ratio { flex: 1; display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
 .ratio i { display: block; height: 100%; }
-.ratio-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; margin-top: 6px; color: var(--muted); }
+.ratio-legend { display: flex; flex-wrap: wrap; column-gap: 12px; font-size: 12px; color: var(--muted); }
 .ratio-legend span { display: inline-flex; gap: 5px; align-items: center; }
 .ratio-legend .sw { width: 8px; height: 8px; border-radius: 2px; }
-.sec { margin-top: 20px; }
-.sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.sec { margin-top: 32px; }
+.sec-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 8px; }
 .sec-h h3 { font-size: 16px; }
-.err { padding: 9px 0; border-bottom: 1px dashed var(--rule); }
-.err:last-child { border-bottom: 0; }
-.err-line { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.err-line { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; column-gap: 10px; align-items: center; }
 .err-name { background: none; border: 0; padding: 0; text-align: left; font-weight: 600; font-size: 15px; min-width: 0; }
 .err-name:hover { color: var(--primary); text-decoration: underline; }
 .err-meta { display: flex; gap: 8px; align-items: center; font-size: 13px; }
-.rep { background: var(--do-soft); color: var(--do); border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
-.err-bar { margin: 6px 0 0 24px; height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.rep { background: var(--do-soft); color: var(--do); border-radius: 999px; padding: 1px 8px; font-size: 11px; line-height: 18px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.err-sub { height: 32px; display: flex; align-items: center; gap: 12px; padding-left: 24px; }
+.err-bar { flex: 1; height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
 .err-bar i { display: block; height: 100%; }
-.fix-toggle { margin: 6px 0 0 24px; background: none; border: 0; padding: 0; color: var(--primary); font-weight: 600; font-size: 13px; }
-.fix-panel { margin: 8px 0 4px 24px; }
-details.hkt > summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.fix-toggle { background: none; border: 0; padding: 0; color: var(--primary); font-weight: 600; font-size: 13px; white-space: nowrap; }
+.fix-panel { padding-left: 24px; }
+details.hkt > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; column-gap: 8px; }
 details.hkt > summary::-webkit-details-marker { display: none; }
 details.hkt > summary h3 { font-size: 16px; }
 details.hkt > summary .more { color: var(--primary); font-size: 13px; font-weight: 600; }
 details.hkt[open] > summary .more .closed, details.hkt:not([open]) > summary .more .opened { display: none; }
-.map { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-.map-ch { font-size: 14px; }
-.map-ch-h { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-weight: 600; }
-.map-bai { margin: 4px 0 0 20px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--muted); }
+.map-ch-h { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; column-gap: 8px; align-items: center; font-weight: 600; font-size: 14px; }
+.map-bai { padding-left: 20px; font-size: 13px; color: var(--muted); }
 .map-bai div { display: flex; justify-content: space-between; gap: 8px; }
 .hkt-sum { font-size: 13px; color: var(--muted); }
-.notes { width: 100%; min-height: 120px; border: 0; border-radius: 0; background: transparent; resize: vertical; line-height: 32px; padding: 0; font-size: 15px; font-family: var(--font); }
+.notes { display: block; width: 100%; height: 128px; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; resize: none; overflow: hidden; font-size: 15px; font-family: var(--font); line-height: 32px; }
 .notes:focus-visible { outline: 2px dashed var(--primary); }
 .saved { font-size: 12px; color: var(--muted); }
 
@@ -600,7 +600,7 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
       ['CHUA_RO', 'Chưa phân loại', 'var(--c-cr)', items.filter((i) => i.loi.ma === 'CHUA_RO').length]].filter((s) => s[3]);
     const pct = (n) => Math.round((n / total) * 100);
     let h = `<div class="book-head"><h2 id="bookTitle">Sổ tay</h2><div class="legend-sev"><span><i class="dot do"></i>Lặp lại</span><span><i class="dot vang"></i>Đang mắc</span><span><i class="dot xanh"></i>Đã khắc phục</span></div></div>`;
-    h += `<div class="ratio" role="img" aria-label="Tỉ lệ loại lỗi">${segs.map((s) => `<i style="width:${(s[3] / total) * 100}%;background:${s[2]}" title="${esc(s[1])}: ${s[3]} câu"></i>`).join('')}</div>`;
+    h += `<div class="ratio-row"><div class="ratio" role="img" aria-label="Tỉ lệ loại lỗi">${segs.map((s) => `<i style="width:${(s[3] / total) * 100}%;background:${s[2]}" title="${esc(s[1])}: ${s[3]} câu"></i>`).join('')}</div></div>`;
     h += `<div class="ratio-legend">${segs.map((s) => `<span><i class="sw" style="background:${s[2]}"></i>${esc(s[1])} <b class="num">${pct(s[3])}%</b></span>`).join('')}</div>`;
 
     const ng = ngooSorted();
@@ -611,8 +611,8 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
       return `<div class="err"><div class="err-line"><i class="dot ${s.mau}" title="${MAU_TEN[s.mau]}"></i>
         <button class="err-name" data-act="filter-type" data-ma="${s.ma}" title="Xem các câu thuộc lỗi này">${esc(L.ten)}</button>
         <span class="err-meta">${s.lapLai ? '<span class="rep">Lặp lại</span>' : ''}<span class="num"><b>${s.n}</b> câu · ${pct(s.n)}%</span></span></div>
-        <div class="err-bar"><i style="width:${pct(s.n)}%;background:${L.mau}"></i></div>
-        <button class="fix-toggle" data-act="toggle-fix" data-ma="${s.ma}" aria-expanded="${open}">${open ? 'Thu gọn ▾' : 'Cách sửa ▸'}</button>
+        <div class="err-sub"><div class="err-bar"><i style="width:${pct(s.n)}%;background:${L.mau}"></i></div>
+        <button class="fix-toggle" data-act="toggle-fix" data-ma="${s.ma}" aria-expanded="${open}">${open ? 'Thu gọn ▾' : 'Cách sửa ▸'}</button></div>
         ${open ? `<div class="fix-panel">${bookFix(s.ma)}</div>` : ''}</div>`;
     }).join('') : '<div class="muted">Chưa có lỗi nào thuộc nhóm này.</div>';
     h += '</div>';
@@ -632,12 +632,28 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
         its.forEach((i) => { byBai[i.bai] = (byBai[i.bai] || 0) + 1; });
         return `<div class="map-ch"><div class="map-ch-h"><i class="dot ${mau}"></i><span>${esc(ch)}</span><span class="num">${its.length} câu</span></div>
           <div class="map-bai">${Object.keys(byBai).map((b) => `<div><span>${esc(b)}</span><span class="num">${byBai[b]}</span></div>`).join('')}</div></div>`;
-      }).join('')}</div>${chuaRo ? `<button class="fix-toggle" style="margin-left:0" data-act="filter-type" data-ma="CHUA_RO">Phân loại ${chuaRo} câu còn lại ▸</button>` : ''}</details>`;
+      }).join('')}</div>${chuaRo ? `<button class="fix-toggle" data-act="filter-type" data-ma="CHUA_RO">Phân loại ${chuaRo} câu còn lại ▸</button>` : ''}</details>`;
 
     h += `<div class="sec"><div class="sec-h"><h3>Ghi chú của em</h3><span class="saved" id="gsaved"></span></div>
       <textarea class="notes" id="gnote" aria-label="Ghi chú của em" placeholder="Viết điều em muốn nhớ trước mỗi bài kiểm tra…">${esc(gnote)}</textarea></div>`;
     $('#book').innerHTML = h;
     $('#hkt').addEventListener('toggle', (e) => { ui.hktOpen = e.target.open; });
+    snapBook();
+  }
+  /* Giữ chữ khớp dòng kẻ: khối công cụ được bù cho tròn bội 32px, ô ghi chú cao theo số dòng. */
+  const LN = 32;
+  function growNote() {
+    const t = $('#gnote'); if (!t) return;
+    t.style.height = '0px';
+    t.style.height = Math.max(4, Math.ceil(t.scrollHeight / LN)) * LN + 'px';
+  }
+  function snapBook() {
+    document.querySelectorAll('#book .fix-panel').forEach((p) => {
+      p.style.paddingBottom = '0px';
+      const r = p.getBoundingClientRect().height % LN;
+      p.style.paddingBottom = (r > 0.5 ? LN - r : 0) + 'px';
+    });
+    growNote();
   }
   function bookFix(ma) {
     if (ma === 'CONG_THUC') {
@@ -865,7 +881,7 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
     const t = e.target;
     if (t.id === 'fQ') { ui.filter.q = t.value; ui.filter.from = ''; renderList(); return; }
     if (t.id === 'gnote') {
-      gnote = t.value; $('#gsaved').textContent = 'Đang lưu…'; clearTimeout(nt);
+      gnote = t.value; growNote(); $('#gsaved').textContent = 'Đang lưu…'; clearTimeout(nt);
       nt = setTimeout(() => { store.set('gnote', gnote); const s = $('#gsaved'); if (s) s.textContent = 'Đã lưu'; }, 800);
       return;
     }
@@ -874,5 +890,7 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
 
   load(); renderFilters(); render();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(snapBook);
+  window.addEventListener('resize', snapBook);
 })();
 </script>
