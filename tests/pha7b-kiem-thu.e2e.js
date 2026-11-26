@@ -218,7 +218,9 @@ async function runNew(browser) {
     await shot(page, '03-em-sai-vi-sao-1280', { fullPage: true });
     // "Lỗi này em đã mắc n lần"
     const lap = await page.evaluate(() => { const e = document.querySelector('#nbResult .nb-lap'); return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; });
-    verdict('Trang kết quả (§7)', /mắc\s*\d+\s*lần/.test(lap), `dòng nhắc câu sai trùng loại lỗi đỏ: "${lap}" (đặc tả: "Lỗi này em đã mắc n lần")`);
+    const nSot = (await api(srv.base, 'notebook', { token: S.st })).items.filter((x) => x.loi.ma === 'SOT').length;
+    const mN = lap.match(/mắc\s*(\d+)\s*lần/);
+    verdict('Trang kết quả (§7)', mN && +mN[1] === nSot, `dòng nhắc câu sai trùng loại lỗi đỏ: "${lap}" — sổ tay có ${nSot} câu Sót ý (đặc tả: "Lỗi này em đã mắc n lần")`);
     // Bỏ qua → tải lại không hiện → "Phân loại lỗi" mở lại
     await page.click('[data-why="skip"]'); await page.waitForTimeout(500);
     const afterSkip = await visibleWhy(page);
@@ -264,7 +266,10 @@ async function runNew(browser) {
     await pick('cm'); await pick('mm'); const fbWrong = await fbAfter();
     console.log('      · đơn vị: chọn "cm": ' + JSON.stringify(fbEm) + ' | rồi "m": ' + JSON.stringify(fbRight) + ' | lượt 2 "cm"→"mm": ' + JSON.stringify(fbWrong));
     verdict('TC-7.12', isRight(fbRight) && /10²|10\^2|×\s*10/.test(fbRight.join(' ') + arrow), `em dùng "cm", chọn đơn vị đúng "m" → ${JSON.stringify(fbRight)}`);
-    verdict('TC-7.12 (biên)', !isRight(fbWrong), `máy đã biết lệch 10², em dùng "cm" mà chọn "mm" (chỉ 10¹) → ${JSON.stringify(fbWrong)} — mong: không báo đúng`);
+    await page.waitForTimeout(1500);
+    const itU = (await api(srv.base, 'notebookItem', { token: S.st, keys: [kU] }));
+    const ctU = JSON.stringify((itU.items || itU)[0] && ((itU.items || itU)[0].chiTiet || (itU.items || itU)[0].loi));
+    verdict('TC-7.12 (biên)', !isRight(fbWrong) && fbWrong.some((x) => /^\[bad\]/.test(x)) && !/"dvDung":"mm"/.test(ctU), `máy đã biết lệch 10², em dùng "cm" mà chọn "mm" (chỉ 10¹) → ${JSON.stringify(fbWrong)}; chi tiết lỗi đã lưu ${ctU}`);
     await shot(page, '04-cong-cu-don-vi-1280');
     // chọn nhiệt độ: công thức cộng trừ
     await page.selectOption(`.nb-item[data-key="${kU}"] [data-unitdl]`, 'nhietDo'); await page.waitForTimeout(250);
@@ -310,6 +315,41 @@ async function runNew(browser) {
     await page.fill('#nbGnote', 'x'.repeat(650)); const len = (await page.$eval('#nbGnote', (t) => t.value)).length;
     verdict('TC-7.11', len <= 500, `ô ghi chú chung nhận tối đa ${len} ký tự (máy chủ cũng cắt 500, xem bài Node)`);
     await page.fill('#nbGnote', gnote); await page.waitForTimeout(2600);
+    // ---- Vòng 2 (R-2): gõ ghi chú trong lúc trang vẽ lại; gõ rồi chuyển trang ngay ----
+    {
+      await page.reload(); await page.waitForSelector('#nbSplit .nb-item'); await page.waitForTimeout(600);
+      for (const k of [kK, S.K + '#2']) { await page.click(`.nb-row[data-nbopen="${k}"]`); await page.waitForTimeout(900); }
+      const sel = `.nb-item[data-key="${kK}"] [data-nbnote="${kK}"]`;
+      await page.fill(sel, ''); await page.focus(sel);
+      await page.keyboard.type('một ', { delay: 30 });
+      await page.evaluate((k) => document.querySelector(`.nb-item[data-key="${k}"] [data-nbma="HONG_KT"]`).click(), S.K + '#2');
+      await page.keyboard.type('hai ', { delay: 30 });
+      await page.evaluate(() => { const b = document.querySelector('#nbBook [data-nbfix="SOT"]'); if (b) b.click(); });
+      await page.keyboard.type('ba ', { delay: 30 });
+      await page.evaluate((k) => document.querySelector(`.nb-row[data-nbopen="${k}"]`).click(), S.D + '#1');
+      await page.waitForTimeout(60); await page.keyboard.type('bốn', { delay: 30 });
+      await page.waitForTimeout(1200); await page.keyboard.type(' năm', { delay: 30 }); // sau khi câu khác tải xong
+      const st = await page.evaluate((s2) => { const ta = document.querySelector(s2); return { v: ta && ta.value, focus: document.activeElement === ta, pos: ta && ta.selectionStart }; }, sel);
+      await page.waitForTimeout(2500);
+      const srvNote = ((await api(srv.base, 'notebookItem', { token: S.st, keys: [kK] })).items || [])[0];
+      const want = 'một hai ba bốn năm';
+      verdict('TC-7.11', st.v === want && st.focus && st.pos === want.length && srvNote && srvNote.ghiChu === want,
+        `vòng 2: gõ ghi chú trong lúc bấm chip câu khác, mở "Cách sửa", một câu khác tải xong → ô còn "${st.v}", con trỏ ở ${st.pos}, vẫn trong ô (${st.focus}); máy chủ lưu "${srvNote && srvNote.ghiChu}"`);
+      // gõ rồi rời trang ngay
+      await page.focus(sel); await page.keyboard.press('End'); await page.keyboard.type(' gấp', { delay: 20 });
+      await page.waitForTimeout(300);
+      await page.goto(srv.base + '/#/lich-su'); await page.waitForTimeout(2000);
+      const n2 = ((await api(srv.base, 'notebookItem', { token: S.st, keys: [kK] })).items || [])[0];
+      const g2 = (await api(srv.base, 'notebook', { token: S.st })).ghiChuChung;
+      await page.goto(srv.base + '/#/so-tay'); await page.waitForSelector('#nbGnote'); await page.waitForTimeout(500);
+      await page.focus('#nbGnote'); await page.keyboard.press('Control+End'); await page.keyboard.type(' X', { delay: 20 });
+      await page.waitForTimeout(200);
+      await page.evaluate(() => { location.hash = '#/'; });
+      await page.waitForTimeout(2000);
+      const g3 = (await api(srv.base, 'notebook', { token: S.st })).ghiChuChung;
+      verdict('TC-7.11', n2 && n2.ghiChu === want + ' gấp' && g3 === g2 + ' X', `vòng 2: gõ rồi chuyển trang sau 0,2–0,3 giây → ghi chú câu "${n2 && n2.ghiChu}", ghi chú chung kết thúc "${String(g3).slice(-12)}"`);
+      await page.goto(srv.base + '/#/so-tay'); await page.waitForSelector('#nbSplit .nb-item'); await page.waitForTimeout(400);
+    }
     // TC-7.14 thẻ công thức
     await api(srv.base, 'notebookTag', { token: S.st, items: [{ key: S.K + '#1', ma: 'CONG_THUC' }, { key: S.K + '#2', ma: 'CONG_THUC' }] });
     await page.reload(); await page.waitForSelector('#nbSplit .nb-item'); await page.waitForTimeout(500);
