@@ -41,7 +41,7 @@
 - E2E (`tests/e2e.js`, cần `LIBS_DIR` vì máy này không tới được cdnjs): máy chủ mới **ĐẠT**; máy chủ giả lập 1.0.0 **ĐẠT**, mục Sổ tay ẩn, `#/so-tay` báo "chưa mở".
 - Xem tay trang Sổ tay thật trên dev-server: 1280×800 sáng và 390×844 tối, không lỗi console, không tràn ngang (ảnh dưới).
 
-**Bài kiểm thử cũ em đã sửa** (chỉ số phiên bản / danh sách, không đổi logic): `tests/pha4.test.js`, `bank.test.js`, `cache.test.js`, `pha6.test.js` (1.5.0 → 1.6.0, thêm `notebook`); `tests/pha6-kiem-thu.test.js` (hằng `VERSION`, `FEATURES`, `NEW_SHEETS`; dòng tìm `APP_VERSION` theo `VERSION`). Bộ quét `tests/scan-secrets.js` **không** sửa: trang mẫu bỏ logo nhúng base64 (trỏ tới file logo), bài kiểm thử dùng PIN mẫu `0503` của README.
+**Bài kiểm thử cũ em đã sửa** (chỉ số phiên bản / danh sách, không đổi logic): `tests/pha4.test.js`, `bank.test.js`, `cache.test.js`, `pha6.test.js` (1.5.0 → 1.6.0, thêm `notebook`); `tests/pha6-kiem-thu.test.js` (hằng `VERSION`, `FEATURES`, `NEW_SHEETS`; dòng tìm `APP_VERSION` theo `VERSION`). Bộ quét `tests/scan-secrets.js` **không** sửa: trang mẫu bỏ logo nhúng base64 (trỏ tới file logo), học sinh thử trong bài kiểm thử dùng ngày sinh ví dụ của README nên PIN thuộc danh sách PIN mẫu bộ quét đã cho phép.
 
 ### Chưa đạt, cần người soát / kiểm thử / giáo viên quyết định
 - **TC-5.1 (Pha 5, "danh sách màu cho phép")** báo các mã màu mới của Sổ tay (đỏ / vàng / xanh, màu 5 loại lỗi, giấy kẻ, bản tối). Bài này so với `main` nên màu mới nào cũng bị báo cho tới khi gộp. Các màu này đúng bảng màu trang mẫu thầy đã duyệt; người làm **không** sửa bài kiểm thử Pha 5. Đề nghị kiểm thử Pha 7a xác nhận tương phản các màu mới rồi ghi kết luận.
