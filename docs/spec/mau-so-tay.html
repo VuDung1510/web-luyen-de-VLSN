@@ -186,7 +186,8 @@ details.hkt[open] > summary .more .closed, details.hkt:not([open]) > summary .mo
 .map-bai { padding-left: 20px; font-size: 13px; color: var(--muted); }
 .map-bai div { display: flex; justify-content: space-between; gap: 8px; }
 .hkt-sum { font-size: 13px; color: var(--muted); }
-.notes { display: block; width: 100%; height: 128px; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; resize: none; overflow: hidden; font-size: 15px; font-family: var(--font); line-height: 32px; }
+/* Ghi chú viết như vở: đẩy chữ xuống để chân chữ nằm sát dòng kẻ bên dưới. */
+.notes { --note-pad: 9px; display: block; width: 100%; height: calc(128px + var(--note-pad)); margin: 0; padding: var(--note-pad) 0 0; border: 0; border-radius: 0; background: transparent; resize: none; overflow: hidden; font-size: 15px; font-family: var(--font); line-height: 32px; }
 .notes:focus-visible { outline: 2px dashed var(--primary); }
 .saved { font-size: 12px; color: var(--muted); }
 
@@ -645,7 +646,8 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
   function growNote() {
     const t = $('#gnote'); if (!t) return;
     t.style.height = '0px';
-    t.style.height = Math.max(4, Math.ceil(t.scrollHeight / LN)) * LN + 'px';
+    const pad = parseFloat(getComputedStyle(t).paddingTop) || 0;
+    t.style.height = pad + Math.max(4, Math.ceil((t.scrollHeight - pad) / LN)) * LN + 'px';
   }
   function snapBook() {
     document.querySelectorAll('#book .fix-panel').forEach((p) => {
