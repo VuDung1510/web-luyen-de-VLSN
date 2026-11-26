@@ -65,3 +65,44 @@ Không có phát hiện mức **Nặng**. Không có phát hiện nào ảnh hư
 
 ## Kết luận
 **ĐẠT** — không có phát hiện Nặng, không có phát hiện Vừa nào ảnh hưởng bảo mật hay dữ liệu. Đề nghị sửa R-1 (tốc độ) và R-2 (ô lọc) ở vòng 2 trước khi gộp và trước khi thầy dán Code.gs 1.6.0. Các mục Nhẹ có thể sửa cùng lúc hoặc chuyển sang 7b. TC-5.1 cần người kiểm thử cập nhật danh sách màu sau khi bảng màu Sổ tay được chốt.
+
+---
+
+## Vòng 2
+
+Phạm vi: `git diff 2908dc7..fab23cd` (commit `fab23cd`). Đã soát lại toàn bộ khối Sổ tay theo `00-quy-trinh` §2.3, tập trung vào khóa đệm mới và số lần đọc Sheet.
+
+**Tóm tắt:** cả hai lỗi mức Vừa đã được sửa đúng. Sổ tay của học sinh có 200 câu sai giờ chỉ đọc trang `LuyenTap` 4 lần (trước là ~130 lần) và được cất vào đệm. Ô lọc chạy đúng. Không có chỗ nào làm lộ đáp án. Khóa đệm mới chỉ có thể cho kết quả cũ tối đa 60 giây, và chỉ khi giáo viên xóa bài hoặc sửa tay trang kết quả; mức này nằm trong giới hạn đệm 60 giây đã chốt.
+
+**Đã chạy:**
+- `tests/pha7.test.js`: 15/15 đạt. `tests/pha7a-kiem-thu.test.js`: 28/28 đạt.
+- backend, cache, bank, pha4, pha4-kiem-thu, pha6, pha6-kiem-thu (105/105): đạt. `scan-secrets`: sạch.
+- `pha5-kiem-thu` vẫn trượt TC-5.1 (danh sách màu).
+- Chạy lại script đo của vòng 1 (kho giả 600 câu, 200 câu sai ở bài luyện):
+
+| Thao tác | Số lần đọc trang `LuyenTap` (`getRange`) | Có cất vào đệm không |
+|---|---|---|
+| `notebook` | 4 (vòng 1: 128–136) | Có, 3 khóa (chia mảnh) |
+| `notebookItem` xem 1 câu | 2 (vòng 1: 126) | — |
+
+| Mã | Đã sửa đúng chưa | Ghi chú / phát hiện mới |
+|---|---|---|
+| R-1 | **Đúng** | Hai cách đọc Sheet ít hơn: (1) câu luyện tập chỉ cần chương / bài / mức độ thì lấy từ `poolIndex_`, không đọc hàng; (2) chỉ câu Phần III đã trả lời và học sinh chưa tự chọn loại lỗi mới đọc đủ hàng, theo khối gộp (`readRowRuns_(…, true)`, ≤ 10 khối). Đọc từng phần như vậy không đổi kết quả đoán: `nbGuess_` chỉ dùng `q.dapAn` cho câu Phần III, và các câu khác trả kết quả trước khi chạm tới đáp án. Đệm dùng `cachePutChunked_` / `cacheGetChunked_` (đo theo byte, kiểm độ dài khi ghép mảnh). **Khóa đệm mới** = `nbVer_(mã HS)` + thế hệ DeThi / CauHoi / SoTay / LuyenTap. Đã xét các trường hợp tranh chấp: phiên bản được tăng **sau** khi ghi bài trong khóa, nên một lần tính chen giữa chỉ cất dưới phiên bản cũ, không ai đọc lại khóa đó. Phiên bản bị CacheService xóa sớm thì sinh phiên bản mới, tức là tính lại, không trả dữ liệu cũ. Khóa vẫn có mã học sinh nên không trộn giữa các học sinh. Sửa đề hay đồng bộ pool vẫn làm đổi khóa. Có hai trường hợp không làm đổi khóa: xóa bài và sửa tay Sheet (xem V2-1). |
+| R-2 | **Đúng** | `onFilter` tạo lại `nb.filter` từ các ô lọc và xóa lọc chương ngầm. Nút "✕" và `nbBookClick` đều đặt `chuong`. |
+| R-3 | **Đúng** | Tương phản tự tính: `--nb-do-text` #b42323 đạt 6,55 trên nền trắng, 5,58 trên nền đỏ nhạt, 6,49 trên nền giấy; `--nb-xanh-text` #1D6B3E đạt 6,51 / 5,67 / 6,45. Giao diện tối ≥ 5,5. Đạt ≥ 4,5:1. |
+| R-4 | Chấp nhận (ghi trong đặc tả) | Đồng ý: `notebookItem` luôn tính lại điều kiện công bố, nên không lộ đáp án. |
+| R-5 | **Đúng** | Gộp vào R-1. |
+| R-6 | **Đúng** (còn khe nhỏ) | Vào `#/so-tay` khi cấu hình đã tắt thì xóa bản lưu và hiện "chưa mở". Khe còn lại: nếu cấu hình lưu trên máy (`ld_pub`, sống ≤ 10 phút) chưa biết thầy vừa tắt, trang vẫn hiện bản lưu một lần; lần sau sẽ hết. Xem V2-2. |
+| R-7 | **Đúng** | `nb.tab = 'sotay'` mỗi lần vào trang. |
+| R-8 | **Đúng** | Lọc chương bỏ nhóm Sai ngoo; nhãn "Hổng kiến thức · <chương>"; đặc tả §7 đã ghi. |
+| R-9 | **Đúng** | Danh sách mặc định khớp §5.2. |
+| R-10 | **Đúng** (đặc tả) | §4 ghi rõ: mỗi bài luyện tính là một đề; "đề" lấy theo lần sai gần nhất. |
+| R-11 | Ghi nhận | Mỗi lần sửa đặc tả đều có dòng ngày để giáo viên duyệt. Không chặn. |
+| V2-1 (mới) | Nhẹ | `apps-script/Code.gs:1229` `apiAdminDeleteResult_`: giáo viên xóa một bài nhưng không tăng `nbVer_` của học sinh đó, nên sổ tay của em còn câu của bài đã xóa tối đa 60 giây (đệm hết hạn theo `CACHE_SECONDS`). Sửa tay trang `KetQua` / `KetQuaLuyenTap` cũng vậy (đã ghi trong chú thích `nbVer_`). Không lộ đáp án, không hỏng dữ liệu, vẫn trong giới hạn đệm 60 giây của QUYET-DINH §7. Đề xuất: thêm `nbVer_(r.studentId, true)` sau `deleteRows_` (một dòng; nhớ cập nhật bài kiểm thử). |
+| V2-2 (mới) | Nhẹ | `assets/js/app.js:632`: R-6 dựa vào `notebookAllowed()` đọc cấu hình đã lưu trên máy. Đề xuất (không bắt buộc): khi `cached()` trả về bản lưu mà lỗi là "Giáo viên đang tắt sổ tay", cũng xóa bản lưu. |
+| V2-3 (mới) | Nhẹ (kiểm thử) | TC-5.1 nay báo thêm #b42323. #1D6B3E đã có trong danh sách. Ý kiến như vòng 1: giáo viên chốt bảng màu Sổ tay, người kiểm thử thêm các màu `--nb-*` (kể cả `--nb-do-text`) vào danh sách cho phép. |
+
+Bài kiểm thử mới "Vòng 2 (R-1)" kiểm đúng ý: đếm số lần đọc, học sinh khác nộp bài vẫn trúng đệm, chính em nộp bài thì có số liệu mới ngay, `notebookItem` đọc ≤ 3 lần. Không bài kiểm thử cũ nào bị sửa trong vòng 2.
+
+### Kết luận vòng 2
+**ĐẠT.** R-1, R-2 và các mục Nhẹ R-3, R-5 → R-10 đã sửa đúng. Không có phát hiện Nặng hay Vừa mới. Ba mục mới (V2-1, V2-2, V2-3) đều Nhẹ; V2-1 nên thêm cùng lúc nếu còn vòng sửa. TC-5.1 chờ giáo viên chốt bảng màu rồi người kiểm thử cập nhật danh sách.
