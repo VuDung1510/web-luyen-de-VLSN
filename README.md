@@ -199,7 +199,8 @@ Sửa kho (thêm đáp án, thêm câu) xong thì bấm **↻ Đọc lại kho**
 3. Máy tự nhận ra câu bỏ trống, và (khi đề đã công bố lời giải) đáp án Phần III lệch đúng 10ⁿ lần, lệch nhỏ hoặc ngược dấu. Câu thuộc đề chưa công bố lời giải vẫn hiện nội dung và câu trả lời của em, **không** hiện đáp án và lời giải.
 4. Học sinh **tự chọn / đổi loại lỗi** cho từng câu (chọn của em thắng máy đoán), viết **ghi chú** cho từng câu và **ghi chú chung** trong sổ. Mỗi loại sai ngoo có công cụ sửa: **thẻ công thức** (từ trang tính `CongThuc`), **tập gạch từ khóa** (từ khóa trong `TU_KHOA_DOC_SAI`), **thang đổi đơn vị**, **bảng chia thời gian** từng phần (có giờ làm xong thật của em).
 5. Nộp bài xong, trang kết quả có thẻ **Sổ tay** mở sẵn khung "Em sai vì sao?" một lần cho mỗi bài (bỏ qua được). Trang chủ nhắc khi có lỗi lặp lại. Trước khi làm **đề thi**, em phải đọc và tick "Em đã đọc" hộp **Điều cần nhớ** lấy từ sổ tay (bài luyện tập không hỏi).
-6. **Cài đặt → Mục Sổ tay cho học sinh** (`BAT_SO_TAY`): mặc định Bật. Trang tính `CongThuc` do giáo viên nhập dần. Đề khắc phục sẽ có ở Pha 7c.
+6. **Đề khắc phục** (cần cả Sổ tay và Luyện tập đang bật): *Ôn trước giờ kiểm tra* (5 câu, 7 phút, nhắm lỗi nặng nhất), *Đề khắc phục* (10 câu, 15 phút), *Ôn lỗi này* (5 câu cho một loại lỗi). Đề gồm câu em từng sai làm lại được (đề đã công bố lời giải) và câu tương tự cùng bài trong pool luyện tập. Làm đúng thì câu sai trong sổ tay chuyển vàng, rồi xanh; trang kết quả báo câu nào vừa đổi màu. Bài ghi vào `KetQuaLuyenTap` (cột Kiểu ghi là đề khắc phục), không tính bảng xếp hạng.
+7. **Cài đặt → Mục Sổ tay cho học sinh** (`BAT_SO_TAY`): mặc định Bật. Trang tính `CongThuc` do giáo viên nhập dần.
 
 ### Mục tiêu điểm
 

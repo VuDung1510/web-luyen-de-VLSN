@@ -265,7 +265,7 @@
   const gradeName = (d) => (d >= 9 ? 'Xuất sắc' : d >= 8 ? 'Giỏi' : d >= 6.5 ? 'Khá' : d >= 5 ? 'Trung bình' : 'Cần cố gắng');
   const LEVELS = { NB: 'Nhận biết', TH: 'Thông hiểu', VD: 'Vận dụng', VDC: 'Vận dụng cao' };
   const TYPES = { TN: 'Trắc nghiệm', DS: 'Đúng/Sai', TL: 'Trả lời ngắn' };
-  const PRACTICE_KIEU = { TU_TAO: 'Tự tạo đề', CAU_SAI: 'Luyện câu đã sai', NHANH: 'Đề nhanh' };
+  const PRACTICE_KIEU = { TU_TAO: 'Tự tạo đề', CAU_SAI: 'Luyện câu đã sai', NHANH: 'Đề nhanh', KHAC_PHUC: 'Đề khắc phục' };
   const PARTS = { 1: 'PHẦN I. Trắc nghiệm nhiều phương án lựa chọn', 2: 'PHẦN II. Trắc nghiệm đúng sai', 3: 'PHẦN III. Trắc nghiệm trả lời ngắn' };
 
   /**

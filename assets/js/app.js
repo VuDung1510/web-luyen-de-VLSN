@@ -706,8 +706,11 @@
   function renderNotebook(d) {
     nb.data = d;
     const t = d.tongHop;
-    let h = `<div class="nb-head"><h1>Sổ tay của em</h1>
-      <p class="muted" id="nbMeta">${t.tong} câu đã sai · ${t.chuaKhacPhuc} câu chưa làm đúng lại · ${t.lapLai} lỗi đang lặp lại</p></div>`;
+    const canFix = practiceAllowed() && d.items.some((x) => x.mau !== 'xanh');
+    let h = `<div class="nb-head"><div><h1>Sổ tay của em</h1>
+      <p class="muted" id="nbMeta">${t.tong} câu đã sai · ${t.chuaKhacPhuc} câu chưa làm đúng lại · ${t.lapLai} lỗi đang lặp lại</p></div>
+      ${canFix ? `<div class="nb-fixbar"><button class="btn btn-primary" data-nbstart="ON_NHANH">Ôn trước giờ kiểm tra <small>5 câu · 7 phút</small></button>
+        <button class="btn" data-nbstart="MUOI_CAU">Đề khắc phục <small>10 câu · 15 phút</small></button></div>` : ''}</div>`;
     if (!d.items.length) {
       $app.innerHTML = h + `<div class="card empty" id="nbEmpty">Em chưa có câu sai nào. Sau mỗi bài làm, các câu sai sẽ tự vào sổ tay để em xem lại.
         <div style="margin-top:10px"><a class="btn" href="#/">← Trang chủ</a></div></div>`;
@@ -750,6 +753,7 @@
     ['nbfLoai', 'nbfSrc', 'nbfMau'].forEach((id) => { document.getElementById(id).onchange = onFilter; });
     document.getElementById('nbfQ').oninput = onFilter;
     $app.querySelector('.nb-tabs').onclick = (e) => { const b = e.target.closest('[data-nbtab]'); if (b) nbSetTab(b.dataset.nbtab); };
+    $app.querySelector('.nb-head').onclick = nbStartClick;
     const list = document.getElementById('nbList'), book = document.getElementById('nbBook');
     list.onclick = nbListClick;
     book.onclick = nbBookClick;
@@ -1195,7 +1199,18 @@
     if (s.closest('#nbBook')) nbRenderBook(); else nbRenderList();
   }
 
+  /** Pha 7c: bắt đầu đề khắc phục (đi qua hộp mục tiêu điểm như các bài luyện khác). */
+  function nbStartClick(e) {
+    const b = e.target.closest('[data-nbstart]');
+    if (!b) return false;
+    const body = { kieu: 'KHAC_PHUC', mau: b.dataset.nbstart };
+    if (b.dataset.ma) body.ma = b.dataset.ma;
+    startPractice(b, body);
+    return true;
+  }
+
   function nbBookClick(e) {
+    if (nbStartClick(e)) return;
     const fx = e.target.closest('[data-nbfix]');
     if (fx) {
       const ma = fx.dataset.nbfix;
@@ -1264,6 +1279,7 @@
         <button class="nb-err-name" data-nbtype="${s.ma}" title="Xem các câu thuộc lỗi này">${esc(s.ten)}</button>
         <span class="nb-err-meta">${s.lapLai ? '<span class="nb-rep">Lặp lại</span>' : ''}<span class="num"><b>${s.so}</b> câu · ${s.tiLe}%</span></span></div>
         <div class="nb-err-sub"><div class="nb-err-bar"><i style="width:${s.tiLe}%;background:${segColor(s.ma)}"></i></div>
+          ${practiceAllowed() && s.mau !== 'xanh' ? `<button class="nb-fix-toggle" data-nbstart="MOT_LOI" data-ma="${s.ma}" title="Đề 5 câu, 7 phút cho lỗi này">Ôn lỗi này</button>` : ''}
           <button class="nb-fix-toggle" data-nbfix="${s.ma}" aria-expanded="${open}">${open ? 'Thu gọn ▾' : 'Cách sửa ▸'}</button></div>
         ${open ? `<div class="nb-fix-panel">${nbBookFix(s.ma)}</div>` : ''}</div>`;
     }).join('') : '<div class="muted nb-line">Chưa có lỗi nào thuộc nhóm này.</div>';
@@ -1274,7 +1290,8 @@
         <div class="nb-hkt-sum">Gồm câu chưa biết làm${hk.doanMo ? `, ${hk.doanMo} câu đoán mò` : ''}${hk.chuaRo ? ` và ${hk.chuaRo} câu chưa phân loại` : ''}.</div>
         ${hk.chuong.map((c) => `<div class="nb-map-ch"><i class="nb-dot ${c.mau}"></i><button class="nb-err-name" data-nbch="${esc(c.chuong)}">${esc(c.chuong)}</button><span class="num">${c.so} câu</span></div>
           ${c.bai.map((b) => `<div class="nb-map-bai"><span>${esc(b.bai)}</span><span class="num">${b.so}</span></div>`).join('')}`).join('')}
-        ${hk.chuaRo ? `<button class="nb-link" data-nbtype="CHUA_RO">Phân loại ${hk.chuaRo} câu còn lại ▸</button>` : ''}</details>`;
+        ${hk.chuaRo ? `<button class="nb-link" data-nbtype="CHUA_RO">Phân loại ${hk.chuaRo} câu còn lại ▸</button>` : ''}
+        ${practiceAllowed() && hk.so > hk.chuaRo ? `<div><button class="nb-link" data-nbstart="MOT_LOI" data-ma="HONG">Ôn phần hổng kiến thức (5 câu · 7 phút) ▸</button></div>` : ''}</details>`;
     }
     h += `<div class="nb-sec"><div class="nb-sec-h"><h3>Ghi chú của em</h3><span class="nb-saved" id="nbGsaved"></span></div>
       <textarea class="nb-notes" id="nbGnote" data-nbnote="_CHUNG" maxlength="500" aria-label="Ghi chú của em" placeholder="Viết điều em muốn nhớ trước mỗi bài kiểm tra…">${esc(nb.data.ghiChuChung || '')}</textarea></div>`;
@@ -1342,11 +1359,12 @@
   async function nbAfterResult(v) {
     if (!notebookAllowed() || !v || !v.id) return;
     const wrongs = (v.items || []).filter((it) => !(it.score >= it.max - 1e-9 && it.max > 0));
-    if (!wrongs.length) return;
+    const kp = (v.khacPhuc || []).filter((x) => x.truoc !== x.sau);
+    if (!wrongs.length && !kp.length) return;
     const my = App.currentView();
-    let r;
-    try { r = await api('notebookResult', { resultId: v.id }); } catch (e) { return; }
-    if (App.currentView() !== my || !r.items.length) return;
+    let r = { items: [], daPhanLoai: true };
+    if (wrongs.length) { try { r = await api('notebookResult', { resultId: v.id }); } catch (e) { if (!kp.length) return; } }
+    if (App.currentView() !== my || (!r.items.length && !kp.length)) return;
     const seenKey = 'ld_nbwhy_' + v.id;
     const st = { open: !r.daPhanLoai && !store.get(seenKey, false), pick: {} };
     if (st.open) store.set(seenKey, true);
@@ -1361,8 +1379,10 @@
     card.id = 'nbResult';
     const draw = () => {
       const lap = r.items.filter((x) => x.lapLai);
-      let h = `<div class="card-title"><h2>Sổ tay</h2><div class="row">${st.open ? '' : '<button class="btn btn-sm btn-primary" data-why="open">Phân loại lỗi</button>'}<a class="btn btn-sm" href="#/so-tay">Mở sổ tay</a></div></div>
-        <div>Bài này có <b>${r.items.length}</b> câu sai${r.daPhanLoai ? ', em đã phân loại đủ' : ''}.</div>
+      const MAU = { do: 'đỏ', vang: 'vàng', xanh: 'xanh' };
+      let h = `<div class="card-title"><h2>Sổ tay</h2><div class="row">${st.open || !r.items.length ? '' : '<button class="btn btn-sm btn-primary" data-why="open">Phân loại lỗi</button>'}<a class="btn btn-sm" href="#/so-tay">Mở sổ tay</a></div></div>
+        ${kp.length ? `<div class="nb-kp"><b>Câu đã sai trước đây vừa đổi màu:</b>${kp.map((x) => `<div><i class="nb-dot ${x.truoc}"></i> → <i class="nb-dot ${x.sau}"></i> Câu ${esc(x.stt)} · ${esc(x.luyenTap ? 'Luyện tập: ' + x.tieuDe : x.tieuDe)}: ${MAU[x.truoc] || '—'} → <b>${MAU[x.sau]}</b>${x.sau === 'xanh' ? ' (đã khắc phục)' : ''}</div>`).join('')}</div>` : ''}
+        ${r.items.length ? `<div>Bài này có <b>${r.items.length}</b> câu sai${r.daPhanLoai ? ', em đã phân loại đủ' : ''}.</div>` : '<div>Bài này không có câu sai.</div>'}
         ${lap.length ? `<div class="nb-lap">${lap.map((x) => `Câu ${x.stt}: <b>${esc(NB_LOAI[x.loi.ma].ten)}</b>: lỗi này em đã mắc ${x.soCauLoai || 'nhiều'} lần.`).join('<br>')}</div>` : ''}`;
       if (st.open) {
         h += `<h3 style="margin-top:14px">Em sai vì sao?</h3><p class="muted small" style="margin-top:-4px">Chọn lý do cho từng câu để sổ tay nhắc đúng lỗi của em. Có thể bỏ qua và chọn sau trong Sổ tay. Chip có dấu ? là máy đoán, chưa chắc chắn.</p>
@@ -1484,6 +1504,13 @@
       <div class="card"><h3>⚡ Đề nhanh ${n.phut} phút</h3><p class="muted small">Một bài: ${n.TN} câu Phần I, ${n.DS} câu Phần II, ${n.TL} câu Phần III.</p>
         <select id="ptQuickBai" aria-label="Chọn bài cho đề nhanh">${chOrder.map((c) => `<optgroup label="${esc(c)}">${byCh[c].map(opt).join('')}</optgroup>`).join('')}</select>
         <button class="btn btn-primary" id="ptQuick" style="margin-top:8px" ${total && !busy ? '' : 'disabled'}>Làm đề nhanh</button></div></div>`;
+    if (notebookAllowed()) {
+      h += `<div class="card section-gap nb-pt-fix" id="ptFix"><h3>🔧 Đề khắc phục từ sổ tay</h3>
+        <p class="muted small">Làm lại câu em từng sai và câu tương tự cùng bài. Làm đúng thì câu sai trong sổ tay chuyển vàng, rồi xanh.</p>
+        <div class="row"><button class="btn btn-primary" data-nbstart="ON_NHANH" ${busy ? 'disabled' : ''}>Ôn trước giờ kiểm tra <small>5 câu · 7 phút</small></button>
+          <button class="btn" data-nbstart="MUOI_CAU" ${busy ? 'disabled' : ''}>Đề khắc phục <small>10 câu · 15 phút</small></button>
+          <a class="btn btn-ghost" href="#/so-tay">Mở sổ tay</a></div></div>`;
+    }
     const chk = (cls, val, label, on, extra) => `<label class="chk"><input type="checkbox" class="${cls}" value="${esc(val)}" ${extra || ''} ${on ? 'checked' : ''}> ${label}</label>`;
     h += `<div class="card section-gap" id="ptBuilder"><h2>Tự tạo đề</h2>
       <div class="bank-tree practice-tree" id="ptTree">${chOrder.map((c, ci) => {
@@ -1541,6 +1568,8 @@
     w.onclick = () => startPractice(w, { kieu: 'CAU_SAI' });
     const q = document.getElementById('ptQuick');
     q.onclick = () => startPractice(q, { kieu: 'NHANH', bai: [document.getElementById('ptQuickBai').value] });
+    const pf = document.getElementById('ptFix');
+    if (pf) pf.onclick = nbStartClick;
   }
 
   /** Hỏi mục tiêu điểm (có "Bỏ qua") rồi gọi practiceStart và vào làm bài. */

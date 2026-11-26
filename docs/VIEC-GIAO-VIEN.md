@@ -2,7 +2,7 @@
 
 ## Pha 7 — Sổ tay cá nhân: dán Code.gs MỘT LẦN, sau khi Pha 7c đã gộp vào `main` (CHƯA làm)
 
-Đã chốt 26/11/2026: làm xong 7a, 7b, 7c rồi mới dán (như Pha 6). Trong lúc chờ, các pha con vẫn gộp vào `main`; học sinh dùng web bình thường, mục **Sổ tay** tự ẩn cho tới khi máy chủ được cập nhật. Các bước dưới đây ghi theo bản 7a; khi 7c xong sẽ ghi lại số phiên bản cuối và việc thêm của 7b, 7c.
+Đã chốt 26/11/2026: làm xong 7a, 7b, 7c rồi mới dán (như Pha 6). Trong lúc chờ, các pha con vẫn gộp vào `main`; học sinh dùng web bình thường, mục **Sổ tay** tự ẩn cho tới khi máy chủ được cập nhật. Bản cuối là **Code.gs 1.8.0** (gồm 7a, 7b, 7c). 7b, 7c không thêm bước nào cho giáo viên ngoài các bước dưới đây; đề khắc phục cần mục Luyện tập đang bật (`CHO_LUYEN_TAP` = `CO`) và pool luyện tập có câu.
 - ☐ Sao lưu Google Sheet "web luyện đề" (**Tệp → Tạo bản sao**), ghi số phiên bản triển khai đang dùng (như A1 bên dưới).
 - ☐ **Tiện ích mở rộng → Apps Script**, Ctrl+A xóa code cũ, dán `apps-script/Code.gs` (nút **Copy raw file** trên GitHub), bấm 💾 **Lưu**. Ctrl+F tìm `APP_VERSION`: phải thấy `var APP_VERSION = '1.8.0';` (ở khoảng dòng 21, sau khối chú thích đầu file).
 - ☐ Chọn hàm **`setup`** → ▶ **Chạy**. Google sẽ không hỏi quyền mới. Quay lại Google Sheet: có thêm trang tính `SoTay`, `CongThuc` (tổng cộng 9 trang tính của web) và 2 dòng mới cuối `CaiDat`: `BAT_SO_TAY` = `CO`, `TU_KHOA_DOC_SAI`.
