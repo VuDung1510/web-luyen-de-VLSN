@@ -151,11 +151,15 @@ details.sol div { margin-top: 6px; font-size: 14px; }
   border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 32px 18px 32px 54px; position: sticky; top: 12px;
   line-height: 32px; /* mỗi dòng chữ = 1 dòng kẻ */
+  --rule-shift: 10px; /* kéo dòng kẻ lên sát chân chữ, như viết vở */
+  background-position: 0 0, 0 calc(-1 * var(--rule-shift));
 }
 /* Trong sổ: mọi dòng chữ cao 32px, khoảng cách giữa các khối là bội 32px; khối công cụ (chiều cao tự do) được JS bù cho tròn bội 32px. */
 .book .tool { line-height: 1.55; }
 .book-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; column-gap: 10px; }
-.book-head h2 { font-size: 20px; color: var(--primary); white-space: nowrap; }
+.book-head h2 { font-size: 20px; color: var(--primary); white-space: nowrap; position: relative; top: -2px; }
+/* chữ nhỏ 12px: hạ xuống cho chân chữ chạm dòng kẻ */
+.saved { position: relative; top: 5px; }
 .legend-sev { display: flex; flex-wrap: wrap; column-gap: 10px; font-size: 12px; color: var(--muted); }
 .legend-sev span { display: inline-flex; align-items: center; gap: 4px; }
 .ratio-row { height: 32px; display: flex; align-items: center; }
@@ -167,7 +171,9 @@ details.sol div { margin-top: 6px; font-size: 14px; }
 .sec { margin-top: 32px; }
 .sec-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 8px; }
 .sec-h h3 { font-size: 16px; }
-.err-line { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; column-gap: 10px; align-items: center; }
+.err-line { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; column-gap: 10px; align-items: start; }
+.err-line > .dot { margin-top: 10px; }
+.err-meta { min-height: 32px; }
 .err-name { background: none; border: 0; padding: 0; text-align: left; font-weight: 600; font-size: 15px; min-width: 0; }
 .err-name:hover { color: var(--primary); text-decoration: underline; }
 .err-meta { display: flex; gap: 8px; align-items: center; font-size: 13px; }
@@ -186,8 +192,7 @@ details.hkt[open] > summary .more .closed, details.hkt:not([open]) > summary .mo
 .map-bai { padding-left: 20px; font-size: 13px; color: var(--muted); }
 .map-bai div { display: flex; justify-content: space-between; gap: 8px; }
 .hkt-sum { font-size: 13px; color: var(--muted); }
-/* Ghi chú viết như vở: đẩy chữ xuống để chân chữ nằm sát dòng kẻ bên dưới. */
-.notes { --note-pad: 9px; display: block; width: 100%; height: calc(128px + var(--note-pad)); margin: 0; padding: var(--note-pad) 0 0; border: 0; border-radius: 0; background: transparent; resize: none; overflow: hidden; font-size: 15px; font-family: var(--font); line-height: 32px; }
+.notes { --note-pad: 0px; display: block; width: 100%; height: calc(128px + var(--note-pad)); margin: 0; padding: var(--note-pad) 0 0; border: 0; border-radius: 0; background: transparent; resize: none; overflow: hidden; font-size: 15px; font-family: var(--font); line-height: 32px; }
 .notes:focus-visible { outline: 2px dashed var(--primary); }
 .saved { font-size: 12px; color: var(--muted); }
 
@@ -259,7 +264,7 @@ ul.tips { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4p
   .tabs { display: flex; }
   .split { grid-template-columns: minmax(0, 1fr); }
   .split[data-tab="sotay"] .pane-list, .split[data-tab="cau"] .pane-book { display: none; }
-  .book { position: static; padding-left: 46px; background-image: linear-gradient(90deg, transparent 30px, var(--margin) 30px, var(--margin) 32px, transparent 32px), repeating-linear-gradient(180deg, transparent 0 31px, var(--rule) 31px 32px); }
+  .book { position: static; padding-left: 46px; background-image: linear-gradient(90deg, transparent 30px, var(--margin) 30px, var(--margin) 32px, transparent 32px), repeating-linear-gradient(180deg, transparent 0 31px, var(--rule) 31px 32px); background-position: 0 0, 0 calc(-1 * var(--rule-shift)); }
   .opts { grid-template-columns: minmax(0, 1fr); }
   .head h1 { font-size: 22px; }
 }
